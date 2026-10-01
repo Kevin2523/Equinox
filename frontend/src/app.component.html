@@ -1,0 +1,1239 @@
+<!-- ==========================================================================
+     TOPBAR NAVIGATION
+     ========================================================================== -->
+<header class="topnav">
+  <!-- Brand Logo -->
+  <button class="brand" (click)="navigate('hoy')" aria-label="Inicio Equinox">
+    <span class="brand-mark"><i></i></span>
+    <strong>equinox</strong>
+  </button>
+
+  <!-- Desktop Navigation -->
+  <nav aria-label="Navegación principal">
+    <button (click)="navigate('hoy')" [class.active]="page === 'hoy'">
+      <svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9H15v-6H9v6H3z"/></svg>
+      Hoy
+    </button>
+    <button (click)="navigate('clientes')" [class.active]="page === 'clientes'">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.8M16 3.2a4 4 0 0 1 0 7.6"/></svg>
+      Clientes
+    </button>
+    <button (click)="navigate('proyectos')" [class.active]="page === 'proyectos'">
+      <svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v11H3zM3 11h18"/></svg>
+      Proyectos
+    </button>
+    <button (click)="navigate('tareas')" [class.active]="page === 'tareas'">
+      <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v8H3V4h13"/></svg>
+      Tareas
+    </button>
+    <button (click)="navigate('finanzas')" [class.active]="page === 'finanzas'">
+      <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/></svg>
+      Finanzas
+    </button>
+    <button (click)="navigate('portal')" [class.active]="page === 'portal'" class="portal-link" title="Vista previa del portal del cliente">
+      <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      Portal Cliente
+    </button>
+  </nav>
+
+  <!-- Navigation Actions -->
+  <div class="nav-actions">
+    <!-- Search Button -->
+    <button class="nav-icon" id="openSearch" (click)="openSearch()" aria-label="Buscar en Equinox (Ctrl+K)" title="Buscar (Ctrl+K)">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+    </button>
+
+    <!-- Notifications Bell -->
+    <div class="notif-wrapper">
+      <button class="nav-icon bell" (click)="toggleNotifications()" aria-label="Notificaciones" title="Notificaciones">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M14 21h-4"/></svg>
+        <i *ngIf="unreadNotifsCount > 0"></i>
+      </button>
+
+      <!-- Notifications Popover -->
+      <div class="notif-popover" *ngIf="notificationsOpen" (click)="$event.stopPropagation()">
+        <div class="notif-header">
+          <strong>Notificaciones</strong>
+          <span class="eyebrow" *ngIf="unreadNotifsCount > 0">{{ unreadNotifsCount }} nuevas</span>
+        </div>
+        <div class="notif-list">
+          <div class="notif-item" *ngFor="let n of notificaciones" [class.unread]="!n.leida">
+            <span class="notif-dot" [class.dot-coral]="n.tipo === 'feedback'" [class.dot-green]="n.tipo === 'pago'" [class.dot-blue]="n.tipo === 'proyecto'"></span>
+            <div>
+              <b>{{ n.titulo }}</b>
+              <p>{{ n.descripcion }}</p>
+              <small>{{ n.tiempo }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Profile Button -->
+    <button class="profile" (click)="navigate('configuracion')" aria-label="Perfil y configuración">
+      <span>KM</span>
+      <b>⌄</b>
+    </button>
+
+    <!-- Mobile Menu Trigger -->
+    <button class="mobile-toggle" (click)="mobileMenuOpen = !mobileMenuOpen" aria-label="Menú móvil">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div class="mobile-nav-drawer" *ngIf="mobileMenuOpen">
+  <button (click)="navigate('hoy')" [class.active]="page === 'hoy'">Hoy (Mapa interactivo)</button>
+  <button (click)="navigate('clientes')" [class.active]="page === 'clientes'">Clientes</button>
+  <button (click)="navigate('proyectos')" [class.active]="page === 'proyectos'">Proyectos</button>
+  <button (click)="navigate('tareas')" [class.active]="page === 'tareas'">Tareas</button>
+  <button (click)="navigate('finanzas')" [class.active]="page === 'finanzas'">Finanzas</button>
+  <button (click)="navigate('portal')" [class.active]="page === 'portal'">Portal del Cliente</button>
+  <button (click)="navigate('configuracion')" [class.active]="page === 'configuracion'">Configuración de Marca</button>
+</div>
+
+<!-- ==========================================================================
+     MAIN CONTENT WORKSPACE
+     ========================================================================== -->
+<main [class.workspace]="mapActive" [class.standard]="!mapActive">
+
+  <!-- ========================================================================
+       1. VISTA DASHBOARD — MAPA DE TRABAJO INTERACTIVO (HOY)
+       ======================================================================== -->
+  <section class="map-area" *ngIf="mapActive">
+    <!-- Map Header -->
+    <div class="map-head">
+      <div>
+        <p class="eyebrow">VISTA GENERAL</p>
+        <h1>Mapa de trabajo</h1>
+        <p><b>{{ proyectos.length }}</b> proyectos activos conectados</p>
+      </div>
+
+      <!-- Map Search Bar -->
+      <label class="map-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input [(ngModel)]="query" placeholder="Buscar clientes o proyectos...">
+      </label>
+    </div>
+
+    <!-- SVG Connection Lines smoothly connecting node centers -->
+    <svg class="connections" viewBox="0 0 1000 720" preserveAspectRatio="none">
+      <path class="main-line" d="M510 360C390 270 310 235 250 220M510 360C640 260 740 210 820 180M510 360C350 370 220 380 120 390M510 360C370 470 270 540 200 600M510 360C670 360 780 360 880 360M510 360C660 460 770 540 840 600M510 360C550 470 580 550 610 620"/>
+      <path class="soft-line" d="M250 220C180 270 140 330 120 390M120 390C120 480 150 550 200 600M820 180C860 235 880 295 880 360M880 360C880 450 860 535 840 600M840 600C760 620 680 620 610 620"/>
+      <path class="dash-line" d="M250 220C400 170 650 160 820 180M200 600C330 635 480 635 610 620"/>
+    </svg>
+
+    <!-- Dynamic Relation Labels -->
+    <div class="relation-label collab">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M20 8v6M17 11h6"/></svg>
+      Colaboración
+    </div>
+    <div class="relation-label opportunity">✦ Oportunidad</div>
+    <div class="relation-label synergy">↗ Sinergia</div>
+
+    <!-- Project Nodes on the Map -->
+    <button
+      *ngFor="let p of proyectos"
+      class="project-node"
+      [class.selected]="selectedProject?.id === p.id"
+      [class.faded]="query && !visibleProjects.includes(p)"
+      [class.n-cafe]="p.key === 'cafe'"
+      [class.n-istmo]="p.key === 'istmo'"
+      [class.n-bahia]="p.key === 'bahia'"
+      [class.n-taller]="p.key === 'taller'"
+      [class.n-brisa]="p.key === 'brisa'"
+      [class.n-nomada]="p.key === 'nomada'"
+      [class.n-mercado]="p.key === 'mercado'"
+      [class.n-selva]="p.key === 'selva'"
+      (click)="selectProject(p)"
+      [attr.aria-label]="p.nombre + ' ' + p.tipo"
+    >
+      <!-- Circular Visual Node Identity -->
+      <span class="node-visual" [ngClass]="p.visualClass"><i></i></span>
+      <strong>{{ p.nombre }}</strong>
+      <small>{{ p.tipo }}</small>
+
+      <!-- Participant Avatars -->
+      <span class="mini-faces" *ngIf="p.participantes && p.participantes.length > 0">
+        <i *ngFor="let part of p.participantes" [style.background]="part.color || '#09142e'">
+          {{ part.iniciales }}
+        </i>
+      </span>
+
+      <!-- Status Pill when selected -->
+      <em *ngIf="selectedProject?.id === p.id">● {{ p.estado }}</em>
+    </button>
+
+    <!-- Floating Command Dock -->
+    <div class="command-dock">
+      <button class="create" id="createBtn" (click)="openQuickCreate()">
+        <span>＋</span>Crear
+      </button>
+      <i></i>
+      <button id="dockSearch" (click)="openSearch()">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        Buscar...
+      </button>
+      <i></i>
+      <button title="Archivos del proyecto" (click)="switchTab('archivos')">
+        <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM15 3v5h5M8 13h8M8 17h6"/></svg>
+      </button>
+      <button title="Tareas pendientes" (click)="navigate('tareas')">
+        <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v8H3V4h13"/></svg>
+      </button>
+      <button title="Añadir colaborador" (click)="collaboratorModalOpen = true">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
+      </button>
+      <i></i>
+      <button title="Más opciones" (click)="navigate('configuracion')">•••</button>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       INSPECTOR LATERAL (PANEL DERECHO EN MAPA)
+       ======================================================================== -->
+  <aside class="inspector" *ngIf="mapActive && selectedProject">
+    <!-- Cover Banner with cafe-unido.png or thematic visual -->
+    <div class="cover" [class.cover-cafe]="selectedProject.key === 'cafe'">
+      <img *ngIf="selectedProject.imagenUrl && selectedProject.key !== 'cafe'" [src]="selectedProject.imagenUrl" [alt]="selectedProject.nombre">
+      <div *ngIf="!selectedProject.imagenUrl && selectedProject.key !== 'cafe'" class="cover-gradient" [style.background]="selectedProject.color">
+        <span>{{ selectedProject.tag }}</span>
+      </div>
+      <button aria-label="Editar proyecto" (click)="openQuickCreate('Proyecto')" title="Editar proyecto">
+        <svg viewBox="0 0 24 24"><path d="m4 16-1 5 5-1L20 8l-4-4zM14 6l4 4"/></svg>
+      </button>
+    </div>
+
+    <!-- Project Title & Status -->
+    <div class="project-title">
+      <div>
+        <h2 id="detailName">{{ selectedProject.nombre }}</h2>
+        <p id="detailType">{{ selectedProject.tipo }} · {{ selectedProject.clienteNombre }}</p>
+      </div>
+      <span id="detailStatus" [class]="'badge-' + selectedProject.estadoBadgeClass">
+        ● &nbsp; {{ selectedProject.estado }}
+      </span>
+    </div>
+
+    <!-- Team Members -->
+    <div class="members">
+      <span *ngFor="let part of selectedProject.participantes" [style.background]="part.color || '#09142e'">
+        {{ part.iniciales }}
+      </span>
+      <button (click)="collaboratorModalOpen = true" title="Añadir colaborador">＋</button>
+    </div>
+
+    <!-- Inspector Tabs -->
+    <nav class="tabs">
+      <button [class.active]="tab === 'resumen'" (click)="switchTab('resumen')">Resumen</button>
+      <button [class.active]="tab === 'tareas'" (click)="switchTab('tareas')">Tareas</button>
+      <button [class.active]="tab === 'archivos'" (click)="switchTab('archivos')">Archivos</button>
+      <button [class.active]="tab === 'factura'" (click)="switchTab('factura')">Factura</button>
+      <button [class.active]="tab === 'feedback'" (click)="switchTab('feedback')">Feedback</button>
+    </nav>
+
+    <!-- Tab 1: Resumen -->
+    <div class="tab-panel active" *ngIf="tab === 'resumen'">
+      <!-- Circular Progress Ring & Milestones -->
+      <section class="progress-block">
+        <h3>Progreso del proyecto</h3>
+        <div class="progress-body">
+          <div
+            class="progress-ring"
+            [style.background]="'conic-gradient(var(--blue) 0% ' + selectedProject.progreso + '%, #e9edf4 ' + selectedProject.progreso + '% 100%)'"
+          >
+            <span id="detailProgress">{{ selectedProject.progreso }}%</span>
+          </div>
+          <ul>
+            <li
+              *ngFor="let h of selectedProject.hitos"
+              [class.done]="h.estado === 'COMPLETADO'"
+              [class.current]="h.estado === 'ACTUAL'"
+            >
+              {{ h.titulo }}
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Next Delivery Card -->
+      <section class="delivery">
+        <h3>Próxima entrega</h3>
+        <button (click)="switchTab('tareas')">
+          <svg viewBox="0 0 24 24"><path d="M7 2v4M17 2v4M3 9h18M4 4h16v17H4z"/></svg>
+          <span>
+            <b id="detailDelivery">{{ selectedProject.entregaDestacada.fecha }}</b>
+            <small>{{ selectedProject.entregaDestacada.descripcion }}</small>
+          </span>
+          <strong>›</strong>
+        </button>
+      </section>
+
+      <!-- Recent Files Preview Grid -->
+      <section class="files">
+        <div class="section-head">
+          <h3>Archivos recientes</h3>
+          <button (click)="switchTab('archivos')">Ver todos</button>
+        </div>
+        <div class="file-grid" *ngIf="selectedProject.archivos.length > 0">
+          <button *ngFor="let f of selectedProject.archivos.slice(0, 4)" (click)="equinox.mostrarToast('Descargando ' + f.nombre)">
+            <span class="file-preview" [ngClass]="f.previewClass">{{ f.previewIcon }}</span>
+            <b>{{ f.nombre }}</b>
+            <small>{{ f.tamano }}</small>
+          </button>
+        </div>
+        <div class="empty-files" *ngIf="selectedProject.archivos.length === 0">
+          <p>No hay entregables subidos aún.</p>
+          <button class="btn-secondary" (click)="switchTab('archivos')">＋ Subir archivo</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Tab 2: Tareas -->
+    <div class="tab-panel active" *ngIf="tab === 'tareas'">
+      <div class="tab-section-head">
+        <h3>Tareas del proyecto ({{ selectedProject.tareas.length }})</h3>
+        <small>{{ selectedProject.progreso }}% completado</small>
+      </div>
+
+      <!-- Quick Add Task -->
+      <div class="inline-add">
+        <input
+          [(ngModel)]="inlineTaskTitle"
+          placeholder="Escribe una nueva tarea..."
+          (keyup.enter)="addInlineTask()"
+        >
+        <button (click)="addInlineTask()">＋ Añadir</button>
+      </div>
+
+      <!-- Task Checklist with functional checkboxes -->
+      <div class="task-checklist">
+        <div
+          class="task-check-row"
+          *ngFor="let t of selectedProject.tareas"
+          [class.done]="t.estado === 'COMPLETADA'"
+        >
+          <label class="custom-checkbox">
+            <input
+              type="checkbox"
+              [checked]="t.estado === 'COMPLETADA'"
+              (change)="toggleTask(t.id)"
+            >
+            <span class="checkmark"></span>
+          </label>
+          <div class="task-info">
+            <b [class.strikethrough]="t.estado === 'COMPLETADA'">{{ t.titulo }}</b>
+            <small>Vence: {{ t.fechaVencimiento }} · <span class="priority-tag">{{ t.prioridad }}</span></small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Archivos -->
+    <div class="tab-panel active" *ngIf="tab === 'archivos'">
+      <div class="tab-section-head">
+        <h3>Entregables y archivos ({{ selectedProject.archivos.length }})</h3>
+        <button class="btn-primary-sm" (click)="equinox.agregarArchivo(selectedProject.id, 'Entregable_Final.pdf', '3.8 MB', 'doc-file', '≡')">
+          ＋ Subir
+        </button>
+      </div>
+
+      <div class="deliverables-list" *ngIf="selectedProject.archivos.length > 0">
+        <div class="deliverable-item" *ngFor="let f of selectedProject.archivos">
+          <span class="file-preview-sm" [ngClass]="f.previewClass">{{ f.previewIcon }}</span>
+          <div class="deliverable-details">
+            <b>{{ f.nombre }}</b>
+            <small>{{ f.tamano }} · Subido {{ f.fecha }}</small>
+          </div>
+          <button class="download-btn" (click)="equinox.mostrarToast('Descargando ' + f.nombre)" title="Descargar">
+            ↓
+          </button>
+        </div>
+      </div>
+
+      <div class="empty" *ngIf="selectedProject.archivos.length === 0">
+        <span>▣</span>
+        <h3>Sin archivos aún</h3>
+        <p>Sube propuestas, mockups o manuales de estilo para compartirlos con el cliente.</p>
+        <button class="btn-primary" (click)="equinox.agregarArchivo(selectedProject.id, 'Propuesta_Inicial.pdf', '2.1 MB', 'doc-file', '≡')">
+          ＋ Subir primer entregable
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab 4: Factura -->
+    <div class="tab-panel active" *ngIf="tab === 'factura'">
+      <div class="invoice-summary-card">
+        <small>ESTADO FINANCIERO DEL PROYECTO</small>
+        <strong>B/. {{ selectedProject.presupuesto | number:'1.2-2' }}</strong>
+        <p>Presupuesto total acordado</p>
+      </div>
+
+      <div class="tab-section-head">
+        <h3>Facturas asociadas</h3>
+        <button class="btn-primary-sm" (click)="openQuickCreate('Factura')">＋ Facturar</button>
+      </div>
+
+      <div class="invoices-list" *ngIf="selectedProject.facturas && selectedProject.facturas.length > 0">
+        <div class="invoice-card-mini" *ngFor="let inv of selectedProject.facturas">
+          <div class="inv-top">
+            <b>{{ inv.numero }}</b>
+            <span [class.badge-completado]="inv.estado === 'PAGADA'" [class.badge-revision]="inv.estado === 'PENDIENTE'">
+              ● {{ inv.estado }}
+            </span>
+          </div>
+          <p class="inv-concept">{{ inv.concepto }}</p>
+          <div class="inv-bottom">
+            <span>B/. {{ inv.monto | number:'1.2-2' }}</span>
+            <button *ngIf="inv.estado !== 'PAGADA'" class="btn-pay" (click)="markInvoicePaid(inv.id)">
+              Registrar pago
+            </button>
+            <small *ngIf="inv.estado === 'PAGADA'">Pagado el {{ inv.pagadaEn }}</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty" *ngIf="!selectedProject.facturas || selectedProject.facturas.length === 0">
+        <span>B/.</span>
+        <h3>Sin facturas emitidas</h3>
+        <p>Genera la primera factura de anticipo o cobro final para este proyecto.</p>
+        <button class="btn-primary" (click)="openQuickCreate('Factura')">＋ Crear factura</button>
+      </div>
+    </div>
+
+    <!-- Tab 5: Feedback -->
+    <div class="tab-panel active" *ngIf="tab === 'feedback'">
+      <div class="tab-section-head">
+        <h3>Feedback del cliente</h3>
+        <span class="badge badge-revision">En tiempo real</span>
+      </div>
+
+      <div class="feedback-thread">
+        <div
+          class="feedback-bubble"
+          *ngFor="let c of selectedProject.comentarios"
+          [class.freelancer]="c.autor === 'FREELANCER'"
+          [class.cliente]="c.autor === 'CLIENTE'"
+        >
+          <div class="bubble-header">
+            <span class="bubble-avatar">{{ c.avatar }}</span>
+            <b>{{ c.nombreAutor }}</b>
+            <small>{{ c.fecha }}</small>
+          </div>
+          <p>{{ c.contenido }}</p>
+        </div>
+
+        <div class="empty-comments" *ngIf="!selectedProject.comentarios || selectedProject.comentarios.length === 0">
+          <p>No hay comentarios recientes. Inicia la conversación con el cliente.</p>
+        </div>
+      </div>
+
+      <!-- Feedback Composer -->
+      <div class="feedback-composer">
+        <input
+          [(ngModel)]="inlineCommentText"
+          placeholder="Escribe una respuesta o mensaje al cliente..."
+          (keyup.enter)="addInlineComment()"
+        >
+        <button (click)="addInlineComment()">Enviar</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========================================================================
+       2. VISTA CLIENTES
+       ======================================================================== -->
+  <section class="collection" *ngIf="page === 'clientes'">
+    <div class="page-title">
+      <div>
+        <p class="eyebrow">EQUINOX / CLIENTES</p>
+        <h1>Clientes</h1>
+        <p>Directorio y relaciones comerciales activas en Panamá.</p>
+      </div>
+      <button class="btn-primary" (click)="openQuickCreate('Cliente')">
+        <span>＋</span> Nuevo cliente
+      </button>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="metrics-row">
+      <div class="metric-card">
+        <small>TOTAL CLIENTES</small>
+        <strong>{{ clientes.length }}</strong>
+        <p>Contactos registrados</p>
+      </div>
+      <div class="metric-card">
+        <small>ACTIVOS CON PROYECTO</small>
+        <strong>{{ proyectos.length }}</strong>
+        <p>Proyectos en ejecución</p>
+      </div>
+      <div class="metric-card">
+        <small>FACTURADO ACUMULADO</small>
+        <strong>B/. {{ totalCobrado | number:'1.2-2' }}</strong>
+        <p>Cobros registrados</p>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label class="search-input-pill">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input [(ngModel)]="query" placeholder="Buscar por nombre, empresa o correo...">
+      </label>
+      <div class="filter-pills">
+        <button [class.active]="clientFilter === 'TODOS'" (click)="clientFilter = 'TODOS'">Todos ({{ clientes.length }})</button>
+        <button [class.active]="clientFilter === 'ACTIVO'" (click)="clientFilter = 'ACTIVO'">Activos</button>
+        <button [class.active]="clientFilter === 'PROSPECTO'" (click)="clientFilter = 'PROSPECTO'">Prospectos</button>
+      </div>
+    </div>
+
+    <!-- Clients Grid -->
+    <div class="clients-grid">
+      <div class="client-card" *ngFor="let c of visibleClients">
+        <div class="client-card-head">
+          <span class="client-avatar" [style.background]="c.avatarColor || '#3568f6'">
+            {{ c.nombre.substring(0, 2).toUpperCase() }}
+          </span>
+          <span class="badge" [class.badge-completado]="c.estado === 'ACTIVO'" [class.badge-planificacion]="c.estado === 'PROSPECTO'">
+            ● {{ c.estado }}
+          </span>
+        </div>
+        <h3>{{ c.nombre }}</h3>
+        <p class="client-company">{{ c.empresa }}</p>
+        <div class="client-contacts">
+          <span>✉ {{ c.correo }}</span>
+          <span>☎ {{ c.telefono }}</span>
+        </div>
+        <p class="client-notes" *ngIf="c.notes">{{ c.notes }}</p>
+        <div class="client-card-foot">
+          <span><b>{{ c.proyectosCount || 1 }}</b> proyecto(s)</span>
+          <button class="btn-card-action" (click)="clientDetailModal = c">Ver detalles ›</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       3. VISTA PROYECTOS
+       ======================================================================== -->
+  <section class="collection" *ngIf="page === 'proyectos'">
+    <div class="page-title">
+      <div>
+        <p class="eyebrow">EQUINOX / PROYECTOS</p>
+        <h1>Proyectos</h1>
+        <p>Control de entregables, avance y estados de diseño y desarrollo.</p>
+      </div>
+      <button class="btn-primary" (click)="openQuickCreate('Proyecto')">
+        <span>＋</span> Nuevo proyecto
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <label class="search-input-pill">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input [(ngModel)]="query" placeholder="Buscar por nombre, cliente o tipo...">
+      </label>
+      <div class="filter-pills">
+        <button [class.active]="projectFilter === 'TODOS'" (click)="projectFilter = 'TODOS'">Todos ({{ proyectos.length }})</button>
+        <button [class.active]="projectFilter === 'En revisión'" (click)="projectFilter = 'En revisión'">En revisión</button>
+        <button [class.active]="projectFilter === 'En progreso'" (click)="projectFilter = 'En progreso'">En progreso</button>
+        <button [class.active]="projectFilter === 'Por aprobar'" (click)="projectFilter = 'Por aprobar'">Por aprobar</button>
+      </div>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="projects-grid">
+      <div class="project-grid-card" *ngFor="let p of visibleProjects" (click)="selectProject(p); navigate('hoy')">
+        <div class="p-card-top">
+          <span class="p-node-thumb" [ngClass]="p.visualClass"></span>
+          <div>
+            <small>{{ p.clienteNombre }}</small>
+            <h3>{{ p.nombre }}</h3>
+            <p>{{ p.tipo }}</p>
+          </div>
+          <span class="badge" [class]="'badge-' + p.estadoBadgeClass">● {{ p.estado }}</span>
+        </div>
+
+        <div class="p-card-progress">
+          <div class="progress-labels">
+            <span>Avance general</span>
+            <b>{{ p.progreso }}%</b>
+          </div>
+          <div class="progress-bar-rail">
+            <div class="progress-bar-fill" [style.width.%]="p.progreso"></div>
+          </div>
+        </div>
+
+        <div class="p-card-foot">
+          <span>Entrega: <b>{{ p.fechaEntrega }}</b></span>
+          <span class="p-budget">B/. {{ p.presupuesto | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       4. VISTA TAREAS
+       ======================================================================== -->
+  <section class="collection" *ngIf="page === 'tareas'">
+    <div class="page-title">
+      <div>
+        <p class="eyebrow">EQUINOX / TAREAS</p>
+        <h1>Tareas</h1>
+        <p>Organiza tus entregables diarios con casillas de verificación funcionales.</p>
+      </div>
+      <button class="btn-primary" (click)="openQuickCreate('Tarea')">
+        <span>＋</span> Nueva tarea
+      </button>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label class="search-input-pill">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input [(ngModel)]="query" placeholder="Buscar tareas...">
+      </label>
+      <div class="filter-pills">
+        <button [class.active]="taskFilter === 'TODAS'" (click)="taskFilter = 'TODAS'">Todas</button>
+        <button [class.active]="taskFilter === 'HOY'" (click)="taskFilter = 'HOY'">Para hoy</button>
+        <button [class.active]="taskFilter === 'PROXIMAS'" (click)="taskFilter = 'PROXIMAS'">Próximas</button>
+        <button [class.active]="taskFilter === 'COMPLETADAS'" (click)="taskFilter = 'COMPLETADAS'">Completadas</button>
+      </div>
+    </div>
+
+    <!-- Master Tasks List -->
+    <div class="tasks-table-card">
+      <div class="task-master-row" *ngFor="let t of allTasks" [class.done]="t.estado === 'COMPLETADA'">
+        <label class="custom-checkbox">
+          <input
+            type="checkbox"
+            [checked]="t.estado === 'COMPLETADA'"
+            (change)="toggleTask(t.id)"
+          >
+          <span class="checkmark"></span>
+        </label>
+        <div class="task-master-body">
+          <b [class.strikethrough]="t.estado === 'COMPLETADA'">{{ t.titulo }}</b>
+          <div class="task-tags">
+            <span class="badge-project">{{ t.proyectoNombre }}</span>
+            <span class="priority-tag" [class.urgent]="t.prioridad === 'URGENTE'" [class.high]="t.prioridad === 'ALTA'">
+              {{ t.prioridad }}
+            </span>
+            <small>Vence: {{ t.fechaVencimiento }}</small>
+          </div>
+        </div>
+        <span class="task-status-pill" [class.pill-done]="t.estado === 'COMPLETADA'">
+          {{ t.estado === 'COMPLETADA' ? '✓ Completada' : 'Pendiente' }}
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       5. VISTA FINANZAS / FACTURACIÓN
+       ======================================================================== -->
+  <section class="collection" *ngIf="page === 'finanzas'">
+    <div class="page-title">
+      <div>
+        <p class="eyebrow">EQUINOX / FINANZAS</p>
+        <h1>Facturación y Pagos</h1>
+        <p>Cobros, cuentas por cobrar y flujo de caja en Balboas (B/.).</p>
+      </div>
+      <button class="btn-primary" (click)="openQuickCreate('Factura')">
+        <span>＋</span> Nueva factura
+      </button>
+    </div>
+
+    <!-- Balance Hero Block -->
+    <div class="balance-hero">
+      <div>
+        <small>PENDIENTE POR COBRAR</small>
+        <strong>B/. {{ totalPorCobrar | number:'1.2-2' }}</strong>
+        <p>{{ allInvoices.length }} facturas emitidas registradas</p>
+      </div>
+      <div class="balance-stats">
+        <div class="stat-pill">
+          <span>COBRADO ESTE MES</span>
+          <b>B/. {{ totalCobrado | number:'1.2-2' }}</b>
+        </div>
+        <div class="stat-pill">
+          <span>MONEDA OFICIAL</span>
+          <b>Panamá (PAB / USD)</b>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label class="search-input-pill">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input [(ngModel)]="query" placeholder="Buscar por número, cliente o concepto...">
+      </label>
+      <div class="filter-pills">
+        <button [class.active]="invoiceFilter === 'TODAS'" (click)="invoiceFilter = 'TODAS'">Todas</button>
+        <button [class.active]="invoiceFilter === 'PENDIENTES'" (click)="invoiceFilter = 'PENDIENTES'">Pendientes</button>
+        <button [class.active]="invoiceFilter === 'PAGADAS'" (click)="invoiceFilter = 'PAGADAS'">Pagadas</button>
+      </div>
+    </div>
+
+    <!-- Invoices List -->
+    <div class="invoices-table-card">
+      <div class="invoice-row" *ngFor="let inv of allInvoices">
+        <div class="inv-num">
+          <b>{{ inv.numero }}</b>
+          <small>{{ inv.fechaEmision }}</small>
+        </div>
+        <div class="inv-main">
+          <b>{{ inv.concepto }}</b>
+          <p>{{ inv.clienteNombre }} · {{ inv.proyectoNombre || 'Proyecto general' }}</p>
+        </div>
+        <div class="inv-due">
+          <small>Vencimiento</small>
+          <span>{{ inv.fechaVencimiento }}</span>
+        </div>
+        <div class="inv-amount">
+          <strong>B/. {{ inv.monto | number:'1.2-2' }}</strong>
+          <span [class.badge-completado]="inv.estado === 'PAGADA'" [class.badge-revision]="inv.estado === 'PENDIENTE'">
+            ● {{ inv.estado }}
+          </span>
+        </div>
+        <div class="inv-action">
+          <button *ngIf="inv.estado !== 'PAGADA'" class="btn-pay" (click)="markInvoicePaid(inv.id)">
+            Registrar pago
+          </button>
+          <span *ngIf="inv.estado === 'PAGADA'" class="text-green">✓ Pagado</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       6. VISTA CONFIGURACIÓN Y MARCA
+       ======================================================================== -->
+  <section class="collection" *ngIf="page === 'configuracion'">
+    <div class="page-title">
+      <div>
+        <p class="eyebrow">EQUINOX / CONFIGURACIÓN</p>
+        <h1>Marca y Estudio</h1>
+        <p>Personaliza la identidad visual que verán tus clientes en su portal.</p>
+      </div>
+      <button class="btn-primary" (click)="saveConfig()">
+        Guardar cambios
+      </button>
+    </div>
+
+    <div class="settings-layout">
+      <!-- Settings Form -->
+      <div class="settings-form-card">
+        <h3>Datos del estudio</h3>
+        <div class="form-group">
+          <label>Nombre del estudio</label>
+          <input class="form-control" [(ngModel)]="configuracion.nombreEstudio">
+        </div>
+        <div class="form-group">
+          <label>Nombre del freelancer</label>
+          <input class="form-control" [(ngModel)]="configuracion.nombreFreelancer">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Correo de contacto</label>
+            <input class="form-control" [(ngModel)]="configuracion.correo">
+          </div>
+          <div class="form-group">
+            <label>Teléfono (WhatsApp)</label>
+            <input class="form-control" [(ngModel)]="configuracion.telefono">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>RUC / Cédula fiscal</label>
+            <input class="form-control" [(ngModel)]="configuracion.ruc">
+          </div>
+          <div class="form-group">
+            <label>Moneda principal</label>
+            <input class="form-control" [(ngModel)]="configuracion.moneda">
+          </div>
+        </div>
+
+        <h3 class="mt-4">Personalización visual del portal</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Color primario de marca</label>
+            <div class="color-picker-wrapper">
+              <input type="color" [(ngModel)]="configuracion.colorPrimario">
+              <span>{{ configuracion.colorPrimario }}</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Color secundario</label>
+            <div class="color-picker-wrapper">
+              <input type="color" [(ngModel)]="configuracion.colorSecundario">
+              <span>{{ configuracion.colorSecundario }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tipografía del portal</label>
+          <select class="form-control" [(ngModel)]="configuracion.tipografia">
+            <option value="DM Sans">DM Sans (Elegante y moderna)</option>
+            <option value="Manrope">Manrope (Geométrica)</option>
+            <option value="Inter">Inter (Técnica)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Mensaje de bienvenida para clientes</label>
+          <textarea class="form-control" [(ngModel)]="configuracion.mensajeBienvenida"></textarea>
+        </div>
+
+        <button class="btn-primary" (click)="saveConfig()">
+          ✓ Guardar configuración
+        </button>
+      </div>
+
+      <!-- Real-Time Portal Preview -->
+      <div class="portal-preview-card">
+        <div class="preview-head">
+          <small>VISTA PREVIA EN VIVO</small>
+          <b>Portal del cliente de {{ configuracion.nombreEstudio }}</b>
+        </div>
+        <div class="mockup-frame">
+          <div class="mockup-topbar" [style.background]="configuracion.colorSecundario">
+            <div class="mockup-brand">
+              <span class="mockup-dot" [style.background]="configuracion.colorPrimario"></span>
+              <strong [style.font-family]="configuracion.tipografia">{{ configuracion.nombreEstudio }}</strong>
+            </div>
+            <small>Portal de Cliente</small>
+          </div>
+          <div class="mockup-body">
+            <div class="mockup-welcome" [style.border-left-color]="configuracion.colorPrimario">
+              <p>{{ configuracion.mensajeBienvenida }}</p>
+            </div>
+            <div class="mockup-project">
+              <div class="mockup-p-title">
+                <b>Café Unido</b>
+                <span class="badge badge-revision">En revisión</span>
+              </div>
+              <div class="mockup-p-progress">
+                <div class="mockup-bar" [style.width]="'72%'" [style.background]="configuracion.colorPrimario"></div>
+              </div>
+              <small>Avance: 72% · Próxima entrega: 15 abr 2026</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       7. VISTA PORTAL DEL CLIENTE (EXPERIENCIA PARA EL CLIENTE)
+       ======================================================================== -->
+  <section class="collection" *ngIf="page === 'portal'">
+    <div class="portal-experience-wrapper">
+      <!-- Branded Customer Portal Header -->
+      <header class="portal-custom-header" [style.background]="configuracion.colorSecundario">
+        <div class="portal-header-brand">
+          <span class="brand-mark"><i></i></span>
+          <div>
+            <strong>{{ configuracion.nombreEstudio }}</strong>
+            <small>Portal individual del cliente</small>
+          </div>
+        </div>
+        <div class="portal-client-info">
+          <span>Cliente: <b>Ana Rodríguez (Café Unido)</b></span>
+          <button class="btn-secondary-light" (click)="navigate('hoy')">← Volver al CRM</button>
+        </div>
+      </header>
+
+      <!-- Portal Hero Welcome -->
+      <div class="portal-hero" [style.border-top]="'4px solid ' + configuracion.colorPrimario">
+        <h2>Hola Ana, bienvenidos al portal de seguimiento de tu proyecto.</h2>
+        <p>{{ configuracion.mensajeBienvenida }}</p>
+      </div>
+
+      <!-- Portal Project Card -->
+      <div class="portal-project-card" *ngIf="selectedProject">
+        <div class="portal-p-head">
+          <div>
+            <span class="eyebrow">PROYECTO EN CURSO</span>
+            <h2>{{ selectedProject.nombre }}</h2>
+            <p>{{ selectedProject.tipo }} · Entregable final estimado: <b>{{ selectedProject.fechaEntrega }}</b></p>
+          </div>
+          <div class="portal-progress-metric">
+            <div
+              class="progress-ring"
+              [style.background]="'conic-gradient(' + configuracion.colorPrimario + ' 0% ' + selectedProject.progreso + '%, #e9edf4 ' + selectedProject.progreso + '% 100%)'"
+            >
+              <span>{{ selectedProject.progreso }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Milestones Roadmap -->
+        <div class="portal-milestones">
+          <h3>Hitos y etapas de avance</h3>
+          <div class="milestones-track">
+            <div
+              class="milestone-node"
+              *ngFor="let h of selectedProject.hitos"
+              [class.completed]="h.estado === 'COMPLETADO'"
+              [class.current]="h.estado === 'ACTUAL'"
+            >
+              <div class="m-icon">{{ h.estado === 'COMPLETADO' ? '✓' : '●' }}</div>
+              <b>{{ h.titulo }}</b>
+              <small>{{ h.estado === 'COMPLETADO' ? 'Completado' : h.estado === 'ACTUAL' ? 'En proceso' : 'Pendiente' }}</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deliverables Downloads -->
+        <div class="portal-deliverables">
+          <h3>Entregables y archivos listos para descargar</h3>
+          <div class="portal-files-grid">
+            <div class="portal-file-card" *ngFor="let f of selectedProject.archivos">
+              <span class="file-preview-sm" [ngClass]="f.previewClass">{{ f.previewIcon }}</span>
+              <div>
+                <b>{{ f.nombre }}</b>
+                <small>{{ f.tamano }} · {{ f.fecha }}</small>
+              </div>
+              <button class="btn-download-portal" (click)="equinox.mostrarToast('Descargando archivo ' + f.nombre)">
+                Descargar ↓
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Invoices for Client -->
+        <div class="portal-invoices">
+          <h3>Facturas y pagos</h3>
+          <div class="portal-inv-item" *ngFor="let inv of selectedProject.facturas">
+            <div>
+              <b>{{ inv.numero }} — {{ inv.concepto }}</b>
+              <small>Vencimiento: {{ inv.fechaVencimiento }}</small>
+            </div>
+            <div class="portal-inv-right">
+              <strong>B/. {{ inv.monto | number:'1.2-2' }}</strong>
+              <span [class.badge-completado]="inv.estado === 'PAGADA'" [class.badge-revision]="inv.estado === 'PENDIENTE'">
+                {{ inv.estado }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Client Feedback Box -->
+        <div class="portal-feedback-section">
+          <h3>Enviar comentarios o feedback a {{ configuracion.nombreFreelancer }}</h3>
+          <div class="portal-chat-box">
+            <div class="portal-bubble" *ngFor="let c of selectedProject.comentarios" [class.me]="c.autor === 'CLIENTE'">
+              <div class="p-author"><b>{{ c.nombreAutor }}</b> <small>{{ c.fecha }}</small></div>
+              <p>{{ c.contenido }}</p>
+            </div>
+          </div>
+          <div class="portal-chat-input">
+            <input #clientInput placeholder="Escribe tu mensaje o retroalimentación aquí..." (keyup.enter)="addClientFeedbackPortal(clientInput.value); clientInput.value = ''">
+            <button (click)="addClientFeedbackPortal(clientInput.value); clientInput.value = ''">Enviar feedback</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ==========================================================================
+     GLOBAL OVERLAYS & MODALS
+     ========================================================================== -->
+
+<!-- 1. Quick Create Modal ("¿Qué quieres crear?") -->
+<div class="overlay" *ngIf="createModalOpen" (click)="closeCreateModal()">
+  <section class="quick-modal" (click)="$event.stopPropagation()">
+    <button class="close" (click)="closeCreateModal()" aria-label="Cerrar modal">×</button>
+
+    <!-- Choice Selection Step -->
+    <div *ngIf="!activeCreateType">
+      <small>ACCIÓN RÁPIDA</small>
+      <h2>¿Qué quieres crear?</h2>
+      <div class="modal-choices">
+        <button (click)="selectCreateType('Cliente')">
+          <span>＋</span>
+          <b>Cliente</b>
+          <small>Nuevo contacto o empresa</small>
+        </button>
+        <button (click)="selectCreateType('Proyecto')">
+          <span>◇</span>
+          <b>Proyecto</b>
+          <small>Nuevo trabajo interactivo</small>
+        </button>
+        <button (click)="selectCreateType('Tarea')">
+          <span>✓</span>
+          <b>Tarea</b>
+          <small>Nuevo pendiente o hito</small>
+        </button>
+        <button (click)="selectCreateType('Factura')">
+          <span>B/.</span>
+          <b>Factura</b>
+          <small>Nuevo cobro en Balboas</small>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sub-Form: Nuevo Cliente -->
+    <div *ngIf="activeCreateType === 'Cliente'">
+      <div class="modal-sub-head">
+        <button class="back-link" (click)="activeCreateType = null">← Volver</button>
+        <h2>Nuevo Cliente</h2>
+      </div>
+      <div class="form-group">
+        <label>Nombre del contacto *</label>
+        <input class="form-control" [(ngModel)]="nuevoCliente.nombre" placeholder="ej. María Morales" autofocus>
+      </div>
+      <div class="form-group">
+        <label>Empresa</label>
+        <input class="form-control" [(ngModel)]="nuevoCliente.empresa" placeholder="ej. Morales Design Group">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Correo electrónico</label>
+          <input class="form-control" [(ngModel)]="nuevoCliente.correo" placeholder="correo@empresa.com">
+        </div>
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input class="form-control" [(ngModel)]="nuevoCliente.telefono" placeholder="+507 6000-0000">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notas internas</label>
+        <textarea class="form-control" [(ngModel)]="nuevoCliente.notas" placeholder="Detalles de contacto o reunión..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" (click)="closeCreateModal()">Cancelar</button>
+        <button class="btn-primary" (click)="submitCreate()">Guardar cliente</button>
+      </div>
+    </div>
+
+    <!-- Sub-Form: Nuevo Proyecto -->
+    <div *ngIf="activeCreateType === 'Proyecto'">
+      <div class="modal-sub-head">
+        <button class="back-link" (click)="activeCreateType = null">← Volver</button>
+        <h2>Nuevo Proyecto</h2>
+      </div>
+      <div class="form-group">
+        <label>Nombre del proyecto *</label>
+        <input class="form-control" [(ngModel)]="nuevoProyecto.nombre" placeholder="ej. Rediseño Web Panamá" autofocus>
+      </div>
+      <div class="form-group">
+        <label>Cliente asociado</label>
+        <select class="form-control" [(ngModel)]="nuevoProyecto.clienteId">
+          <option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }} ({{ c.empresa }})</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo de proyecto</label>
+          <input class="form-control" [(ngModel)]="nuevoProyecto.tipo" placeholder="ej. Identidad, Web, Campaña">
+        </div>
+        <div class="form-group">
+          <label>Presupuesto (B/.)</label>
+          <input type="number" class="form-control" [(ngModel)]="nuevoProyecto.presupuesto">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Fecha de entrega estimada</label>
+        <input class="form-control" [(ngModel)]="nuevoProyecto.fechaEntrega" placeholder="ej. 30 de mayo de 2026">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" (click)="closeCreateModal()">Cancelar</button>
+        <button class="btn-primary" (click)="submitCreate()">Crear proyecto</button>
+      </div>
+    </div>
+
+    <!-- Sub-Form: Nueva Tarea -->
+    <div *ngIf="activeCreateType === 'Tarea'">
+      <div class="modal-sub-head">
+        <button class="back-link" (click)="activeCreateType = null">← Volver</button>
+        <h2>Nueva Tarea</h2>
+      </div>
+      <div class="form-group">
+        <label>Título de la tarea *</label>
+        <input class="form-control" [(ngModel)]="nuevaTarea.titulo" placeholder="ej. Preparar entregables finales" autofocus>
+      </div>
+      <div class="form-group">
+        <label>Proyecto asignado</label>
+        <select class="form-control" [(ngModel)]="nuevaTarea.proyectoId">
+          <option *ngFor="let p of proyectos" [value]="p.id">{{ p.nombre }}</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Prioridad</label>
+          <select class="form-control" [(ngModel)]="nuevaTarea.prioridad">
+            <option value="BAJA">Baja</option>
+            <option value="MEDIA">Media</option>
+            <option value="ALTA">Alta</option>
+            <option value="URGENTE">Urgente</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha límite</label>
+          <input class="form-control" [(ngModel)]="nuevaTarea.fechaVencimiento" placeholder="ej. 20 abr 2026">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" (click)="closeCreateModal()">Cancelar</button>
+        <button class="btn-primary" (click)="submitCreate()">Crear tarea</button>
+      </div>
+    </div>
+
+    <!-- Sub-Form: Nueva Factura -->
+    <div *ngIf="activeCreateType === 'Factura'">
+      <div class="modal-sub-head">
+        <button class="back-link" (click)="activeCreateType = null">← Volver</button>
+        <h2>Nueva Factura</h2>
+      </div>
+      <div class="form-group">
+        <label>Concepto o descripción *</label>
+        <input class="form-control" [(ngModel)]="nuevaFactura.concepto" placeholder="ej. Anticipo 50% de desarrollo web" autofocus>
+      </div>
+      <div class="form-group">
+        <label>Cliente</label>
+        <select class="form-control" [(ngModel)]="nuevaFactura.clienteId">
+          <option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }} ({{ c.empresa }})</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Monto en Balboas (B/.) *</label>
+          <input type="number" class="form-control" [(ngModel)]="nuevaFactura.monto">
+        </div>
+        <div class="form-group">
+          <label>Fecha de vencimiento</label>
+          <input class="form-control" [(ngModel)]="nuevaFactura.fechaVencimiento" placeholder="ej. 15 días">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" (click)="closeCreateModal()">Cancelar</button>
+        <button class="btn-primary" (click)="submitCreate()">Generar factura</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- 2. Global Search Overlay (Ctrl+K) -->
+<div class="search-overlay" *ngIf="searchOpen" (click)="closeSearch()">
+  <div class="search-modal-box" (click)="$event.stopPropagation()">
+    <label class="search-bar-input">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input
+        id="globalSearchInput"
+        [(ngModel)]="query"
+        placeholder="Buscar proyectos, clientes, tareas o facturas..."
+      >
+      <kbd (click)="closeSearch()">ESC</kbd>
+    </label>
+
+    <!-- Search Live Results -->
+    <div class="search-results-panel">
+      <!-- Proyectos results -->
+      <div class="search-cat" *ngIf="visibleProjects.length > 0">
+        <small>PROYECTOS</small>
+        <div class="search-result-row" *ngFor="let p of visibleProjects.slice(0, 4)" (click)="selectSearchResult('proyecto', p)">
+          <span class="sr-icon">◇</span>
+          <div>
+            <b>{{ p.nombre }}</b>
+            <p>{{ p.tipo }} · {{ p.clienteNombre }}</p>
+          </div>
+          <span class="badge" [class]="'badge-' + p.estadoBadgeClass">{{ p.estado }}</span>
+        </div>
+      </div>
+
+      <!-- Clientes results -->
+      <div class="search-cat" *ngIf="visibleClients.length > 0">
+        <small>CLIENTES</small>
+        <div class="search-result-row" *ngFor="let c of visibleClients.slice(0, 3)" (click)="selectSearchResult('cliente', c)">
+          <span class="sr-icon">👤</span>
+          <div>
+            <b>{{ c.nombre }}</b>
+            <p>{{ c.empresa }} · {{ c.correo }}</p>
+          </div>
+          <span class="badge badge-completado">{{ c.estado }}</span>
+        </div>
+      </div>
+
+      <!-- Tareas results -->
+      <div class="search-cat" *ngIf="allTasks.length > 0">
+        <small>TAREAS</small>
+        <div class="search-result-row" *ngFor="let t of allTasks.slice(0, 3)" (click)="selectSearchResult('tarea', t)">
+          <span class="sr-icon">✓</span>
+          <div>
+            <b>{{ t.titulo }}</b>
+            <p>{{ t.proyectoNombre }} · Vence {{ t.fechaVencimiento }}</p>
+          </div>
+          <span class="priority-tag">{{ t.prioridad }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Collaborator Modal -->
+<div class="overlay" *ngIf="collaboratorModalOpen" (click)="collaboratorModalOpen = false">
+  <section class="quick-modal" (click)="$event.stopPropagation()">
+    <button class="close" (click)="collaboratorModalOpen = false">×</button>
+    <small>EQUIPO DE TRABAJO</small>
+    <h2>Añadir colaborador a {{ selectedProject?.nombre }}</h2>
+    <div class="form-group">
+      <label>Nombre del colaborador</label>
+      <input class="form-control" [(ngModel)]="nuevoColaborador.nombre" placeholder="ej. Laura Morales" autofocus>
+    </div>
+    <div class="form-group">
+      <label>Rol o especialidad</label>
+      <input class="form-control" [(ngModel)]="nuevoColaborador.rol" placeholder="ej. Ilustradora, Desarrollador, Copywriter">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" (click)="collaboratorModalOpen = false">Cancelar</button>
+      <button class="btn-primary" (click)="addCollaborator()">Añadir al proyecto</button>
+    </div>
+  </section>
+</div>
+
+<!-- 4. Client Detail Modal -->
+<div class="overlay" *ngIf="clientDetailModal" (click)="clientDetailModal = null">
+  <section class="quick-modal" (click)="$event.stopPropagation()">
+    <button class="close" (click)="clientDetailModal = null">×</button>
+    <small>DETALLE DE CLIENTE</small>
+    <h2>{{ clientDetailModal.nombre }}</h2>
+    <p class="mb-3 text-muted">{{ clientDetailModal.empresa }}</p>
+
+    <div class="client-detail-stats">
+      <div>
+        <small>CORREO</small>
+        <b>{{ clientDetailModal.correo }}</b>
+      </div>
+      <div>
+        <small>TELÉFONO</small>
+        <b>{{ clientDetailModal.telefono }}</b>
+      </div>
+      <div>
+        <small>ESTADO</small>
+        <span class="badge badge-completado">{{ clientDetailModal.estado }}</span>
+      </div>
+    </div>
+
+    <div class="mt-4" *ngIf="clientDetailModal.notas">
+      <small class="eyebrow">NOTAS INTERNAS</small>
+      <p class="notes-box">{{ clientDetailModal.notas }}</p>
+    </div>
+
+    <div class="modal-actions mt-4">
+      <button class="btn-primary" (click)="clientDetailModal = null">Cerrar</button>
+    </div>
+  </section>
+</div>
+
+<!-- 5. Toast Notification -->
+<div class="toast" [class.show]="toastMessage">
+  <span>✓</span> &nbsp; {{ toastMessage }}
+</div>

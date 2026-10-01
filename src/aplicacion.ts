@@ -1,0 +1,27 @@
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import { rutasAutenticacion } from "./rutas/autenticacion.js";
+import { rutasClientes } from "./rutas/clientes.js";
+import { rutasProyectos } from "./rutas/proyectos.js";
+import { rutasOrganizacion } from "./rutas/organizacion.js";
+import { rutasFacturas } from "./rutas/facturas.js";
+import { rutasPortal } from "./rutas/portal.js";
+import { exigirAutenticacion, exigirOrganizacion } from "./middleware/autenticacion.js";
+import { manejarErrores } from "./utilidades/errores.js";
+
+export const aplicacion = express();
+aplicacion.use(helmet());
+aplicacion.use(cors({ origin: (process.env.ORIGENES_PERMITIDOS || "http://localhost:4200").split(","), credentials: true }));
+aplicacion.use(express.json({ limit: "2mb" }));
+aplicacion.use(morgan(process.env.ENTORNO === "produccion" ? "combined" : "dev"));
+aplicacion.get("/salud", (_req, res) => res.json({ estado: "disponible", servicio: "equinox-api" }));
+aplicacion.use("/api/autenticacion", rutasAutenticacion);
+aplicacion.use("/api/portal", rutasPortal);
+aplicacion.use("/api/organizacion", exigirAutenticacion, exigirOrganizacion, rutasOrganizacion);
+aplicacion.use("/api/clientes", exigirAutenticacion, exigirOrganizacion, rutasClientes);
+aplicacion.use("/api/proyectos", exigirAutenticacion, exigirOrganizacion, rutasProyectos);
+aplicacion.use("/api/facturas", exigirAutenticacion, exigirOrganizacion, rutasFacturas);
+aplicacion.use((_req, res) => res.status(404).json({ error: "Ruta no encontrada" }));
+aplicacion.use(manejarErrores);
