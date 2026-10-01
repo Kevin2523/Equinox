@@ -173,6 +173,7 @@ model Cliente {
   accesosPortal       AccesoPortal[]
   facturas            Factura[]
 
+  @@unique([id, organizacionId])
   @@index([organizacionId, estado])
   @@map("clientes")
 }
@@ -188,7 +189,7 @@ model AccesoCliente {
   creadoEn       DateTime     @default(now()) @map("creado_en")
   actualizadoEn  DateTime     @updatedAt @map("actualizado_en")
   usuario        Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  cliente        Cliente      @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  cliente        Cliente      @relation(fields: [clienteId, organizacionId], references: [id, organizacionId], onDelete: Cascade)
   organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
 
   @@unique([usuarioId, clienteId])
@@ -213,7 +214,7 @@ model InvitacionCliente {
   creadoEn       DateTime                @default(now()) @map("creado_en")
   actualizadoEn  DateTime                @updatedAt @map("actualizado_en")
   organizacion   Organizacion            @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  cliente        Cliente                 @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  cliente        Cliente                 @relation(fields: [clienteId, organizacionId], references: [id, organizacionId], onDelete: Cascade)
   invitadoPor    Usuario                 @relation("InvitacionesEnviadas", fields: [invitadoPorId], references: [id], onDelete: Restrict)
   aceptadaPor    Usuario?                @relation("InvitacionesAceptadas", fields: [aceptadaPorId], references: [id], onDelete: SetNull)
 

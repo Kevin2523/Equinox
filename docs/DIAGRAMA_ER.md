@@ -58,7 +58,7 @@ erDiagram
 | **Comentario (`comentarios`)** | Mensajes e interacción en torno a un proyecto. | Autoría por `Usuario` (o `AccesoPortal` temporal legado). |
 | **Factura (`facturas`)** | Cobros, vencimientos y estados de pago emitidos por el estudio. | Emitida para un cliente y opcionalmente asociada a un proyecto. |
 | **Actividad (`actividades`)** | Bitácora de auditoría y eventos ocurridos en la organización. | Registra usuario actor, entidad afectada, acción y fecha. |
-| **Sesion (`sesiones`)** | Sesiones activas y revocables con tokens JWT cifrados. | Asociadas a la cuenta de usuario personal. |
+| **Sesion (`sesiones`)** | Sesiones activas y revocables cuyos tokens se almacenan mediante hash. | Asociadas a la cuenta de usuario personal. |
 | **AccesoPortal (`accesos_portal`)** *(Legado)* | Enlaces permanentes sin contraseña para portal de cliente. | **Modelo heredado**, mantenido para compatibilidad hasta la Issue #5. |
 
 ---
@@ -73,14 +73,15 @@ erDiagram
 
 ### 3.2. Funcionamiento de las Invitaciones (`InvitacionCliente`)
 
-1. **Emisión**: El freelancer genera una invitación desde el estudio para un cliente determinado, indicando el correo del destinatario y el rol propuesto (`TITULAR` o `COLABORADOR`).
+1. **Emisión**: Un miembro del estudio genera una invitación para un cliente determinado, indicando el correo del destinatario y el rol propuesto (`TITULAR` o `COLABORADOR`).
 2. **Seguridad y Token Hash**: Se genera un token criptográfico seguro de un solo uso. En la base de datos **solo se almacena el hash del token (`token_hash`)**, garantizando que el token original no pueda ser expuesto en caso de filtración de datos.
 3. **Temporalidad y Estados**: La invitación tiene una fecha de vencimiento (`expira_en`) y un ciclo de vida definido por `EstadoInvitacionCliente`:
    - `PENDIENTE`: Invitación activa esperando ser aceptada.
    - `ACEPTADA`: El usuario aceptó la invitación y se generó su `AccesoCliente`.
    - `REVOCADA`: El freelancer canceló la invitación antes de su uso.
    - `EXPIRADA`: La fecha actual superó `expira_en` sin haberse aceptado.
-4. **Unicidad y Reutilización de Cuentas**:
+4. **Validación del Emisor (`invitadoPorId`)**: La clave foránea apunta a `Usuario` (`usuarios.id`). La pertenencia y privilegios del usuario emisor dentro de la organización (`MiembroOrganizacion`) se valida a nivel de la lógica de negocio y servicios en la **Issue #2**, manteniendo la simplicidad e integridad referencial del esquema de base de datos sin acoplamientos innecesarios.
+5. **Unicidad y Reutilización de Cuentas**:
    - Si el invitado no tiene cuenta en Equinox, el flujo lo guía a crear su cuenta con correo y contraseña.
    - Si el invitado ya posee una cuenta (incluso como colaborador o cliente de otro estudio), la aceptación simplemente registra el nuevo `AccesoCliente` sin duplicar cuentas ni requerir un nuevo registro.
 
@@ -95,6 +96,15 @@ erDiagram
 
 ### 3.4. Conservación del Aislamiento Multitenant por Organización
 
+- **Aislamiento mediante Clave Foránea Compuesta en Base de Datos**:
+  - Para prevenir que un cliente de la Organización A sea accidentalmente o intencionalmente asociado con la Organización B en `AccesoCliente` o `InvitacionCliente`, el modelo `Cliente` define una restricción única compuesta:
+    `@@unique([id, organizacionId])`
+  - Las entidades `AccesoCliente` e `InvitacionCliente` referencian a `Cliente` utilizando la clave compuesta:
+    `fields: [clienteId, organizacionId] references: [id, organizacionId]`
+  - A nivel físico en PostgreSQL, esto crea una restricción de clave foránea compuesta:
+    `FOREIGN KEY ("cliente_id", "organizacion_id") REFERENCES "clientes"("id", "organizacion_id") ON DELETE CASCADE`
+  - Esto garantiza de manera estricta e infranqueable que ningún registro de acceso o invitación pueda vincular un `clienteId` con un `organizacionId` discordante o cruzado.
+- Adicionalmente, se conserva la relación directa `organizacion Organizacion @relation(fields: [organizacionId], references: [id])` para navegación y consistencia relacional de Prisma.
 - Toda entidad principal (`Cliente`, `Proyecto`, `Factura`, `Actividad`, `AccesoCliente`, `InvitacionCliente`) contiene una referencia directa e indexada a `organizacionId`.
 - Al realizar consultas, el backend valida que las operaciones se ejecuten dentro de la organización activa del usuario o de los clientes a los que tiene acceso explícito mediante `AccesoCliente`.
 
@@ -104,6 +114,6 @@ erDiagram
 
 - **Estado de `AccesoPortal`**: Se conserva temporalmente en el esquema de base de datos para no romper la compilación ni el funcionamiento de los endpoints existentes (`/api/portal/:token` y `/api/proyectos/:id/accesos-portal`).
 - **Plan de Sustitución**:
-  - **Issue #1 (Actual)**: Diseño y validación del esquema de Prisma para `Usuario`, `AccesoCliente` e `InvitacionCliente`.
+  - **Issue #1 (Actual)**: Diseño, aislamiento multitenant compuesto y validación del esquema de Prisma para `Usuario`, `AccesoCliente` e `InvitacionCliente`.
   - **Issue #2**: Lógica de backend para envío, validación y aceptación de invitaciones.
   - **Issue #5**: Reemplazo definitivo de los endpoints basados en token de enlace por autenticación de clientes con sesión JWT, retirando formalmente el modelo `AccesoPortal`.
