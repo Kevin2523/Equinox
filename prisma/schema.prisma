@@ -11,12 +11,26 @@ enum RolMiembro {
   PROPIETARIO
   COLABORADOR
 }
+
+enum RolCliente {
+  TITULAR
+  COLABORADOR
+}
+
+enum EstadoInvitacionCliente {
+  PENDIENTE
+  ACEPTADA
+  REVOCADA
+  EXPIRADA
+}
+
 enum EstadoCliente {
   ACTIVO
   INACTIVO
   PROSPECTO
   ARCHIVADO
 }
+
 enum EstadoProyecto {
   BORRADOR
   ACTIVO
@@ -24,12 +38,14 @@ enum EstadoProyecto {
   COMPLETADO
   CANCELADO
 }
+
 enum PrioridadTarea {
   BAJA
   MEDIA
   ALTA
   URGENTE
 }
+
 enum EstadoTarea {
   PENDIENTE
   EN_PROGRESO
@@ -37,26 +53,31 @@ enum EstadoTarea {
   COMPLETADA
   CANCELADA
 }
+
 enum EstadoHito {
   PENDIENTE
   EN_PROGRESO
   COMPLETADO
   VENCIDO
 }
+
 enum TipoArchivo {
   ARCHIVO
   ENTREGABLE
   IMAGEN
   DOCUMENTO
 }
+
 enum VisibilidadArchivo {
   INTERNA
   CLIENTE
 }
+
 enum AutorComentario {
   FREELANCER
   CLIENTE
 }
+
 enum EstadoFactura {
   BORRADOR
   ENVIADA
@@ -66,113 +87,167 @@ enum EstadoFactura {
 }
 
 model Usuario {
-  id                 String             @id @default(uuid()) @db.Uuid
-  correo             String             @unique
-  contrasenaHash     String             @map("contrasena_hash")
-  nombre             String
-  apellido           String?
-  telefono           String?
-  zonaHoraria        String             @default("America/Panama") @map("zona_horaria")
-  avatarUrl          String?            @map("avatar_url")
-  correoVerificadoEn DateTime?          @map("correo_verificado_en")
-  ultimoAccesoEn     DateTime?          @map("ultimo_acceso_en")
-  creadoEn           DateTime           @default(now()) @map("creado_en")
-  actualizadoEn      DateTime           @updatedAt @map("actualizado_en")
-  membresias         MiembroOrganizacion[]
-  sesiones           Sesion[]
-  actividades        Actividad[]
-  comentarios        Comentario[]
-  tareasAsignadas    Tarea[]            @relation("TareasAsignadas")
-  creadoPor          Proyecto[]         @relation("ProyectoCreadoPor")
+  id                    String                @id @default(uuid()) @db.Uuid
+  correo                String                @unique
+  contrasenaHash        String                @map("contrasena_hash")
+  nombre                String
+  apellido              String?
+  telefono              String?
+  zonaHoraria           String                @default("America/Panama") @map("zona_horaria")
+  avatarUrl             String?               @map("avatar_url")
+  correoVerificadoEn    DateTime?             @map("correo_verificado_en")
+  ultimoAccesoEn        DateTime?             @map("ultimo_acceso_en")
+  creadoEn              DateTime              @default(now()) @map("creado_en")
+  actualizadoEn         DateTime              @updatedAt @map("actualizado_en")
+  membresias            MiembroOrganizacion[]
+  accesosCliente        AccesoCliente[]
+  invitacionesEnviadas  InvitacionCliente[]   @relation("InvitacionesEnviadas")
+  invitacionesAceptadas InvitacionCliente[]   @relation("InvitacionesAceptadas")
+  sesiones              Sesion[]
+  actividades           Actividad[]
+  comentarios           Comentario[]
+  tareasAsignadas       Tarea[]               @relation("TareasAsignadas")
+  creadoPor             Proyecto[]            @relation("ProyectoCreadoPor")
 
   @@map("usuarios")
 }
 
 model Organizacion {
-  id                   String                  @id @default(uuid()) @db.Uuid
-  nombre               String
-  slug                 String                  @unique
-  descripcion          String?
-  moneda               String                  @default("PAB")
-  ruc                  String?
-  direccion            String?
-  telefono             String?
-  correoContacto       String?                 @map("correo_contacto")
-  logoUrl              String?                 @map("logo_url")
-  colorPrimario        String                  @default("#2563EB") @map("color_primario")
-  colorSecundario      String                  @default("#0F172A") @map("color_secundario")
-  tipografia           String                  @default("Inter")
-  dominioPortal        String?                 @unique @map("dominio_portal")
-  creadoEn             DateTime                @default(now()) @map("creado_en")
-  actualizadoEn        DateTime                @updatedAt @map("actualizado_en")
-  miembros             MiembroOrganizacion[]
-  clientes             Cliente[]
-  proyectos            Proyecto[]
-  facturas             Factura[]
-  actividades          Actividad[]
+  id                  String                @id @default(uuid()) @db.Uuid
+  nombre              String
+  slug                String                @unique
+  descripcion         String?
+  moneda              String                @default("PAB")
+  ruc                 String?
+  direccion           String?
+  telefono            String?
+  correoContacto      String?               @map("correo_contacto")
+  logoUrl             String?               @map("logo_url")
+  colorPrimario       String                @default("#2563EB") @map("color_primario")
+  colorSecundario     String                @default("#0F172A") @map("color_secundario")
+  tipografia          String                @default("Inter")
+  dominioPortal       String?               @unique @map("dominio_portal")
+  creadoEn            DateTime              @default(now()) @map("creado_en")
+  actualizadoEn       DateTime              @updatedAt @map("actualizado_en")
+  miembros            MiembroOrganizacion[]
+  accesosCliente      AccesoCliente[]
+  invitacionesCliente InvitacionCliente[]
+  clientes            Cliente[]
+  proyectos           Proyecto[]
+  facturas            Factura[]
+  actividades         Actividad[]
 
   @@map("organizaciones")
 }
 
 model MiembroOrganizacion {
-  id             String           @id @default(uuid()) @db.Uuid
-  usuarioId      String           @map("usuario_id") @db.Uuid
-  organizacionId String           @map("organizacion_id") @db.Uuid
-  rol            RolMiembro      @default(COLABORADOR)
-  creadoEn       DateTime         @default(now()) @map("creado_en")
-  usuario        Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  organizacion   Organizacion     @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  id             String       @id @default(uuid()) @db.Uuid
+  usuarioId      String       @map("usuario_id") @db.Uuid
+  organizacionId String       @map("organizacion_id") @db.Uuid
+  rol            RolMiembro   @default(COLABORADOR)
+  creadoEn       DateTime     @default(now()) @map("creado_en")
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
 
   @@unique([usuarioId, organizacionId])
   @@map("miembros_organizacion")
 }
 
 model Cliente {
-  id             String            @id @default(uuid()) @db.Uuid
-  organizacionId String            @map("organizacion_id") @db.Uuid
-  nombre         String
-  empresa        String?
-  correo         String?
-  telefono       String?
-  direccion      String?
-  sitioWeb       String?           @map("sitio_web")
-  notasInternas  String?           @map("notas_internas")
-  estado         EstadoCliente     @default(ACTIVO)
-  creadoEn       DateTime          @default(now()) @map("creado_en")
-  actualizadoEn  DateTime          @updatedAt @map("actualizado_en")
-  organizacion   Organizacion      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  proyectos      Proyecto[]
-  accesosPortal  AccesoPortal[]
-  facturas       Factura[]
+  id                  String              @id @default(uuid()) @db.Uuid
+  organizacionId      String              @map("organizacion_id") @db.Uuid
+  nombre              String
+  empresa             String?
+  correo              String?
+  telefono            String?
+  direccion           String?
+  sitioWeb            String?             @map("sitio_web")
+  notasInternas       String?             @map("notas_internas")
+  estado              EstadoCliente       @default(ACTIVO)
+  creadoEn            DateTime            @default(now()) @map("creado_en")
+  actualizadoEn       DateTime            @updatedAt @map("actualizado_en")
+  organizacion        Organizacion        @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  accesosCliente      AccesoCliente[]
+  invitacionesCliente InvitacionCliente[]
+  proyectos           Proyecto[]
+  accesosPortal       AccesoPortal[]
+  facturas            Factura[]
 
   @@index([organizacionId, estado])
   @@map("clientes")
 }
 
+model AccesoCliente {
+  id             String       @id @default(uuid()) @db.Uuid
+  usuarioId      String       @map("usuario_id") @db.Uuid
+  clienteId      String       @map("cliente_id") @db.Uuid
+  organizacionId String       @map("organizacion_id") @db.Uuid
+  rol            RolCliente   @default(TITULAR)
+  activo         Boolean      @default(true)
+  ultimoAccesoEn DateTime?    @map("ultimo_acceso_en")
+  creadoEn       DateTime     @default(now()) @map("creado_en")
+  actualizadoEn  DateTime     @updatedAt @map("actualizado_en")
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  cliente        Cliente      @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, clienteId])
+  @@index([organizacionId, activo])
+  @@index([clienteId])
+  @@index([usuarioId])
+  @@map("accesos_cliente")
+}
+
+model InvitacionCliente {
+  id             String                  @id @default(uuid()) @db.Uuid
+  organizacionId String                  @map("organizacion_id") @db.Uuid
+  clienteId      String                  @map("cliente_id") @db.Uuid
+  correo         String
+  tokenHash      String                  @unique @map("token_hash")
+  rol            RolCliente              @default(TITULAR)
+  estado         EstadoInvitacionCliente @default(PENDIENTE)
+  expiraEn       DateTime                @map("expira_en")
+  aceptadaEn     DateTime?               @map("aceptada_en")
+  invitadoPorId  String                  @map("invitado_por_id") @db.Uuid
+  aceptadaPorId  String?                 @map("aceptada_por_id") @db.Uuid
+  creadoEn       DateTime                @default(now()) @map("creado_en")
+  actualizadoEn  DateTime                @updatedAt @map("actualizado_en")
+  organizacion   Organizacion            @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  cliente        Cliente                 @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  invitadoPor    Usuario                 @relation("InvitacionesEnviadas", fields: [invitadoPorId], references: [id], onDelete: Restrict)
+  aceptadaPor    Usuario?                @relation("InvitacionesAceptadas", fields: [aceptadaPorId], references: [id], onDelete: SetNull)
+
+  @@index([organizacionId, estado])
+  @@index([clienteId])
+  @@index([correo])
+  @@index([expiraEn])
+  @@map("invitaciones_cliente")
+}
+
 model Proyecto {
-  id              String             @id @default(uuid()) @db.Uuid
-  organizacionId  String             @map("organizacion_id") @db.Uuid
-  clienteId       String             @map("cliente_id") @db.Uuid
-  creadoPorId     String             @map("creado_por_id") @db.Uuid
-  nombre          String
-  descripcion     String?
-  estado          EstadoProyecto     @default(BORRADOR)
-  presupuesto     Decimal?           @db.Decimal(12, 2)
-  moneda          String             @default("PAB")
-  fechaInicio     DateTime?          @map("fecha_inicio") @db.Date
-  fechaEntrega    DateTime?          @map("fecha_entrega") @db.Date
-  completadoEn    DateTime?          @map("completado_en")
-  creadoEn        DateTime           @default(now()) @map("creado_en")
-  actualizadoEn   DateTime           @updatedAt @map("actualizado_en")
-  organizacion    Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  cliente         Cliente            @relation(fields: [clienteId], references: [id], onDelete: Restrict)
-  creadoPor       Usuario            @relation("ProyectoCreadoPor", fields: [creadoPorId], references: [id], onDelete: Restrict)
-  tareas          Tarea[]
-  hitos           Hito[]
-  archivos        Archivo[]
-  comentarios     Comentario[]
-  accesosPortal   AccesoPortal[]
-  facturas        Factura[]
+  id             String         @id @default(uuid()) @db.Uuid
+  organizacionId String         @map("organizacion_id") @db.Uuid
+  clienteId      String         @map("cliente_id") @db.Uuid
+  creadoPorId    String         @map("creado_por_id") @db.Uuid
+  nombre         String
+  descripcion    String?
+  estado         EstadoProyecto @default(BORRADOR)
+  presupuesto    Decimal?       @db.Decimal(12, 2)
+  moneda         String         @default("PAB")
+  fechaInicio    DateTime?      @map("fecha_inicio") @db.Date
+  fechaEntrega   DateTime?      @map("fecha_entrega") @db.Date
+  completadoEn   DateTime?      @map("completado_en")
+  creadoEn       DateTime       @default(now()) @map("creado_en")
+  actualizadoEn  DateTime       @updatedAt @map("actualizado_en")
+  organizacion   Organizacion   @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  cliente        Cliente        @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  creadoPor      Usuario        @relation("ProyectoCreadoPor", fields: [creadoPorId], references: [id], onDelete: Restrict)
+  tareas         Tarea[]
+  hitos          Hito[]
+  archivos       Archivo[]
+  comentarios    Comentario[]
+  accesosPortal  AccesoPortal[]
+  facturas       Factura[]
 
   @@index([organizacionId, estado])
   @@index([clienteId])
@@ -180,83 +255,87 @@ model Proyecto {
 }
 
 model Tarea {
-  id              String          @id @default(uuid()) @db.Uuid
-  proyectoId      String          @map("proyecto_id") @db.Uuid
-  hitoId          String?         @map("hito_id") @db.Uuid
-  asignadoAId     String?         @map("asignado_a_id") @db.Uuid
-  titulo          String
-  descripcion     String?
-  estado          EstadoTarea     @default(PENDIENTE)
-  prioridad       PrioridadTarea  @default(MEDIA)
-  orden           Int             @default(0)
+  id               String         @id @default(uuid()) @db.Uuid
+  proyectoId       String         @map("proyecto_id") @db.Uuid
+  hitoId           String?        @map("hito_id") @db.Uuid
+  asignadoAId      String?        @map("asignado_a_id") @db.Uuid
+  titulo           String
+  descripcion      String?
+  estado           EstadoTarea    @default(PENDIENTE)
+  prioridad        PrioridadTarea @default(MEDIA)
+  orden            Int            @default(0)
   fechaVencimiento DateTime?      @map("fecha_vencimiento") @db.Date
-  completadaEn    DateTime?       @map("completada_en")
-  creadoEn        DateTime        @default(now()) @map("creado_en")
-  actualizadoEn   DateTime        @updatedAt @map("actualizado_en")
-  proyecto        Proyecto        @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
-  hito            Hito?           @relation(fields: [hitoId], references: [id], onDelete: SetNull)
-  asignadoA       Usuario?        @relation("TareasAsignadas", fields: [asignadoAId], references: [id], onDelete: SetNull)
+  completadaEn     DateTime?      @map("completada_en")
+  creadoEn         DateTime       @default(now()) @map("creado_en")
+  actualizadoEn    DateTime       @updatedAt @map("actualizado_en")
+  proyecto         Proyecto       @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  hito             Hito?          @relation(fields: [hitoId], references: [id], onDelete: SetNull)
+  asignadoA        Usuario?       @relation("TareasAsignadas", fields: [asignadoAId], references: [id], onDelete: SetNull)
 
   @@index([proyectoId, estado])
   @@map("tareas")
 }
 
 model Hito {
-  id               String       @id @default(uuid()) @db.Uuid
-  proyectoId       String       @map("proyecto_id") @db.Uuid
-  titulo           String
-  descripcion      String?
-  estado           EstadoHito   @default(PENDIENTE)
-  orden            Int          @default(0)
-  fechaObjetivo    DateTime?    @map("fecha_objetivo") @db.Date
-  completadoEn     DateTime?    @map("completado_en")
-  visibleEnPortal  Boolean      @default(true) @map("visible_en_portal")
-  creadoEn         DateTime     @default(now()) @map("creado_en")
-  actualizadoEn    DateTime     @updatedAt @map("actualizado_en")
-  proyecto         Proyecto     @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
-  tareas           Tarea[]
+  id              String     @id @default(uuid()) @db.Uuid
+  proyectoId      String     @map("proyecto_id") @db.Uuid
+  titulo          String
+  descripcion     String?
+  estado          EstadoHito @default(PENDIENTE)
+  orden           Int        @default(0)
+  fechaObjetivo   DateTime?  @map("fecha_objetivo") @db.Date
+  completadoEn    DateTime?  @map("completado_en")
+  visibleEnPortal Boolean    @default(true) @map("visible_en_portal")
+  creadoEn        DateTime   @default(now()) @map("creado_en")
+  actualizadoEn   DateTime   @updatedAt @map("actualizado_en")
+  proyecto        Proyecto   @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  tareas          Tarea[]
 
   @@index([proyectoId, orden])
   @@map("hitos")
 }
 
 model Archivo {
-  id                String              @id @default(uuid()) @db.Uuid
-  proyectoId        String              @map("proyecto_id") @db.Uuid
-  nombre            String
-  nombreOriginal    String              @map("nombre_original")
-  url               String
-  tipoMime          String              @map("tipo_mime")
-  tamanoBytes       Int                 @map("tamano_bytes")
-  tipo              TipoArchivo         @default(ARCHIVO)
-  visibilidad       VisibilidadArchivo  @default(INTERNA)
-  descripcion       String?
-  publicadoEn       DateTime?           @map("publicado_en")
-  creadoEn          DateTime            @default(now()) @map("creado_en")
-  actualizadoEn     DateTime            @updatedAt @map("actualizado_en")
-  proyecto          Proyecto            @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  id             String             @id @default(uuid()) @db.Uuid
+  proyectoId     String             @map("proyecto_id") @db.Uuid
+  nombre         String
+  nombreOriginal String             @map("nombre_original")
+  url            String
+  tipoMime       String             @map("tipo_mime")
+  tamanoBytes    Int                @map("tamano_bytes")
+  tipo           TipoArchivo        @default(ARCHIVO)
+  visibilidad    VisibilidadArchivo @default(INTERNA)
+  descripcion    String?
+  publicadoEn    DateTime?          @map("publicado_en")
+  creadoEn       DateTime           @default(now()) @map("creado_en")
+  actualizadoEn  DateTime           @updatedAt @map("actualizado_en")
+  proyecto       Proyecto           @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
 
   @@index([proyectoId, visibilidad])
   @@map("archivos")
 }
 
 model Comentario {
-  id             String         @id @default(uuid()) @db.Uuid
-  proyectoId     String         @map("proyecto_id") @db.Uuid
-  usuarioId      String?        @map("usuario_id") @db.Uuid
-  accesoPortalId String?        @map("acceso_portal_id") @db.Uuid
+  id             String          @id @default(uuid()) @db.Uuid
+  proyectoId     String          @map("proyecto_id") @db.Uuid
+  usuarioId      String?         @map("usuario_id") @db.Uuid
+  accesoPortalId String?         @map("acceso_portal_id") @db.Uuid
   autor          AutorComentario
   contenido      String
-  creadoEn       DateTime       @default(now()) @map("creado_en")
-  actualizadoEn  DateTime       @updatedAt @map("actualizado_en")
-  proyecto       Proyecto       @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
-  usuario        Usuario?       @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
-  accesoPortal   AccesoPortal?  @relation(fields: [accesoPortalId], references: [id], onDelete: SetNull)
+  creadoEn       DateTime        @default(now()) @map("creado_en")
+  actualizadoEn  DateTime        @updatedAt @map("actualizado_en")
+  proyecto       Proyecto        @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  usuario        Usuario?        @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  accesoPortal   AccesoPortal?   @relation(fields: [accesoPortalId], references: [id], onDelete: SetNull)
 
   @@index([proyectoId, creadoEn])
   @@map("comentarios")
 }
 
+// MODELO HEREDADO (LEGACY)
+// Conservado temporalmente para mantener compatibilidad con las rutas actuales del backend.
+// Su sustitución completa por el sistema de autenticación basado en Usuario, AccesoCliente e InvitacionCliente
+// se completará en la Issue #5 (reemplazo de /api/portal/:token).
 model AccesoPortal {
   id             String       @id @default(uuid()) @db.Uuid
   clienteId      String       @map("cliente_id") @db.Uuid
@@ -265,9 +344,9 @@ model AccesoPortal {
   nombre         String?
   correo         String?
   activo         Boolean      @default(true)
-  expiraEn       DateTime?   @map("expira_en")
-  ultimoAccesoEn DateTime?   @map("ultimo_acceso_en")
-  creadoEn       DateTime    @default(now()) @map("creado_en")
+  expiraEn       DateTime?    @map("expira_en")
+  ultimoAccesoEn DateTime?    @map("ultimo_acceso_en")
+  creadoEn       DateTime     @default(now()) @map("creado_en")
   cliente        Cliente      @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   proyecto       Proyecto?    @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
   comentarios    Comentario[]
@@ -277,24 +356,24 @@ model AccesoPortal {
 }
 
 model Factura {
-  id             String         @id @default(uuid()) @db.Uuid
-  organizacionId String         @map("organizacion_id") @db.Uuid
-  clienteId      String         @map("cliente_id") @db.Uuid
-  proyectoId     String?        @map("proyecto_id") @db.Uuid
-  numero         String
-  concepto       String
-  monto          Decimal        @db.Decimal(12, 2)
-  moneda         String         @default("PAB")
-  estado         EstadoFactura  @default(BORRADOR)
-  fechaEmision   DateTime       @default(now()) @map("fecha_emision") @db.Date
-  fechaVencimiento DateTime?    @map("fecha_vencimiento") @db.Date
-  pagadaEn       DateTime?      @map("pagada_en")
-  notas          String?
-  creadoEn       DateTime       @default(now()) @map("creado_en")
-  actualizadoEn  DateTime       @updatedAt @map("actualizado_en")
-  organizacion   Organizacion   @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  cliente        Cliente        @relation(fields: [clienteId], references: [id], onDelete: Restrict)
-  proyecto       Proyecto?      @relation(fields: [proyectoId], references: [id], onDelete: SetNull)
+  id               String        @id @default(uuid()) @db.Uuid
+  organizacionId   String        @map("organizacion_id") @db.Uuid
+  clienteId        String        @map("cliente_id") @db.Uuid
+  proyectoId       String?       @map("proyecto_id") @db.Uuid
+  numero           String
+  concepto         String
+  monto            Decimal       @db.Decimal(12, 2)
+  moneda           String        @default("PAB")
+  estado           EstadoFactura @default(BORRADOR)
+  fechaEmision     DateTime      @default(now()) @map("fecha_emision") @db.Date
+  fechaVencimiento DateTime?     @map("fecha_vencimiento") @db.Date
+  pagadaEn         DateTime?     @map("pagada_en")
+  notas            String?
+  creadoEn         DateTime      @default(now()) @map("creado_en")
+  actualizadoEn    DateTime      @updatedAt @map("actualizado_en")
+  organizacion     Organizacion  @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  cliente          Cliente       @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  proyecto         Proyecto?     @relation(fields: [proyectoId], references: [id], onDelete: SetNull)
 
   @@unique([organizacionId, numero])
   @@index([organizacionId, estado])
@@ -320,13 +399,13 @@ model Actividad {
 }
 
 model Sesion {
-  id           String    @id @default(uuid()) @db.Uuid
-  usuarioId    String    @map("usuario_id") @db.Uuid
-  tokenHash    String    @unique @map("token_hash")
-  expiraEn     DateTime  @map("expira_en")
-  revocadaEn   DateTime? @map("revocada_en")
-  creadoEn     DateTime  @default(now()) @map("creado_en")
-  usuario      Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid()) @db.Uuid
+  usuarioId  String    @map("usuario_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  expiraEn   DateTime  @map("expira_en")
+  revocadaEn DateTime? @map("revocada_en")
+  creadoEn   DateTime  @default(now()) @map("creado_en")
+  usuario    Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("sesiones")
 }
