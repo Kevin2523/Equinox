@@ -1,3 +1,5 @@
+BEGIN;
+
 -- CreateEnum
 CREATE TYPE "RolCliente" AS ENUM ('TITULAR', 'COLABORADOR');
 
@@ -88,3 +90,5 @@ ALTER TABLE "invitaciones_cliente" ADD CONSTRAINT "invitaciones_cliente_invitado
 
 -- AddForeignKey
 ALTER TABLE "invitaciones_cliente" ADD CONSTRAINT "invitaciones_cliente_aceptada_por_id_fkey" FOREIGN KEY ("aceptada_por_id") REFERENCES "usuarios"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+COMMIT;

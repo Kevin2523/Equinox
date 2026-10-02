@@ -21,6 +21,7 @@ Esta migración implementa la capa de datos para el acceso de clientes e invitac
   - Clave foránea en `invitaciones_cliente(cliente_id, organizacion_id) REFERENCES clientes(id, organizacion_id) ON DELETE CASCADE`.
   - Esto garantiza a nivel de motor de base de datos que ningún usuario o invitación pueda asociarse a un cliente de una organización diferente.
 - **Operaciones no destructivas:** La migración únicamente ejecuta `CREATE TYPE`, `CREATE TABLE`, `CREATE INDEX` y `ALTER TABLE ... ADD CONSTRAINT`. No elimina tablas, columnas ni datos preexistentes.
+- **Atomicidad mediante Transacción Explícita (`BEGIN ... COMMIT`):** Prisma Migrate no envuelve automáticamente las migraciones en bloques transaccionales. Para garantizar que esta migración sea estrictamente atómica, el archivo `migration.sql` incluye explícitamente `BEGIN;` al inicio y `COMMIT;` al final. Todas las operaciones DDL incluidas (`CREATE TYPE`, `CREATE TABLE`, `CREATE INDEX`, `ALTER TABLE`) son totalmente compatibles con transacciones en PostgreSQL.
 
 ---
 
@@ -95,17 +96,24 @@ Si `npx prisma migrate deploy` arroja un error en ejecución:
    ```
    Prisma identificará la migración que falló (`failed`). Mientras una migración esté en estado fallido, Prisma bloqueará futuros despliegues para evitar estados inconsistentes.
 
-2. **Evaluar el estado del esquema:**
-   - En PostgreSQL, las sentencias DDL (como `CREATE TABLE` y `ALTER TABLE`) son transaccionales. Si una migración falla en medio de su ejecución, PostgreSQL realiza un rollback automático de las operaciones dentro de la transacción, pero Prisma marcará el registro en `_prisma_migrations` como no exitoso (`finished_at IS NULL`).
+2. **Evaluación de atomicidad y estado del esquema:**
+   - **Para migraciones con transacción explícita (`BEGIN ... COMMIT`) como esta:** Si una sentencia falla, PostgreSQL efectúa un rollback completo de toda la transacción DDL, asegurando que ninguna tabla, tipo o índice quede creado a medias. Sin embargo, Prisma registrará la migración como fallida en `_prisma_migrations` (`finished_at IS NULL`).
+   - **Para migraciones sin transacción explícita:** Prisma Migrate aplica las sentencias una a una; si falla en un paso intermedio, los objetos creados previamente permanecen en la base de datos (estado parcialmente aplicado).
 
-3. **Si la migración fue parcialmente aplicada o dejó bloqueos:**
-   - Si la base quedó en un estado irrecuperable o inconsistente, proceda a la **Restauración desde Backup** (Sección 6).
-   - Si el problema fue un error de sintaxis menor o una restricción de datos resoluble, use `prisma migrate resolve`:
-     - Para marcar como revertida:
-       ```bash
-       npx prisma migrate resolve --rolled-back "20261001170821_cuentas_e_invitaciones_clientes"
-       ```
-     - Corrija la causa raíz mediante una **migración correctiva** (Sección 7).
+3. **Verificación de objetos y resolución con `prisma migrate resolve`:**
+   Antes de marcar una migración como revertida, inspeccione la base de datos para confirmar si los objetos fueron revertidos o si persisten objetos parciales:
+   ```sql
+   -- Comprobar si existen tablas creadas por la migración
+   SELECT table_name FROM information_schema.tables WHERE table_name IN ('accesos_cliente', 'invitaciones_cliente');
+   -- Comprobar si existen tipos enum
+   SELECT typname FROM pg_type WHERE typname IN ('RolCliente', 'EstadoInvitacionCliente');
+   ```
+   - Si la migración era atómica (con `BEGIN/COMMIT`) y se revirtió por completo en PostgreSQL:
+     ```bash
+     npx prisma migrate resolve --rolled-back "20261001170821_cuentas_e_invitaciones_clientes"
+     ```
+   - Si existieran objetos parciales residuales, elimínelos manualmente mediante DDL correctivo o restaure desde el respaldo preventivo antes de indicar `--rolled-back`.
+   - Una vez resuelto el estado en `_prisma_migrations`, corrija la causa raíz y proceda mediante una **migración correctiva** (Sección 7).
 
 ---
 

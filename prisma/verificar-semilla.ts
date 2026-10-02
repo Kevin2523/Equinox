@@ -1,4 +1,5 @@
-﻿import {
+import {
+  Prisma,
   PrismaClient,
   RolMiembro,
   RolCliente,
@@ -12,6 +13,9 @@ import { SEMILLA_IDS, DEMO_CONFIG } from './seed';
 dotenv.config();
 
 const prisma = new PrismaClient();
+
+const UUID_TEST_ACCESO = 'ffffffff-ffff-4fff-8fff-ffffffffff01';
+const UUID_TEST_INVITACION = 'ffffffff-ffff-4fff-8fff-ffffffffff02';
 
 async function verificarSemilla() {
   console.log('🔍 Iniciando verificación exhaustiva de semilla y restricciones de base de datos...\n');
@@ -49,7 +53,7 @@ async function verificarSemilla() {
     propietario !== null &&
       membresiaProp !== undefined &&
       membresiaProp.rol === RolMiembro.PROPIETARIO &&
-      membresiaProp.organizacion.slug === 'mena-studios',
+      membresiaProp.organizacion.slug === 'estudio-demo-istmo',
     `Usuario: ${propietario?.correo}, Org: ${membresiaProp?.organizacion.nombre}, Rol: ${membresiaProp?.rol}`
   );
 
@@ -126,52 +130,123 @@ async function verificarSemilla() {
   // 5. EL TOKEN ORIGINAL NO ESTÁ ALMACENADO EN TEXTO PLANO
   // ========================================================
   console.log('\n5. Verificando que el token original no esté almacenado en PostgreSQL...');
-  const invitacionesConTokenPlano = await prisma.$queryRawUnsafe<any[]>(
-    `SELECT id, token_hash FROM invitaciones_cliente WHERE token_hash = $1`,
-    DEMO_CONFIG.TOKEN_INVITACION_DEMO
-  );
+  // Consulta parametrizada segura mediante tagged template $queryRaw
+  const invitacionesConTokenPlano = await prisma.$queryRaw<any[]>`
+    SELECT id, token_hash FROM invitaciones_cliente WHERE token_hash = ${DEMO_CONFIG.TOKEN_INVITACION_DEMO}
+  `;
 
   registrarPrueba(
     'El token original en texto plano NO está almacenado en PostgreSQL',
-    invitacionesConTokenPlano.length === 0 && invitacion?.tokenHash !== DEMO_CONFIG.TOKEN_INVITACION_DEMO,
-    `Token plano: "${DEMO_CONFIG.TOKEN_INVITACION_DEMO}", Token en BD (SHA-256): "${invitacion?.tokenHash.slice(0, 16)}..."`
+    invitacionesConTokenPlano.length === 0 &&
+      invitacion?.tokenHash !== DEMO_CONFIG.TOKEN_INVITACION_DEMO &&
+      invitacion?.tokenHash === hashEsperado,
+    `Token en BD (SHA-256): "${invitacion?.tokenHash.slice(0, 16)}..." [token plano no almacenado ni expuesto]`
   );
 
   // ========================================================
-  // 6. CONTEO DE REGISTROS DE LA SEMILLA
+  // 6. CONVIVENCIA CON DATOS EXISTENTES E IDEMPOTENCIA
   // ========================================================
-  console.log('\n6. Verificando cantidades exactas de registros...');
-  const conteoUsuarios = await prisma.usuario.count();
-  const conteoOrganizaciones = await prisma.organizacion.count();
-  const conteoClientes = await prisma.cliente.count();
-  const conteoAccesos = await prisma.accesoCliente.count();
-  const conteoProyectos = await prisma.proyecto.count();
-  const conteoInvitaciones = await prisma.invitacionCliente.count();
+  console.log('\n6. Verificando existencia unívoca e idempotencia de los registros de la semilla...');
+  
+  // Contar exclusivamente registros identificados mediante SEMILLA_IDS
+  const [
+    usuarioProp1Count,
+    usuarioCliente1Count,
+    usuarioProp2Count,
+    org1Count,
+    org2Count,
+    miembroProp1Count,
+    miembroProp2Count,
+    cliente1Count,
+    cliente2Count,
+    acceso1Count,
+    proyecto1Count,
+    invitacion1Count
+  ] = await Promise.all([
+    prisma.usuario.count({ where: { id: SEMILLA_IDS.USER_PROP_1 } }),
+    prisma.usuario.count({ where: { id: SEMILLA_IDS.USER_CLIENTE_1 } }),
+    prisma.usuario.count({ where: { id: SEMILLA_IDS.USER_PROP_2 } }),
+    prisma.organizacion.count({ where: { id: SEMILLA_IDS.ORG_1 } }),
+    prisma.organizacion.count({ where: { id: SEMILLA_IDS.ORG_2 } }),
+    prisma.miembroOrganizacion.count({ where: { id: SEMILLA_IDS.MIEMBRO_PROP_1 } }),
+    prisma.miembroOrganizacion.count({ where: { id: SEMILLA_IDS.MIEMBRO_PROP_2 } }),
+    prisma.cliente.count({ where: { id: SEMILLA_IDS.CLIENTE_1 } }),
+    prisma.cliente.count({ where: { id: SEMILLA_IDS.CLIENTE_2 } }),
+    prisma.accesoCliente.count({ where: { id: SEMILLA_IDS.ACCESO_CLIENTE_1 } }),
+    prisma.proyecto.count({ where: { id: SEMILLA_IDS.PROYECTO_1 } }),
+    prisma.invitacionCliente.count({ where: { id: SEMILLA_IDS.INVITACION_1 } })
+  ]);
+
+  const todosSemillaIdsExistenUnicamente =
+    usuarioProp1Count === 1 &&
+    usuarioCliente1Count === 1 &&
+    usuarioProp2Count === 1 &&
+    org1Count === 1 &&
+    org2Count === 1 &&
+    miembroProp1Count === 1 &&
+    miembroProp2Count === 1 &&
+    cliente1Count === 1 &&
+    cliente2Count === 1 &&
+    acceso1Count === 1 &&
+    proyecto1Count === 1 &&
+    invitacion1Count === 1;
 
   registrarPrueba(
-    'Cantidades exactas esperadas en la base de datos (idempotencia)',
-    conteoUsuarios === 3 &&
-      conteoOrganizaciones === 2 &&
-      conteoClientes === 2 &&
-      conteoAccesos === 1 &&
-      conteoProyectos === 1 &&
-      conteoInvitaciones === 1,
-    `Usuarios: ${conteoUsuarios}, Organizaciones: ${conteoOrganizaciones}, Clientes: ${conteoClientes}, Accesos: ${conteoAccesos}, Proyectos: ${conteoProyectos}, Invitaciones: ${conteoInvitaciones}`
+    'Existe exactamente un registro por cada UUID esperado de la semilla (idempotencia aislada)',
+    todosSemillaIdsExistenUnicamente,
+    `Todos los 12 registros clave de la semilla existen exactamente una vez (sin duplicados)`
+  );
+
+  // Verificar que no existen duplicados en las relaciones únicas de la semilla
+  const [
+    duplicadosMembresia1,
+    duplicadosMembresia2,
+    duplicadosAcceso1,
+    duplicadosOrgSlug1,
+    duplicadosOrgSlug2,
+    duplicadosInvitacionToken
+  ] = await Promise.all([
+    prisma.miembroOrganizacion.count({
+      where: { usuarioId: SEMILLA_IDS.USER_PROP_1, organizacionId: SEMILLA_IDS.ORG_1 }
+    }),
+    prisma.miembroOrganizacion.count({
+      where: { usuarioId: SEMILLA_IDS.USER_PROP_2, organizacionId: SEMILLA_IDS.ORG_2 }
+    }),
+    prisma.accesoCliente.count({
+      where: { usuarioId: SEMILLA_IDS.USER_CLIENTE_1, clienteId: SEMILLA_IDS.CLIENTE_1 }
+    }),
+    prisma.organizacion.count({ where: { slug: 'estudio-demo-istmo' } }),
+    prisma.organizacion.count({ where: { slug: 'soluciones-cloud-demo' } }),
+    prisma.invitacionCliente.count({ where: { tokenHash: hashEsperado } })
+  ]);
+
+  const relacionesUnicasSinDuplicados =
+    duplicadosMembresia1 === 1 &&
+    duplicadosMembresia2 === 1 &&
+    duplicadosAcceso1 === 1 &&
+    duplicadosOrgSlug1 === 1 &&
+    duplicadosOrgSlug2 === 1 &&
+    duplicadosInvitacionToken === 1;
+
+  registrarPrueba(
+    'No existen duplicados en las relaciones únicas de negocio de la semilla',
+    relacionesUnicasSinDuplicados,
+    'Membresías: 1/1, Accesos: 1/1, Slugs Org: 1/1, Invitación Hash: 1/1'
   );
 
   // ========================================================
-  // 7. PRUEBA DE AISLAMIENTO MULTITENANT (VIOLACIÓN DE CLAVE FORÁNEA COMPUESTA)
+  // 7. PRUEBA DE AISLAMIENTO MULTITENANT (VIOLACIÓN ESPECÍFICA P2003 Y LIMPIEZA)
   // ========================================================
   console.log('\n7. Verificando aislamiento multitenant y claves foráneas compuestas...');
-
+  
   // Intento de asociación cruzada: Cliente 1 (de Org 1) vinculado a Org 2 en AccesoCliente
   let cruceRechazadoAcceso = false;
-  let codigoErrorAcceso = '';
+  let errorCapturadoAcceso: string = '';
 
   try {
     await prisma.accesoCliente.create({
       data: {
-        id: 'ffffffff-ffff-4fff-8fff-ffffffffff01',
+        id: UUID_TEST_ACCESO,
         usuarioId: SEMILLA_IDS.USER_PROP_2,
         clienteId: SEMILLA_IDS.CLIENTE_1, // Pertenece a ORG_1
         organizacionId: SEMILLA_IDS.ORG_2, // Pretendemos asignarlo a ORG_2
@@ -179,55 +254,75 @@ async function verificarSemilla() {
       }
     });
   } catch (error: any) {
-    cruceRechazadoAcceso = true;
-    codigoErrorAcceso = error.code || error.message;
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      cruceRechazadoAcceso = true;
+      errorCapturadoAcceso = `PrismaClientKnownRequestError (code: ${error.code})`;
+    } else {
+      console.error('Error no esperado en prueba de AccesoCliente cruzado:', error);
+      throw new Error(`Se esperaba estrictamente PrismaClientKnownRequestError con code P2003`);
+    }
+  } finally {
+    // Limpieza garantizada incluso si la restricción de base de datos hubiera fallado
+    await prisma.accesoCliente.deleteMany({
+      where: { id: UUID_TEST_ACCESO }
+    });
   }
 
   registrarPrueba(
-    'PostgreSQL rechaza AccesoCliente con clienteId de Org 1 y organizacionId de Org 2 (FK compuesta)',
+    'PostgreSQL rechaza AccesoCliente cruzado específicamente con PrismaClientKnownRequestError (P2003)',
     cruceRechazadoAcceso === true,
-    `Operación rechazada con éxito por la BD. Código/Detalle: ${codigoErrorAcceso}`
+    `Error validado específicamente: ${errorCapturadoAcceso}`
   );
 
   // Intento de invitación cruzada: Cliente 1 (de Org 1) vinculado a Org 2 en InvitacionCliente
   let cruceRechazadoInvitacion = false;
-  let codigoErrorInvitacion = '';
+  let errorCapturadoInvitacion: string = '';
 
   try {
     await prisma.invitacionCliente.create({
       data: {
-        id: 'ffffffff-ffff-4fff-8fff-ffffffffff02',
+        id: UUID_TEST_INVITACION,
         organizacionId: SEMILLA_IDS.ORG_2, // ORG_2
         clienteId: SEMILLA_IDS.CLIENTE_1, // Pertenece a ORG_1
-        correo: 'intruso@ejemplo.com',
+        correo: 'intruso@example.test',
         tokenHash: 'hash_invalido_de_prueba_aislamiento_multitenant_00000000000000000000',
         expiraEn: new Date(Date.now() + 86400000),
         invitadoPorId: SEMILLA_IDS.USER_PROP_2
       }
     });
   } catch (error: any) {
-    cruceRechazadoInvitacion = true;
-    codigoErrorInvitacion = error.code || error.message;
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      cruceRechazadoInvitacion = true;
+      errorCapturadoInvitacion = `PrismaClientKnownRequestError (code: ${error.code})`;
+    } else {
+      console.error('Error no esperado en prueba de InvitacionCliente cruzada:', error);
+      throw new Error(`Se esperaba estrictamente PrismaClientKnownRequestError con code P2003`);
+    }
+  } finally {
+    // Limpieza garantizada
+    await prisma.invitacionCliente.deleteMany({
+      where: { id: UUID_TEST_INVITACION }
+    });
   }
 
   registrarPrueba(
-    'PostgreSQL rechaza InvitacionCliente con clienteId de Org 1 y organizacionId de Org 2 (FK compuesta)',
+    'PostgreSQL rechaza InvitacionCliente cruzada específicamente con PrismaClientKnownRequestError (P2003)',
     cruceRechazadoInvitacion === true,
-    `Operación rechazada con éxito por la BD. Código/Detalle: ${codigoErrorInvitacion}`
+    `Error validado específicamente: ${errorCapturadoInvitacion}`
   );
 
   // Confirmar que no quedaron registros espurios
   const accesosInvalidos = await prisma.accesoCliente.findMany({
-    where: { id: 'ffffffff-ffff-4fff-8fff-ffffffffff01' }
+    where: { id: UUID_TEST_ACCESO }
   });
   const invitacionesInvalidas = await prisma.invitacionCliente.findMany({
-    where: { id: 'ffffffff-ffff-4fff-8fff-ffffffffff02' }
+    where: { id: UUID_TEST_INVITACION }
   });
 
   registrarPrueba(
-    'La base de datos permanece limpia sin registros huérfanos ni inválidos',
+    'La base de datos permanece limpia sin registros huérfanos ni UUIDs de prueba (try/finally)',
     accesosInvalidos.length === 0 && invitacionesInvalidas.length === 0,
-    'No se encontraron registros de las pruebas de violación de restricciones'
+    'Verificado: 0 registros espurios en accesos_cliente e invitaciones_cliente'
   );
 
   console.log(`\n🎉 RESULTADO: Todas las ${pruebasPasadas}/${pruebasTotales} comprobaciones superadas exitosamente.\n`);

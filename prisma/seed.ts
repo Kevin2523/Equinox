@@ -1,4 +1,4 @@
-﻿import {
+import {
   PrismaClient,
   RolMiembro,
   RolCliente,
@@ -30,7 +30,7 @@ const prisma = new PrismaClient();
 
 // Identificadores fijos y deterministas para garantizar 100% idempotencia
 export const SEMILLA_IDS = {
-  // Organización 1: Principal
+  // Organización 1: Principal de prueba
   ORG_1: '00000000-0000-4000-8000-000000000001',
   USER_PROP_1: '00000000-0000-4000-8000-000000000011',
   MIEMBRO_PROP_1: '00000000-0000-4000-8000-000000000012',
@@ -40,7 +40,7 @@ export const SEMILLA_IDS = {
   PROYECTO_1: '00000000-0000-4000-8000-000000000051',
   INVITACION_1: '00000000-0000-4000-8000-000000000061',
 
-  // Organización 2: Secundaria (para comprobar aislamiento multitenant)
+  // Organización 2: Secundaria de prueba (para comprobar aislamiento multitenant)
   ORG_2: '00000000-0000-4000-8000-000000000002',
   USER_PROP_2: '00000000-0000-4000-8000-000000000013',
   MIEMBRO_PROP_2: '00000000-0000-4000-8000-000000000014',
@@ -70,18 +70,18 @@ export async function ejecutarSemilla() {
   const usuarioPropietario1 = await prisma.usuario.upsert({
     where: { id: SEMILLA_IDS.USER_PROP_1 },
     update: {
-      correo: 'propietario@menastudios.com',
-      nombre: 'Kevin',
-      apellido: 'Mena',
-      telefono: '+507 6000-0001',
+      correo: 'andrea.demo@example.test',
+      nombre: 'Andrea',
+      apellido: 'Demo',
+      telefono: '+507 555-0101',
       contrasenaHash
     },
     create: {
       id: SEMILLA_IDS.USER_PROP_1,
-      correo: 'propietario@menastudios.com',
-      nombre: 'Kevin',
-      apellido: 'Mena',
-      telefono: '+507 6000-0001',
+      correo: 'andrea.demo@example.test',
+      nombre: 'Andrea',
+      apellido: 'Demo',
+      telefono: '+507 555-0101',
       contrasenaHash
     }
   });
@@ -89,19 +89,19 @@ export async function ejecutarSemilla() {
   const org1 = await prisma.organizacion.upsert({
     where: { id: SEMILLA_IDS.ORG_1 },
     update: {
-      nombre: 'Mena Studios',
-      slug: 'mena-studios',
-      descripcion: 'Agencia de desarrollo web y diseño de productos digitales en Panamá',
+      nombre: 'Estudio Demo Istmo',
+      slug: 'estudio-demo-istmo',
+      descripcion: 'Organización ficticia de demostración para desarrollo y pruebas locales',
       moneda: 'PAB',
-      correoContacto: 'contacto@menastudios.com'
+      correoContacto: 'contacto@estudio-demo.example.test'
     },
     create: {
       id: SEMILLA_IDS.ORG_1,
-      nombre: 'Mena Studios',
-      slug: 'mena-studios',
-      descripcion: 'Agencia de desarrollo web y diseño de productos digitales en Panamá',
+      nombre: 'Estudio Demo Istmo',
+      slug: 'estudio-demo-istmo',
+      descripcion: 'Organización ficticia de demostración para desarrollo y pruebas locales',
       moneda: 'PAB',
-      correoContacto: 'contacto@menastudios.com'
+      correoContacto: 'contacto@estudio-demo.example.test'
     }
   });
 
@@ -130,19 +130,19 @@ export async function ejecutarSemilla() {
     where: { id: SEMILLA_IDS.CLIENTE_1 },
     update: {
       organizacionId: org1.id,
-      nombre: 'Distribuidora del Pacífico S.A.',
-      empresa: 'Grupo Pacífico',
-      correo: 'contacto@pacifico.com.pa',
-      telefono: '+507 200-0001',
+      nombre: 'Distribuidora Ficticia S.A.',
+      empresa: 'Grupo Ficticio Demo',
+      correo: 'contacto@distribuidoraficticia.example.test',
+      telefono: '+507 555-0102',
       estado: EstadoCliente.ACTIVO
     },
     create: {
       id: SEMILLA_IDS.CLIENTE_1,
       organizacionId: org1.id,
-      nombre: 'Distribuidora del Pacífico S.A.',
-      empresa: 'Grupo Pacífico',
-      correo: 'contacto@pacifico.com.pa',
-      telefono: '+507 200-0001',
+      nombre: 'Distribuidora Ficticia S.A.',
+      empresa: 'Grupo Ficticio Demo',
+      correo: 'contacto@distribuidoraficticia.example.test',
+      telefono: '+507 555-0102',
       estado: EstadoCliente.ACTIVO
     }
   });
@@ -153,18 +153,18 @@ export async function ejecutarSemilla() {
   const usuarioCliente1 = await prisma.usuario.upsert({
     where: { id: SEMILLA_IDS.USER_CLIENTE_1 },
     update: {
-      correo: 'cliente.titular@pacifico.com.pa',
+      correo: 'carlos.cliente@example.test',
       nombre: 'Carlos',
-      apellido: 'Rodríguez',
-      telefono: '+507 6000-0002',
+      apellido: 'Demo',
+      telefono: '+507 555-0103',
       contrasenaHash
     },
     create: {
       id: SEMILLA_IDS.USER_CLIENTE_1,
-      correo: 'cliente.titular@pacifico.com.pa',
+      correo: 'carlos.cliente@example.test',
       nombre: 'Carlos',
-      apellido: 'Rodríguez',
-      telefono: '+507 6000-0002',
+      apellido: 'Demo',
+      telefono: '+507 555-0103',
       contrasenaHash
     }
   });
@@ -200,8 +200,8 @@ export async function ejecutarSemilla() {
       organizacionId: org1.id,
       clienteId: cliente1.id,
       creadoPorId: usuarioPropietario1.id,
-      nombre: 'Portal B2B de Pedidos',
-      descripcion: 'Implementación del portal web de pedidos y catálogo comercial para mayoristas',
+      nombre: 'Portal B2B de Pedidos Demo',
+      descripcion: 'Proyecto ficticio de demostración para gestión de pedidos mayoristas',
       estado: EstadoProyecto.ACTIVO,
       presupuesto: 4500.0,
       moneda: 'PAB'
@@ -211,8 +211,8 @@ export async function ejecutarSemilla() {
       organizacionId: org1.id,
       clienteId: cliente1.id,
       creadoPorId: usuarioPropietario1.id,
-      nombre: 'Portal B2B de Pedidos',
-      descripcion: 'Implementación del portal web de pedidos y catálogo comercial para mayoristas',
+      nombre: 'Portal B2B de Pedidos Demo',
+      descripcion: 'Proyecto ficticio de demostración para gestión de pedidos mayoristas',
       estado: EstadoProyecto.ACTIVO,
       presupuesto: 4500.0,
       moneda: 'PAB'
@@ -228,7 +228,7 @@ export async function ejecutarSemilla() {
     update: {
       organizacionId: org1.id,
       clienteId: cliente1.id,
-      correo: 'colaborador@pacifico.com.pa',
+      correo: 'colaborador.invitado@example.test',
       tokenHash: tokenInvitacionHash,
       rol: RolCliente.COLABORADOR,
       estado: EstadoInvitacionCliente.PENDIENTE,
@@ -239,7 +239,7 @@ export async function ejecutarSemilla() {
       id: SEMILLA_IDS.INVITACION_1,
       organizacionId: org1.id,
       clienteId: cliente1.id,
-      correo: 'colaborador@pacifico.com.pa',
+      correo: 'colaborador.invitado@example.test',
       tokenHash: tokenInvitacionHash,
       rol: RolCliente.COLABORADOR,
       estado: EstadoInvitacionCliente.PENDIENTE,
@@ -254,18 +254,18 @@ export async function ejecutarSemilla() {
   const usuarioPropietario2 = await prisma.usuario.upsert({
     where: { id: SEMILLA_IDS.USER_PROP_2 },
     update: {
-      correo: 'propietario@balboa.com',
+      correo: 'elena.demo@example.test',
       nombre: 'Elena',
-      apellido: 'Castillo',
-      telefono: '+507 6000-0003',
+      apellido: 'Demo',
+      telefono: '+507 555-0104',
       contrasenaHash
     },
     create: {
       id: SEMILLA_IDS.USER_PROP_2,
-      correo: 'propietario@balboa.com',
+      correo: 'elena.demo@example.test',
       nombre: 'Elena',
-      apellido: 'Castillo',
-      telefono: '+507 6000-0003',
+      apellido: 'Demo',
+      telefono: '+507 555-0104',
       contrasenaHash
     }
   });
@@ -273,19 +273,19 @@ export async function ejecutarSemilla() {
   const org2 = await prisma.organizacion.upsert({
     where: { id: SEMILLA_IDS.ORG_2 },
     update: {
-      nombre: 'Soluciones Digitales Balboa',
-      slug: 'soluciones-balboa',
-      descripcion: 'Consultoría tecnológica e infraestructura cloud',
+      nombre: 'Soluciones Cloud Demo',
+      slug: 'soluciones-cloud-demo',
+      descripcion: 'Segunda organización ficticia para verificación de aislamiento multitenant',
       moneda: 'USD',
-      correoContacto: 'contacto@balboa.com'
+      correoContacto: 'contacto@soluciones-cloud.example.test'
     },
     create: {
       id: SEMILLA_IDS.ORG_2,
-      nombre: 'Soluciones Digitales Balboa',
-      slug: 'soluciones-balboa',
-      descripcion: 'Consultoría tecnológica e infraestructura cloud',
+      nombre: 'Soluciones Cloud Demo',
+      slug: 'soluciones-cloud-demo',
+      descripcion: 'Segunda organización ficticia para verificación de aislamiento multitenant',
       moneda: 'USD',
-      correoContacto: 'contacto@balboa.com'
+      correoContacto: 'contacto@soluciones-cloud.example.test'
     }
   });
 
@@ -311,19 +311,19 @@ export async function ejecutarSemilla() {
     where: { id: SEMILLA_IDS.CLIENTE_2 },
     update: {
       organizacionId: org2.id,
-      nombre: 'Logística Istmo Corp',
-      empresa: 'Istmo Corp',
-      correo: 'contacto@istmo.com.pa',
-      telefono: '+507 200-0002',
+      nombre: 'Logística Istmo Demo Corp',
+      empresa: 'Istmo Demo Corp',
+      correo: 'contacto@logisticaistmo.example.test',
+      telefono: '+507 555-0105',
       estado: EstadoCliente.ACTIVO
     },
     create: {
       id: SEMILLA_IDS.CLIENTE_2,
       organizacionId: org2.id,
-      nombre: 'Logística Istmo Corp',
-      empresa: 'Istmo Corp',
-      correo: 'contacto@istmo.com.pa',
-      telefono: '+507 200-0002',
+      nombre: 'Logística Istmo Demo Corp',
+      empresa: 'Istmo Demo Corp',
+      correo: 'contacto@logisticaistmo.example.test',
+      telefono: '+507 555-0105',
       estado: EstadoCliente.ACTIVO
     }
   });
