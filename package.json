@@ -9,7 +9,9 @@
     "iniciar": "node dist/servidor.js",
     "prisma:generar": "node node_modules/prisma/build/index.js generate",
     "prisma:migrar": "node node_modules/prisma/build/index.js migrate dev",
-    "prisma:desplegar": "node node_modules/prisma/build/index.js migrate deploy"
+    "prisma:desplegar": "node node_modules/prisma/build/index.js migrate deploy",
+    "prisma:semilla": "node node_modules/tsx/dist/cli.mjs prisma/seed.ts",
+    "prisma:verificar-semilla": "node node_modules/tsx/dist/cli.mjs prisma/verificar-semilla.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",
