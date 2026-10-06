@@ -147,7 +147,7 @@ async function verificarSemilla() {
   // 6. CONVIVENCIA CON DATOS EXISTENTES E IDEMPOTENCIA
   // ========================================================
   console.log('\n6. Verificando existencia unívoca e idempotencia de los registros de la semilla...');
-  
+
   // Contar exclusivamente registros identificados mediante SEMILLA_IDS
   const [
     usuarioProp1Count,
@@ -238,7 +238,7 @@ async function verificarSemilla() {
   // 7. PRUEBA DE AISLAMIENTO MULTITENANT (VIOLACIÓN ESPECÍFICA P2003 Y LIMPIEZA)
   // ========================================================
   console.log('\n7. Verificando aislamiento multitenant y claves foráneas compuestas...');
-  
+
   // Intento de asociación cruzada: Cliente 1 (de Org 1) vinculado a Org 2 en AccesoCliente
   let cruceRechazadoAcceso = false;
   let errorCapturadoAcceso: string = '';
