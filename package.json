@@ -11,7 +11,9 @@
     "prisma:migrar": "node node_modules/prisma/build/index.js migrate dev",
     "prisma:desplegar": "node node_modules/prisma/build/index.js migrate deploy",
     "prisma:semilla": "node node_modules/tsx/dist/cli.mjs prisma/seed.ts",
-    "prisma:verificar-semilla": "node node_modules/tsx/dist/cli.mjs prisma/verificar-semilla.ts"
+    "prisma:verificar-semilla": "node node_modules/tsx/dist/cli.mjs prisma/verificar-semilla.ts",
+    "compilar:pruebas": "node node_modules/typescript/bin/tsc -p tsconfig.pruebas.json --noEmit",
+    "prueba:integracion": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-integracion.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",
