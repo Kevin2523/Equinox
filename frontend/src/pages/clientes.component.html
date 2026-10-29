@@ -1,71 +1,49 @@
 <main class="standard">
-<section class="collection">
-    <div class="page-title">
-      <div>
-        <p class="eyebrow">EQUINOX / CLIENTES</p>
-        <h1>Clientes</h1>
-        <p>Directorio y relaciones comerciales activas en Panamá.</p>
-      </div>
-      <button class="btn-primary" (click)="state.openQuickCreate('Cliente')">
-        <span>＋</span> Nuevo cliente
-      </button>
-    </div>
-
-    <!-- Metric Cards -->
+  <section class="collection">
+    <div class="page-title"><div><p class="eyebrow">EQUINOX / CLIENTES</p><h1>Clientes</h1><p>Directorio y relaciones comerciales.</p></div><button class="btn-primary" type="button" (click)="nuevo()"><span>＋</span> Nuevo cliente</button></div>
     <div class="metrics-row">
-      <div class="metric-card">
-        <small>TOTAL CLIENTES</small>
-        <strong>{{ state.clientes.length }}</strong>
-        <p>Contactos registrados</p>
-      </div>
-      <div class="metric-card">
-        <small>ACTIVOS CON PROYECTO</small>
-        <strong>{{ state.proyectos.length }}</strong>
-        <p>Proyectos en ejecución</p>
-      </div>
-      <div class="metric-card">
-        <small>FACTURADO ACUMULADO</small>
-        <strong>B/. {{ state.totalCobrado | number:'1.2-2' }}</strong>
-        <p>Cobros registrados</p>
-      </div>
+      <div class="metric-card"><small>TOTAL CLIENTES</small><strong>{{ clientes.length }}</strong><p>Contactos registrados</p></div>
+      <div class="metric-card"><small>CLIENTES ACTIVOS</small><strong>{{ totalActivos }}</strong><p>En esta organización</p></div>
+      <div class="metric-card"><small>PROYECTOS ACTIVOS</small><strong>{{ proyectosActivos }}</strong><p>Proyectos en ejecución</p></div>
     </div>
-
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <label class="search-input-pill">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input [(ngModel)]="state.query" placeholder="Buscar por nombre, empresa o correo...">
-      </label>
-      <div class="filter-pills">
-        <button [class.active]="state.clientFilter === 'TODOS'" (click)="state.clientFilter = 'TODOS'">Todos ({{ state.clientes.length }})</button>
-        <button [class.active]="state.clientFilter === 'ACTIVO'" (click)="state.clientFilter = 'ACTIVO'">Activos</button>
-        <button [class.active]="state.clientFilter === 'PROSPECTO'" (click)="state.clientFilter = 'PROSPECTO'">Prospectos</button>
-      </div>
+    <div class="filter-bar"><label class="search-input-pill"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input [(ngModel)]="busqueda" placeholder="Buscar por nombre, empresa, correo o notas..."></label>
+      <div class="filter-pills"><button [class.active]="filtroEstado === 'TODOS'" (click)="filtroEstado = 'TODOS'">Todos</button><button [class.active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado = 'ACTIVO'">Activos</button><button [class.active]="filtroEstado === 'PROSPECTO'" (click)="filtroEstado = 'PROSPECTO'">Prospectos</button><button [class.active]="filtroEstado === 'INACTIVO'" (click)="filtroEstado = 'INACTIVO'">Inactivos</button></div>
     </div>
-
-    <!-- Clients Grid -->
-    <div class="clients-grid">
-      <div class="client-card" *ngFor="let c of state.visibleClients">
-        <div class="client-card-head">
-          <span class="client-avatar" [style.background]="c.avatarColor || '#3568f6'">
-            {{ c.nombre.substring(0, 2).toUpperCase() }}
-          </span>
-          <span class="badge" [class.badge-completado]="c.estado === 'ACTIVO'" [class.badge-planificacion]="c.estado === 'PROSPECTO'">
-            ● {{ c.estado }}
-          </span>
-        </div>
-        <h3>{{ c.nombre }}</h3>
-        <p class="client-company">{{ c.empresa }}</p>
-        <div class="client-contacts">
-          <span>✉ {{ c.correo }}</span>
-          <span>☎ {{ c.telefono }}</span>
-        </div>
-        <p class="client-notes" *ngIf="c.notas">{{ c.notas }}</p>
-        <div class="client-card-foot">
-          <span><b>{{ c.proyectosCount || 1 }}</b> proyecto(s)</span>
-          <button class="btn-card-action" (click)="state.clientDetailModal = c">Ver detalles ›</button>
-        </div>
-      </div>
+    <p class="api-state" *ngIf="cargando" role="status">Cargando clientes…</p>
+    <div class="api-state api-state-error" *ngIf="error" role="alert">{{ error }} <button class="btn-secondary" (click)="cargar()">Reintentar</button></div>
+    <div class="api-state" *ngIf="!cargando && !error && clientesVisibles.length === 0">{{ busqueda || filtroEstado !== 'TODOS' ? 'No hay clientes que coincidan con la búsqueda.' : 'Todavía no hay clientes. Crea el primero para comenzar.' }}</div>
+    <div class="clients-grid" *ngIf="!cargando && !error && clientesVisibles.length">
+      <article class="client-card" *ngFor="let c of clientesVisibles">
+        <div class="client-card-head"><span class="client-avatar">{{ c.nombre.substring(0, 2).toUpperCase() }}</span><span class="badge" [class.badge-completado]="c.estado === 'ACTIVO'" [class.badge-planificacion]="c.estado === 'PROSPECTO'">● {{ c.estado }}</span></div>
+        <h3>{{ c.nombre }}</h3><p class="client-company">{{ c.empresa || 'Sin empresa' }}</p>
+        <div class="client-contacts"><span *ngIf="c.correo">✉ {{ c.correo }}</span><span *ngIf="c.telefono">☎ {{ c.telefono }}</span></div>
+        <p class="client-notes" *ngIf="c.notasInternas">{{ c.notasInternas }}</p>
+        <div class="client-card-foot"><span><b>{{ c._count?.proyectos || 0 }}</b> proyecto(s)</span><button class="btn-card-action" (click)="verDetalle(c)">Ver detalles ›</button></div>
+      </article>
     </div>
   </section>
 </main>
+
+<div class="overlay" *ngIf="modalFormulario" (click)="modalFormulario = false"><section class="quick-modal" (click)="$event.stopPropagation()">
+  <button class="close" type="button" (click)="modalFormulario = false" aria-label="Cerrar">×</button><small>{{ editandoId ? 'EDITAR CLIENTE' : 'NUEVO CLIENTE' }}</small><h2>{{ editandoId ? 'Actualizar cliente' : 'Registrar cliente' }}</h2>
+  <form #form="ngForm" (ngSubmit)="guardar(form)">
+    <div class="form-group"><label for="cliente-nombre">Nombre del contacto *</label><input id="cliente-nombre" class="form-control" name="nombre" [(ngModel)]="formulario.nombre" required minlength="2"></div>
+    <div class="form-group"><label for="cliente-empresa">Empresa</label><input id="cliente-empresa" class="form-control" name="empresa" [(ngModel)]="formulario.empresa"></div>
+    <div class="form-row"><div class="form-group"><label for="cliente-correo">Correo</label><input id="cliente-correo" class="form-control" type="email" name="correo" [(ngModel)]="formulario.correo" email></div><div class="form-group"><label for="cliente-telefono">Teléfono</label><input id="cliente-telefono" class="form-control" name="telefono" [(ngModel)]="formulario.telefono"></div></div>
+    <div class="form-group"><label for="cliente-direccion">Dirección</label><input id="cliente-direccion" class="form-control" name="direccion" [(ngModel)]="formulario.direccion"></div>
+    <div class="form-group"><label for="cliente-web">Sitio web</label><input id="cliente-web" class="form-control" type="url" name="sitioWeb" [(ngModel)]="formulario.sitioWeb"></div>
+    <div class="form-group"><label for="cliente-estado">Estado</label><select id="cliente-estado" class="form-control" name="estado" [(ngModel)]="formulario.estado"><option value="ACTIVO">Activo</option><option value="PROSPECTO">Prospecto</option><option value="INACTIVO">Inactivo</option><option value="ARCHIVADO">Archivado</option></select></div>
+    <div class="form-group"><label for="cliente-notas">Notas internas</label><textarea id="cliente-notas" class="form-control" name="notasInternas" [(ngModel)]="formulario.notasInternas"></textarea></div>
+    <p class="auth-validation" *ngIf="enviado && form.invalid">Revisa los campos requeridos y el formato del correo.</p><p class="auth-error" role="alert" *ngIf="errorGuardar">{{ errorGuardar }}</p>
+    <div class="modal-actions"><button class="btn-secondary" type="button" (click)="modalFormulario = false">Cancelar</button><button class="btn-primary" type="submit" [disabled]="guardando">{{ guardando ? 'Guardando…' : 'Guardar cliente' }}</button></div>
+  </form>
+</section></div>
+
+<div class="overlay" *ngIf="modalDetalle" (click)="modalDetalle = false"><section class="quick-modal" (click)="$event.stopPropagation()">
+  <button class="close" (click)="modalDetalle = false" aria-label="Cerrar">×</button><small>DETALLE DE CLIENTE</small><p *ngIf="detalleCargando">Cargando detalles…</p><p class="auth-error" *ngIf="detalleError" role="alert">{{ detalleError }}</p>
+  <ng-container *ngIf="clienteDetalle as c"><h2>{{ c.nombre }}</h2><p class="mb-3 text-muted">{{ c.empresa || 'Sin empresa' }}</p>
+    <div class="client-detail-stats"><div><small>CORREO</small><b>{{ c.correo || '—' }}</b></div><div><small>TELÉFONO</small><b>{{ c.telefono || '—' }}</b></div><div><small>ESTADO</small><span class="badge">{{ c.estado }}</span></div></div>
+    <div class="mt-4" *ngIf="c.notasInternas"><small class="eyebrow">NOTAS INTERNAS</small><p class="notes-box">{{ c.notasInternas }}</p></div>
+    <div class="modal-actions mt-4"><button class="btn-secondary" (click)="modalDetalle = false">Cerrar</button><button class="btn-primary" (click)="editar(c)">Editar cliente</button></div>
+  </ng-container>
+</section></div>

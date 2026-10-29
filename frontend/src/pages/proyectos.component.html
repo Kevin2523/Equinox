@@ -1,58 +1,34 @@
-<main class="standard">
-<section class="collection">
-    <div class="page-title">
-      <div>
-        <p class="eyebrow">EQUINOX / PROYECTOS</p>
-        <h1>Proyectos</h1>
-        <p>Control de entregables, avance y estados de diseño y desarrollo.</p>
-      </div>
-      <button class="btn-primary" (click)="state.openQuickCreate('Proyecto')">
-        <span>＋</span> Nuevo proyecto
-      </button>
-    </div>
+<main class="standard"><section class="collection">
+  <div class="page-title"><div><p class="eyebrow">EQUINOX / PROYECTOS</p><h1>Proyectos</h1><p>Proyectos asociados a los clientes de tu organización.</p></div><button class="btn-primary" (click)="nuevo()" [disabled]="!clientes.length"><span>＋</span> Nuevo proyecto</button></div>
+  <div class="metrics-row"><div class="metric-card"><small>TOTAL PROYECTOS</small><strong>{{ proyectos.length }}</strong><p>En esta organización</p></div><div class="metric-card"><small>PROYECTOS ACTIVOS</small><strong>{{ proyectosActivos }}</strong><p>Estado ACTIVO</p></div><div class="metric-card"><small>CLIENTES</small><strong>{{ clientes.length }}</strong><p>Disponibles para asociar</p></div></div>
+  <div class="filter-bar"><label class="search-input-pill"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input [(ngModel)]="busqueda" placeholder="Buscar por nombre, cliente o descripción..."></label><div class="filter-pills">
+    <button [class.active]="filtroEstado === 'TODOS'" (click)="filtroEstado = 'TODOS'">Todos</button><button [class.active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado = 'ACTIVO'">Activos</button><button [class.active]="filtroEstado === 'BORRADOR'" (click)="filtroEstado = 'BORRADOR'">Borradores</button><button [class.active]="filtroEstado === 'PAUSADO'" (click)="filtroEstado = 'PAUSADO'">Pausados</button><button [class.active]="filtroEstado === 'COMPLETADO'" (click)="filtroEstado = 'COMPLETADO'">Completados</button>
+  </div></div>
+  <p class="api-state" *ngIf="cargando" role="status">Cargando proyectos y clientes…</p><div class="api-state api-state-error" *ngIf="error" role="alert">{{ error }} <button class="btn-secondary" (click)="reintentarCarga()">Reintentar</button></div>
+  <div class="api-state" *ngIf="!cargando && !error && !clientes.length">Registra un cliente antes de crear un proyecto.</div>
+  <div class="api-state" *ngIf="!cargando && !error && clientes.length && proyectosVisibles.length === 0">{{ busqueda || filtroEstado !== 'TODOS' ? 'No hay proyectos que coincidan con el filtro.' : 'Todavía no hay proyectos. Crea el primero para comenzar.' }}</div>
+  <div class="projects-grid" *ngIf="!cargando && !error && proyectosVisibles.length">
+    <article class="project-grid-card" *ngFor="let p of proyectosVisibles">
+      <button class="project-card-main" type="button" (click)="verDetalle(p)"><div class="p-card-top"><span class="p-node-thumb visual-building"></span><div><small>{{ p.cliente?.nombre || 'Cliente' }}{{ p.cliente?.empresa ? ' · ' + p.cliente?.empresa : '' }}</small><h3>{{ p.nombre }}</h3><p>{{ p.descripcion || 'Sin descripción' }}</p></div><span class="badge" [ngClass]="claseEstado(p.estado)">● {{ p.estado }}</span></div></button>
+      <div class="p-card-foot"><span>Entrega: <b>{{ p.fechaEntrega ? (p.fechaEntrega | date:'mediumDate') : 'Sin fecha' }}</b></span><span class="p-budget" *ngIf="p.presupuesto !== null">{{ p.moneda }} {{ p.presupuesto | number:'1.2-2' }}</span><button class="btn-card-action" type="button" (click)="abrirEdicion(p.id)">Editar</button></div>
+    </article>
+  </div>
+</section></main>
 
-    <!-- Filters -->
-    <div class="filter-bar">
-      <label class="search-input-pill">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input [(ngModel)]="state.query" placeholder="Buscar por nombre, cliente o tipo...">
-      </label>
-      <div class="filter-pills">
-        <button [class.active]="state.projectFilter === 'TODOS'" (click)="state.projectFilter = 'TODOS'">Todos ({{ state.proyectos.length }})</button>
-        <button [class.active]="state.projectFilter === 'En revisión'" (click)="state.projectFilter = 'En revisión'">En revisión</button>
-        <button [class.active]="state.projectFilter === 'En progreso'" (click)="state.projectFilter = 'En progreso'">En progreso</button>
-        <button [class.active]="state.projectFilter === 'Por aprobar'" (click)="state.projectFilter = 'Por aprobar'">Por aprobar</button>
-      </div>
-    </div>
+<div class="overlay" *ngIf="modalFormulario" (click)="modalFormulario = false"><section class="quick-modal" (click)="$event.stopPropagation()">
+  <button class="close" type="button" (click)="modalFormulario = false" aria-label="Cerrar">×</button><small>{{ editandoId ? 'EDITAR PROYECTO' : 'NUEVO PROYECTO' }}</small><h2>{{ editandoId ? 'Actualizar proyecto' : 'Crear proyecto' }}</h2>
+  <form #form="ngForm" (ngSubmit)="guardar(form)">
+    <div class="form-group"><label for="proyecto-nombre">Nombre del proyecto *</label><input id="proyecto-nombre" class="form-control" name="nombre" [(ngModel)]="formulario.nombre" required minlength="2"></div>
+    <div class="form-group"><label for="proyecto-cliente">Cliente asociado *</label><select id="proyecto-cliente" class="form-control" name="clienteId" [(ngModel)]="formulario.clienteId" required><option value="" disabled>Selecciona un cliente</option><option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }}{{ c.empresa ? ' · ' + c.empresa : '' }}</option></select></div>
+    <div class="form-group"><label for="proyecto-descripcion">Descripción</label><textarea id="proyecto-descripcion" class="form-control" name="descripcion" [(ngModel)]="formulario.descripcion"></textarea></div>
+    <div class="form-group"><label for="proyecto-estado">Estado</label><select id="proyecto-estado" class="form-control" name="estado" [(ngModel)]="formulario.estado"><option value="BORRADOR">Borrador</option><option value="ACTIVO">Activo</option><option value="PAUSADO">Pausado</option><option value="COMPLETADO">Completado</option><option value="CANCELADO">Cancelado</option></select></div>
+    <div class="form-row"><div class="form-group"><label for="proyecto-presupuesto">Presupuesto</label><input id="proyecto-presupuesto" type="number" min="0" step="0.01" class="form-control" name="presupuesto" [(ngModel)]="formulario.presupuesto"></div><div class="form-group"><label for="proyecto-moneda">Moneda (ISO)</label><input id="proyecto-moneda" class="form-control" name="moneda" [(ngModel)]="formulario.moneda" required minlength="3" maxlength="3"></div></div>
+    <div class="form-row"><div class="form-group"><label for="proyecto-inicio">Fecha de inicio</label><input id="proyecto-inicio" type="date" class="form-control" name="fechaInicio" [(ngModel)]="formulario.fechaInicio"></div><div class="form-group"><label for="proyecto-entrega">Fecha de entrega</label><input id="proyecto-entrega" type="date" class="form-control" name="fechaEntrega" [(ngModel)]="formulario.fechaEntrega"></div></div>
+    <p class="auth-validation" *ngIf="enviado && form.invalid">Revisa los campos requeridos y el formato.</p><p class="auth-error" role="alert" *ngIf="errorGuardar">{{ errorGuardar }}</p>
+    <div class="modal-actions"><button class="btn-secondary" type="button" (click)="modalFormulario = false">Cancelar</button><button class="btn-primary" type="submit" [disabled]="guardando">{{ guardando ? 'Guardando…' : (editandoId ? 'Guardar cambios' : 'Crear proyecto') }}</button></div>
+  </form>
+</section></div>
 
-    <!-- Projects Grid -->
-    <div class="projects-grid">
-      <div class="project-grid-card" *ngFor="let p of state.visibleProjects" (click)="state.selectProject(p); state.navigate('hoy')">
-        <div class="p-card-top">
-          <span class="p-node-thumb" [ngClass]="p.visualClass"></span>
-          <div>
-            <small>{{ p.clienteNombre }}</small>
-            <h3>{{ p.nombre }}</h3>
-            <p>{{ p.tipo }}</p>
-          </div>
-          <span class="badge" [class]="'badge-' + p.estadoBadgeClass">● {{ p.estado }}</span>
-        </div>
-
-        <div class="p-card-progress">
-          <div class="progress-labels">
-            <span>Avance general</span>
-            <b>{{ p.progreso }}%</b>
-          </div>
-          <div class="progress-bar-rail">
-            <div class="progress-bar-fill" [style.width.%]="p.progreso"></div>
-          </div>
-        </div>
-
-        <div class="p-card-foot">
-          <span>Entrega: <b>{{ p.fechaEntrega }}</b></span>
-          <span class="p-budget">B/. {{ p.presupuesto | number:'1.2-2' }}</span>
-        </div>
-      </div>
-    </div>
-  </section>
-</main>
+<div class="overlay" *ngIf="modalDetalle" (click)="modalDetalle = false"><section class="quick-modal" (click)="$event.stopPropagation()"><button class="close" (click)="modalDetalle = false" aria-label="Cerrar">×</button><small>DETALLE DE PROYECTO</small><p *ngIf="detalleCargando">Cargando detalles…</p><p class="auth-error" *ngIf="detalleError" role="alert">{{ detalleError }}</p>
+  <ng-container *ngIf="proyectoDetalle as p"><h2>{{ p.nombre }}</h2><p class="mb-3 text-muted">{{ p.cliente?.nombre }} · {{ p.estado }}</p><p>{{ p.descripcion || 'Sin descripción' }}</p><div class="client-detail-stats"><div><small>PRESUPUESTO</small><b>{{ p.presupuesto === null ? '—' : (p.moneda + ' ' + p.presupuesto) }}</b></div><div><small>INICIO</small><b>{{ p.fechaInicio ? (p.fechaInicio | date:'mediumDate') : '—' }}</b></div><div><small>ENTREGA</small><b>{{ p.fechaEntrega ? (p.fechaEntrega | date:'mediumDate') : '—' }}</b></div></div><div class="modal-actions mt-4"><button class="btn-secondary" (click)="modalDetalle = false">Cerrar</button><button class="btn-primary" (click)="abrirEdicion(p.id)">Editar proyecto</button></div></ng-container>
+</section></div>
