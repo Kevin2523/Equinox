@@ -13,6 +13,37 @@
   z-index: 30;
 }
 
+.auth-layout { min-height: 100vh; display: grid; place-items: center; padding: 32px 16px; background: var(--bg); }
+.auth-card { width: min(100%, 440px); padding: 34px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); }
+.auth-card h1 { margin-bottom: 8px; }
+.auth-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
+.auth-brand strong { font-family: var(--font-display); font-size: 24px; letter-spacing: -0.06em; color: var(--navy); }
+.auth-intro { color: var(--ink-secondary); margin: 0 0 24px; line-height: 1.5; }
+.auth-card .form-group small { font-size: 11px; color: var(--muted); }
+.auth-submit { width: 100%; justify-content: center; min-height: 44px; margin-top: 6px; }
+.auth-submit:disabled { opacity: .65; cursor: wait; }
+.auth-validation, .auth-error { color: #c34339; font-size: 12px; line-height: 1.5; }
+.auth-links { display: flex; justify-content: space-between; gap: 14px; margin-top: 22px; font-size: 12px; color: var(--blue); }
+.auth-links a:hover, .auth-text-link:hover { text-decoration: underline; }
+.context-options { display: grid; gap: 10px; }
+.context-options h2 { font-size: 18px; }
+.context-options p { color: var(--ink-secondary); font-size: 13px; }
+.context-option { display: grid; gap: 4px; text-align: left; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.context-option:hover { border-color: var(--blue); background: var(--blue-soft); }
+.context-option small { color: var(--muted); }
+.auth-text-link { color: var(--blue); text-align: left; font-size: 12px; }
+.auth-logout { color: var(--ink-secondary); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.auth-logout:hover { color: var(--blue); }
+.client-shell-nav { grid-template-columns: 1fr auto 1fr; }
+.client-shell-nav > button { justify-self: end; }
+.auth-notice { max-width: 680px; margin-top: 30px; padding: 24px; background: var(--blue-soft); border: 1px solid var(--line); border-radius: var(--radius-lg); line-height: 1.6; }
+.auth-logout-error { padding: 16px 24px; background: var(--coral-soft); color: var(--ink); border-bottom: 1px solid var(--coral); }
+.auth-logout-error p { margin: 0 0 12px; }
+.auth-logout-error button, .auth-card button { margin-right: 8px; }
+.auth-logout-error div { margin-top: 14px; }
+.portal-preview-notice { max-width: none; margin: 20px 32px 0; padding: 12px 18px; font-size: 13px; }
+@media (max-width: 780px) { .nav-actions .auth-logout { display: none; } }
+
 .brand {
   display: flex;
   align-items: center;

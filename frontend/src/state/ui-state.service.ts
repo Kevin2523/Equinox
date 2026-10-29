@@ -57,7 +57,7 @@ export class UiStateService {
     this.initialize();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       const segmento = event.urlAfterRedirects.split('?')[0].split('/')[1];
-      const pagina = segmento === 'dashboard' ? 'hoy' : segmento;
+      const pagina = segmento === 'dashboard' ? 'hoy' : segmento === 'vista-previa-portal' ? 'portal' : segmento;
       if (['hoy', 'clientes', 'proyectos', 'tareas', 'finanzas', 'configuracion', 'portal'].includes(pagina)) {
         this.page = pagina as typeof this.page;
       }
@@ -175,7 +175,7 @@ export class UiStateService {
   // Navigation handlers
   navigate(p: 'hoy' | 'clientes' | 'proyectos' | 'tareas' | 'finanzas' | 'configuracion' | 'portal') {
     this.page = p;
-    void this.router.navigate(['/', p === 'hoy' ? 'dashboard' : p]);
+    void this.router.navigate(['/', p === 'hoy' ? 'dashboard' : p === 'portal' ? 'vista-previa-portal' : p]);
     this.query = '';
     this.mobileMenuOpen = false;
     this.notificationsOpen = false;
