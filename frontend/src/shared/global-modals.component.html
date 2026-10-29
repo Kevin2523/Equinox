@@ -59,9 +59,10 @@
         <label>Notas internas</label>
         <textarea class="form-control" [(ngModel)]="state.nuevoCliente.notas" placeholder="Detalles de contacto o reunión..."></textarea>
       </div>
+      <p class="auth-error" role="alert" *ngIf="state.createError">{{ state.createError }}</p>
       <div class="modal-actions">
         <button class="btn-secondary" (click)="state.closeCreateModal()">Cancelar</button>
-        <button class="btn-primary" (click)="state.submitCreate()">Guardar cliente</button>
+        <button class="btn-primary" (click)="state.submitCreate()" [disabled]="state.crearLoading">{{ state.crearLoading ? 'Guardando…' : 'Guardar cliente' }}</button>
       </div>
     </div>
 
@@ -83,8 +84,8 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Tipo de proyecto</label>
-          <input class="form-control" [(ngModel)]="state.nuevoProyecto.tipo" placeholder="ej. Identidad, Web, Campaña">
+          <label>Descripción</label>
+          <input class="form-control" [(ngModel)]="state.nuevoProyecto.descripcion" placeholder="Alcance del proyecto">
         </div>
         <div class="form-group">
           <label>Presupuesto (B/.)</label>
@@ -93,11 +94,12 @@
       </div>
       <div class="form-group">
         <label>Fecha de entrega estimada</label>
-        <input class="form-control" [(ngModel)]="state.nuevoProyecto.fechaEntrega" placeholder="ej. 30 de mayo de 2026">
+        <input type="date" class="form-control" [(ngModel)]="state.nuevoProyecto.fechaEntrega">
       </div>
+      <p class="auth-error" role="alert" *ngIf="state.createError">{{ state.createError }}</p>
       <div class="modal-actions">
         <button class="btn-secondary" (click)="state.closeCreateModal()">Cancelar</button>
-        <button class="btn-primary" (click)="state.submitCreate()">Crear proyecto</button>
+        <button class="btn-primary" (click)="state.submitCreate()" [disabled]="state.crearLoading">{{ state.crearLoading ? 'Guardando…' : 'Crear proyecto' }}</button>
       </div>
     </div>
 
@@ -114,7 +116,7 @@
       <div class="form-group">
         <label>Proyecto asignado</label>
         <select class="form-control" [(ngModel)]="state.nuevaTarea.proyectoId">
-          <option *ngFor="let p of state.proyectos" [value]="p.id">{{ p.nombre }}</option>
+        <option *ngFor="let p of state.equinox.proyectos" [value]="p.id">{{ p.nombre }}</option>
         </select>
       </div>
       <div class="form-row">
@@ -151,7 +153,7 @@
       <div class="form-group">
         <label>Cliente</label>
         <select class="form-control" [(ngModel)]="state.nuevaFactura.clienteId">
-          <option *ngFor="let c of state.clientes" [value]="c.id">{{ c.nombre }} ({{ c.empresa }})</option>
+          <option *ngFor="let c of state.equinox.clientes" [value]="c.id">{{ c.nombre }} ({{ c.empresa }})</option>
         </select>
       </div>
       <div class="form-row">

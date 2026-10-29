@@ -4,7 +4,7 @@ export interface Cliente {
   empresa: string;
   correo: string;
   telefono: string;
-  estado: 'ACTIVO' | 'PROSPECTO' | 'INACTIVO';
+  estado: 'ACTIVO' | 'PROSPECTO' | 'INACTIVO' | 'ARCHIVADO';
   notas?: string;
   proyectosCount?: number;
   totalFacturado?: number;
@@ -75,7 +75,7 @@ export interface Proyecto {
   tipo: string;
   descripcion: string;
   progreso: number;
-  estado: 'En revisión' | 'En progreso' | 'Por aprobar' | 'Planificación' | 'Completado';
+  estado: 'En revisión' | 'En progreso' | 'Por aprobar' | 'Planificación' | 'Completado' | 'BORRADOR' | 'ACTIVO' | 'PAUSADO' | 'COMPLETADO' | 'CANCELADO';
   estadoBadgeClass: 'revision' | 'progreso' | 'aprobar' | 'planificacion' | 'completado';
   presupuesto: number;
   fechaEntrega: string;

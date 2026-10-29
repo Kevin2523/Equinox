@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">VISTA GENERAL</p>
         <h1>Mapa de trabajo</h1>
-        <p><b>{{ state.proyectos.length }}</b> proyectos activos conectados</p>
+        <p><b>{{ totalActivos }}</b> proyectos activos conectados</p>
       </div>
 
       <!-- Map Search Bar -->
@@ -16,7 +16,7 @@
 
     <!-- Connections follow the same data coordinates as their project nodes. -->
     <svg class="connections" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <path *ngFor="let p of state.proyectos" class="main-line" [attr.d]="'M 50 50 Q 50 ' + p.y + ' ' + p.x + ' ' + p.y"/>
+      <path *ngFor="let p of proyectosVisibles" class="main-line" [attr.d]="'M 50 50 Q 50 ' + p.y + ' ' + p.x + ' ' + p.y"/>
     </svg>
 
     <!-- Dynamic Relation Labels -->
@@ -29,30 +29,20 @@
 
     <!-- Project Nodes on the Map -->
     <button
-      *ngFor="let p of state.proyectos"
+      *ngFor="let p of proyectosVisibles"
       class="project-node"
       [style.--node-x]="p.x + '%'"
       [style.--node-y]="p.y + '%'"
-      [class.featured]="p.visualClass === 'photo-cafe'"
-      [class.selected]="state.selectedProject?.id === p.id"
-      [class.faded]="state.query && !state.visibleProjects.includes(p)"
-      (click)="state.selectProject(p)"
-      [attr.aria-label]="p.nombre + ' ' + p.tipo"
+      [class.selected]="api.proyectoSeleccionado?.id === p.id"
+      (click)="seleccionar(p)"
+      [attr.aria-label]="p.nombre + ' ' + p.estado"
     >
       <!-- Circular Visual Node Identity -->
       <span class="node-visual" [ngClass]="p.visualClass"><i></i></span>
       <strong>{{ p.nombre }}</strong>
-      <small>{{ p.tipo }}</small>
+      <small>{{ p.clienteNombre }}</small>
 
-      <!-- Participant Avatars -->
-      <span class="mini-faces" *ngIf="p.participantes && p.participantes.length > 0">
-        <i *ngFor="let part of p.participantes" [style.background]="part.color || '#09142e'">
-          {{ part.iniciales }}
-        </i>
-      </span>
-
-      <!-- Status Pill when selected -->
-      <em *ngIf="state.selectedProject?.id === p.id">● {{ p.estado }}</em>
+      <em *ngIf="api.proyectoSeleccionado?.id === p.id">● {{ p.estado }}</em>
     </button>
 
     <!-- Floating Command Dock -->
@@ -78,4 +68,7 @@
       <i></i>
       <button title="Más opciones" (click)="state.navigate('configuracion')">•••</button>
     </div>
+    <div class="map-api-state" *ngIf="cargando">Cargando proyectos…</div>
+    <div class="map-api-state map-api-state-error" *ngIf="error" role="alert">{{ error }} <button type="button" (click)="cargar()">Reintentar</button></div>
+    <div class="map-api-state" *ngIf="!cargando && !error && proyectosVisibles.length === 0">{{ state.query ? 'No hay proyectos que coincidan con la búsqueda.' : 'Todavía no hay proyectos. Crea uno desde la sección Proyectos.' }}</div>
   </section>

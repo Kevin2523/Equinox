@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { EquinoxService } from '../services/equinox.service';
+import { ClientesProyectosApiService, ClienteApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import {
   Cliente,
   Proyecto,
@@ -36,7 +37,9 @@ export class UiStateService {
 
   // Form states for quick create
   nuevoCliente = { nombre: '', empresa: '', correo: '', telefono: '', notas: '' };
-  nuevoProyecto = { nombre: '', clienteId: '', tipo: 'Sitio web', presupuesto: 2000, fechaEntrega: '', color: '#3568f6' };
+  nuevoProyecto = { nombre: '', clienteId: '', descripcion: '', estado: 'BORRADOR' as ProyectoApi['estado'], presupuesto: 0, moneda: 'PAB', fechaInicio: '', fechaEntrega: '' };
+  crearLoading = false;
+  createError = '';
   nuevaTarea = { proyectoId: '', titulo: '', prioridad: 'ALTA' as 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE', fechaVencimiento: '' };
   nuevaFactura = { clienteId: '', proyectoId: '', concepto: '', monto: 1200, fechaVencimiento: '' };
   nuevoColaborador = { nombre: '', rol: 'Diseñador UI', iniciales: '' };
@@ -53,7 +56,7 @@ export class UiStateService {
   selectedProject: Proyecto | null = null;
   toastMessage = '';
 
-  constructor(public equinox: EquinoxService, private router: Router) {
+  constructor(public equinox: EquinoxService, public clientesProyectosApi: ClientesProyectosApiService, private router: Router) {
     this.initialize();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       const segmento = event.urlAfterRedirects.split('?')[0].split('/')[1];
@@ -65,13 +68,8 @@ export class UiStateService {
   }
 
   private initialize(): void {
-    this.equinox.clientes$.subscribe((c) => (this.clientes = c));
-    this.equinox.proyectos$.subscribe((p) => {
-      this.proyectos = p;
-      if (!this.selectedProject && p.length > 0) {
-        this.selectedProject = p[0];
-      }
-    });
+    this.clientesProyectosApi.clientes$.subscribe((c) => (this.clientes = c.map((cliente) => this.adaptarCliente(cliente))));
+    this.clientesProyectosApi.proyectos$.subscribe((p) => (this.proyectos = p.map((proyecto) => this.adaptarProyecto(proyecto))));
     this.equinox.configuracion$.subscribe((cfg) => (this.configuracion = cfg));
     this.equinox.notificaciones$.subscribe((n) => (this.notificaciones = n));
     this.equinox.proyectoSeleccionado$.subscribe((sel) => {
@@ -214,16 +212,24 @@ export class UiStateService {
     this.activeCreateType = type;
   }
 
-  submitCreate() {
+  async submitCreate() {
     if (this.activeCreateType === 'Cliente') {
       if (!this.nuevoCliente.nombre) return;
-      this.equinox.crearCliente(this.nuevoCliente);
-      this.nuevoCliente = { nombre: '', empresa: '', correo: '', telefono: '', notas: '' };
+      this.crearLoading = true; this.createError = '';
+      try {
+        await this.clientesProyectosApi.crearCliente({ nombre: this.nuevoCliente.nombre.trim(), empresa: this.nuevoCliente.empresa || null, correo: this.nuevoCliente.correo || null, telefono: this.nuevoCliente.telefono || null, notasInternas: this.nuevoCliente.notas || null });
+        this.nuevoCliente = { nombre: '', empresa: '', correo: '', telefono: '', notas: '' };
+      } catch (error: any) { this.createError = error?.status === 422 ? 'Revisa los datos ingresados.' : 'No se pudo guardar el cliente.'; this.crearLoading = false; return; }
+      this.crearLoading = false;
     } else if (this.activeCreateType === 'Proyecto') {
       if (!this.nuevoProyecto.nombre) return;
-      const p = this.equinox.crearProyecto(this.nuevoProyecto);
-      this.selectedProject = p;
-      this.nuevoProyecto = { nombre: '', clienteId: this.clientes[0]?.id || '', tipo: 'Sitio web', presupuesto: 2000, fechaEntrega: '', color: '#3568f6' };
+      if (!this.nuevoProyecto.clienteId) { this.createError = 'Selecciona un cliente de tu organización.'; return; }
+      this.crearLoading = true; this.createError = '';
+      try {
+        await this.clientesProyectosApi.crearProyecto({ nombre: this.nuevoProyecto.nombre.trim(), clienteId: this.nuevoProyecto.clienteId, descripcion: this.nuevoProyecto.descripcion || null, estado: this.nuevoProyecto.estado, presupuesto: Number(this.nuevoProyecto.presupuesto) || 0, moneda: this.nuevoProyecto.moneda || 'PAB', fechaInicio: this.nuevoProyecto.fechaInicio || null, fechaEntrega: this.nuevoProyecto.fechaEntrega || null });
+        this.nuevoProyecto = { nombre: '', clienteId: this.clientes[0]?.id || '', descripcion: '', estado: 'BORRADOR', presupuesto: 0, moneda: 'PAB', fechaInicio: '', fechaEntrega: '' };
+      } catch (error: any) { this.createError = error?.status === 422 ? 'El cliente seleccionado o los datos no son válidos.' : 'No se pudo guardar el proyecto.'; this.crearLoading = false; return; }
+      this.crearLoading = false;
     } else if (this.activeCreateType === 'Tarea') {
       if (!this.nuevaTarea.titulo) return;
       const pId = this.nuevaTarea.proyectoId || this.selectedProject?.id || this.proyectos[0]?.id;
@@ -244,6 +250,15 @@ export class UiStateService {
 
     this.createModalOpen = false;
     this.activeCreateType = null;
+  }
+
+  private adaptarCliente(cliente: ClienteApi): Cliente {
+    return { id: cliente.id, nombre: cliente.nombre, empresa: cliente.empresa || '', correo: cliente.correo || '', telefono: cliente.telefono || '', estado: cliente.estado, notas: cliente.notasInternas || '', proyectosCount: cliente._count?.proyectos || 0, avatarColor: '#3568f6' };
+  }
+
+  private adaptarProyecto(proyecto: ProyectoApi): Proyecto {
+    const badge: Proyecto['estadoBadgeClass'] = proyecto.estado === 'ACTIVO' ? 'progreso' : proyecto.estado === 'COMPLETADO' ? 'completado' : proyecto.estado === 'BORRADOR' ? 'planificacion' : proyecto.estado === 'PAUSADO' ? 'aprobar' : 'revision';
+    return { id: proyecto.id, key: proyecto.id, nombre: proyecto.nombre, clienteId: proyecto.clienteId, clienteNombre: proyecto.cliente?.nombre || '', tipo: 'Proyecto', descripcion: proyecto.descripcion || '', progreso: 0, estado: proyecto.estado, estadoBadgeClass: badge, presupuesto: Number(proyecto.presupuesto || 0), fechaEntrega: proyecto.fechaEntrega || '', tag: proyecto.nombre.slice(0, 2).toUpperCase(), color: '#3568f6', x: 50, y: 50, visualClass: 'visual-building', participantes: [], tareas: [], hitos: [], archivos: [], facturas: [], comentarios: [], entregaDestacada: { fecha: proyecto.fechaEntrega || '', descripcion: '' } };
   }
 
   closeCreateModal() {
@@ -307,7 +322,9 @@ export class UiStateService {
   selectSearchResult(type: 'proyecto' | 'cliente' | 'tarea' | 'factura', item: any) {
     this.searchOpen = false;
     if (type === 'proyecto') {
-      this.selectProject(item);
+      void this.clientesProyectosApi.seleccionarProyecto(item.id).catch(() => {
+        this.equinox.mostrarToast('No se pudo consultar el proyecto.');
+      });
       this.navigate('hoy');
     } else if (type === 'cliente') {
       this.navigate('clientes');
