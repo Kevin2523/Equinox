@@ -499,6 +499,67 @@ async function ejecutarCasos() {
       }),
     });
     assert.equal(resRegDuplicadoSlug.status, 409);
+
+    // -----------------------------------------------------------------
+    // Caso 23: Desvinculación de miembro invalida sesiones activas en PostgreSQL
+    // -----------------------------------------------------------------
+    // Iniciar sesión con el colaborador en Estudio Alfa
+    const resLoginColabCaso23 = await fetch(`${urlApi}/api/autenticacion/inicio-sesion`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        correo: "colaborador@example.test",
+        contrasena: "Password123!",
+      }),
+    });
+    assert.equal(resLoginColabCaso23.status, 200, "Colaborador debe iniciar sesión exitosamente");
+    const datosLoginColabCaso23 = (await resLoginColabCaso23.json()) as any;
+    const tokenColabCaso23 = datosLoginColabCaso23.token;
+    assert.ok(tokenColabCaso23);
+
+    // Comprobar acceso autorizado inicial a recursos de la organización
+    const resAccesoInicialColab = await fetch(`${urlApi}/api/organizacion`, {
+      headers: { Authorization: `Bearer ${tokenColabCaso23}` },
+    });
+    assert.equal(resAccesoInicialColab.status, 200, "Debe tener acceso antes de ser desvinculado");
+
+    // Eliminar la membresía del colaborador directamente en PostgreSQL y restaurarla siempre en finally.
+    let miembroEliminadoCaso23 = false;
+    try {
+      await prisma.miembroOrganizacion.delete({
+        where: {
+          usuarioId_organizacionId: {
+            usuarioId: usuarioColab.id,
+            organizacionId: orgAlfaId,
+          },
+        },
+      });
+      miembroEliminadoCaso23 = true;
+
+      // Intentar acceder nuevamente con el token previo (JWT criptográficamente válido pero membresía revocada en BD)
+      const resAccesoPostDesvinculacion = await fetch(`${urlApi}/api/organizacion`, {
+        headers: { Authorization: `Bearer ${tokenColabCaso23}` },
+      });
+      assert.equal(
+        resAccesoPostDesvinculacion.status,
+        403,
+        "El middleware debe revalidar contra la BD y rechazar con 403 al miembro desvinculado"
+      );
+      const cuerpoErrorDesvinculado = (await resAccesoPostDesvinculacion.json()) as any;
+      assert.equal(cuerpoErrorDesvinculado.error, "No perteneces a esta organización");
+    } finally {
+      if (miembroEliminadoCaso23) {
+        await prisma.miembroOrganizacion.create({
+          data: {
+            usuarioId: usuarioColab.id,
+            organizacionId: orgAlfaId,
+            rol: "COLABORADOR",
+          },
+        });
+      }
+    }
+
+    console.log("[casos-autenticacion] Suite completada con éxito: 23 casos de integración verificados.");
   } finally {
     if (servidor) {
       await new Promise<void>((resolve) => {
