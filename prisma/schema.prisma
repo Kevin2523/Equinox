@@ -113,29 +113,30 @@ model Usuario {
 }
 
 model Organizacion {
-  id                  String                @id @default(uuid()) @db.Uuid
-  nombre              String
-  slug                String                @unique
-  descripcion         String?
-  moneda              String                @default("PAB")
-  ruc                 String?
-  direccion           String?
-  telefono            String?
-  correoContacto      String?               @map("correo_contacto")
-  logoUrl             String?               @map("logo_url")
-  colorPrimario       String                @default("#2563EB") @map("color_primario")
-  colorSecundario     String                @default("#0F172A") @map("color_secundario")
-  tipografia          String                @default("Inter")
-  dominioPortal       String?               @unique @map("dominio_portal")
-  creadoEn            DateTime              @default(now()) @map("creado_en")
-  actualizadoEn       DateTime              @updatedAt @map("actualizado_en")
-  miembros            MiembroOrganizacion[]
-  accesosCliente      AccesoCliente[]
-  invitacionesCliente InvitacionCliente[]
-  clientes            Cliente[]
-  proyectos           Proyecto[]
-  facturas            Factura[]
-  actividades         Actividad[]
+  id                    String                @id @default(uuid()) @db.Uuid
+  nombre                String
+  slug                  String                @unique
+  descripcion           String?
+  moneda                String                @default("PAB")
+  ruc                   String?
+  direccion             String?
+  telefono              String?
+  correoContacto        String?               @map("correo_contacto")
+  logoUrl               String?               @map("logo_url")
+  colorPrimario         String                @default("#2563EB") @map("color_primario")
+  colorSecundario       String                @default("#0F172A") @map("color_secundario")
+  tipografia            String                @default("Inter")
+  dominioPortal         String?               @unique @map("dominio_portal")
+  portalMostrarFinanzas Boolean               @default(false) @map("portal_mostrar_finanzas")
+  creadoEn              DateTime              @default(now()) @map("creado_en")
+  actualizadoEn         DateTime              @updatedAt @map("actualizado_en")
+  miembros              MiembroOrganizacion[]
+  accesosCliente        AccesoCliente[]
+  invitacionesCliente   InvitacionCliente[]
+  clientes              Cliente[]
+  proyectos             Proyecto[]
+  facturas              Factura[]
+  actividades           Actividad[]
 
   @@map("organizaciones")
 }
@@ -333,10 +334,8 @@ model Comentario {
   @@map("comentarios")
 }
 
-// MODELO HEREDADO (LEGACY)
-// Conservado temporalmente para mantener compatibilidad con las rutas actuales del backend.
-// Su sustitución completa por el sistema de autenticación basado en Usuario, AccesoCliente e InvitacionCliente
-// se completará en la Issue #5 (reemplazo de /api/portal/:token).
+// Modelo heredado conservado para no eliminar datos existentes en esta migración.
+// La API ya no crea ni acepta tokens de AccesoPortal.
 model AccesoPortal {
   id             String       @id @default(uuid()) @db.Uuid
   clienteId      String       @map("cliente_id") @db.Uuid

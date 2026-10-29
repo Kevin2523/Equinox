@@ -18,6 +18,7 @@ const esquema = z.object({
   colorSecundario: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   tipografia: z.string().min(1).optional(),
   dominioPortal: z.string().optional().nullable(),
+  portalMostrarFinanzas: z.boolean().optional(),
 });
 
 rutasOrganizacion.get("/", async (req: SolicitudAutenticada, res) =>
