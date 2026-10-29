@@ -59,7 +59,7 @@ erDiagram
 | **Factura (`facturas`)** | Cobros, vencimientos y estados de pago emitidos por el estudio. | Emitida para un cliente y opcionalmente asociada a un proyecto. |
 | **Actividad (`actividades`)** | Bitácora de auditoría y eventos ocurridos en la organización. | Registra usuario actor, entidad afectada, acción y fecha. |
 | **Sesion (`sesiones`)** | Sesiones activas y revocables cuyos tokens se almacenan mediante hash. | Asociadas a la cuenta de usuario personal. |
-| **AccesoPortal (`accesos_portal`)** *(Legado)* | Enlaces permanentes sin contraseña para portal de cliente. | **Modelo heredado**, mantenido para compatibilidad hasta la Issue #5. |
+| **AccesoPortal (`accesos_portal`)** *(Legado)* | Enlaces permanentes anteriores del portal. | Modelo heredado conservado en la base sin rutas de acceso ni emisión de tokens. |
 
 ---
 
@@ -110,10 +110,10 @@ erDiagram
 
 ---
 
-## 4. Compatibilidad Temporal y Estrategia de Migración
+## 4. Compatibilidad del Portal y Estrategia de Migración
 
-- **Estado de `AccesoPortal`**: Se conserva temporalmente en el esquema de base de datos para no romper la compilación ni el funcionamiento de los endpoints existentes (`/api/portal/:token` y `/api/proyectos/:id/accesos-portal`).
-- **Plan de Sustitución**:
-  - **Issue #1 (Actual)**: Diseño, aislamiento multitenant compuesto y validación del esquema de Prisma para `Usuario`, `AccesoCliente` e `InvitacionCliente`.
-  - **Issue #2**: Lógica de backend para envío, validación y aceptación de invitaciones.
-  - **Issue #5**: Reemplazo definitivo de los endpoints basados en token de enlace por autenticación de clientes con sesión JWT, retirando formalmente el modelo `AccesoPortal`.
+- **Estado de `AccesoPortal`**: Se conserva en el esquema para evitar eliminar datos históricos. Las rutas `/api/portal/:token` y `/api/proyectos/:id/accesos-portal` fueron retiradas en la Issue #5.
+- **Compatibilidad**: La Issue #5 sustituyó las rutas basadas en enlaces por
+  `/api/portal` con sesión de cliente. Se retiraron el acceso por token y su emisión;
+  el modelo `AccesoPortal` y sus filas históricas siguen presentes en PostgreSQL.
+  No se elimina ese modelo mediante una migración de esta issue.

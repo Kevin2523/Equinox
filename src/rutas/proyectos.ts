@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { randomBytes } from "crypto";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import type { SolicitudAutenticada } from "../tipos.js";
@@ -37,4 +36,3 @@ rutasProyectos.post("/:id/archivos", async (req: SolicitudAutenticada, res) => {
 rutasProyectos.delete("/:id/archivos/:archivoId", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId); const a = await prisma.archivo.findFirst({ where: { id: uuid.parse(req.params.archivoId), proyectoId: p.id } }); if (!a) throw new ErrorHttp(404, "Archivo no encontrado"); await prisma.archivo.delete({ where: { id: a.id } }); res.status(204).end(); });
 
 rutasProyectos.post("/:id/comentarios", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId); res.status(201).json(await prisma.comentario.create({ data: { proyectoId: p.id, usuarioId: req.sesion!.usuarioId, autor: "FREELANCER", contenido: z.object({ contenido: z.string().min(1) }).parse(req.body).contenido } })); });
-rutasProyectos.post("/:id/accesos-portal", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId); const datos = z.object({ nombre: z.string().optional(), correo: z.string().email().optional(), expiraEn: z.coerce.date().optional() }).parse(req.body); const acceso = await prisma.accesoPortal.create({ data: { ...datos, clienteId: p.clienteId, proyectoId: p.id, token: randomBytes(32).toString("base64url") } }); res.status(201).json({ ...acceso, urlPortal: `${process.env.URL_BASE || "http://localhost:4200"}/portal/${acceso.token}` }); });

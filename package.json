@@ -15,7 +15,8 @@
     "compilar:pruebas": "node node_modules/typescript/bin/tsc -p tsconfig.pruebas.json --noEmit",
     "prueba:migracion": "node node_modules/tsx/dist/cli.mjs test/test-migracion-permanente.ts",
     "prueba:integracion": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-integracion.ts",
-    "prueba:invitaciones": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-invitaciones.ts"
+    "prueba:invitaciones": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-invitaciones.ts",
+    "prueba:portal": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-portal.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",

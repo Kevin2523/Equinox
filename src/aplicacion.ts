@@ -9,7 +9,7 @@ import { rutasOrganizacion } from "./rutas/organizacion.js";
 import { rutasFacturas } from "./rutas/facturas.js";
 import { rutasPortal } from "./rutas/portal.js";
 import { rutasInvitacionesPublicas } from "./rutas/invitaciones-publicas.js";
-import { exigirAutenticacion, exigirOrganizacion } from "./middleware/autenticacion.js";
+import { exigirAutenticacion, exigirOrganizacion, exigirCliente } from "./middleware/autenticacion.js";
 import { manejarErrores } from "./utilidades/errores.js";
 import { obtenerHorasExpiracion } from "./utilidades/invitaciones.js";
 
@@ -67,6 +67,10 @@ export function sanitizarUrlParaLogs(url: string): string {
   if (!url) return "";
   return url
     .replace(/\/invitacion\/([^/?#\s]+)/gi, "/invitacion/[REDACTADO]")
+    .replace(/\/api\/portal\/(?!proyectos(?:\/|[?#\s]|$)|facturas(?:[?#\s]|$))([^/?#\s]+)/gi,
+      "/api/portal/[REDACTADO]")
+    .replace(/\/portal\/(?!proyectos(?:\/|[?#\s]|$)|facturas(?:[?#\s]|$))([^/?#\s]+)/gi,
+      "/portal/[REDACTADO]")
     .replace(/\/api\/invitaciones\/([^/?#\s]+)(\/aceptar)?/gi, (_match, _p1, p2) => {
       return `/api/invitaciones/[REDACTADO]${p2 || ""}`;
     });
@@ -98,7 +102,7 @@ aplicacion.use(morgan(formatoMorgan));
 aplicacion.get("/salud", (_req, res) => res.json({ estado: "disponible", servicio: "equinox-api" }));
 aplicacion.use("/api/autenticacion", rutasAutenticacion);
 aplicacion.use("/api/invitaciones", rutasInvitacionesPublicas);
-aplicacion.use("/api/portal", rutasPortal);
+aplicacion.use("/api/portal", exigirAutenticacion, exigirCliente, rutasPortal);
 aplicacion.use("/api/organizacion", exigirAutenticacion, exigirOrganizacion, rutasOrganizacion);
 aplicacion.use("/api/clientes", exigirAutenticacion, exigirOrganizacion, rutasClientes);
 aplicacion.use("/api/proyectos", exigirAutenticacion, exigirOrganizacion, rutasProyectos);
