@@ -1,0 +1,11 @@
+<aside class="inspector" *ngIf="api.proyectos.length">
+  <ng-container *ngIf="api.proyectoSeleccionado as proyecto; else seleccionaProyecto">
+    <div class="cover"><div class="cover-gradient"><span>{{ proyecto.cliente?.nombre || 'Proyecto' }}</span></div><button aria-label="Editar proyecto" title="Editar proyecto" (click)="editar(proyecto.id)"><svg viewBox="0 0 24 24"><path d="m4 16-1 5 5-1L20 8l-4-4zM14 6l4 4"/></svg></button></div>
+    <div class="project-title"><div><h2>{{ proyecto.nombre }}</h2><p>{{ proyecto.cliente?.nombre }}{{ proyecto.cliente?.empresa ? ' · ' + proyecto.cliente?.empresa : '' }}</p></div><span class="badge" [ngClass]="claseEstado(proyecto.estado)">● {{ proyecto.estado }}</span></div>
+    <section class="progress-block"><h3>Descripción</h3><p>{{ proyecto.descripcion || 'Sin descripción registrada.' }}</p></section>
+    <section class="delivery"><h3>Fechas</h3><div><b>Inicio</b><span>{{ proyecto.fechaInicio ? (proyecto.fechaInicio | date:'mediumDate') : 'Sin fecha' }}</span></div><div><b>Entrega</b><span>{{ proyecto.fechaEntrega ? (proyecto.fechaEntrega | date:'mediumDate') : 'Sin fecha' }}</span></div></section>
+    <section class="delivery"><h3>Presupuesto</h3><p>{{ proyecto.presupuesto === null ? 'Sin presupuesto' : (proyecto.moneda + ' ' + (proyecto.presupuesto | number:'1.2-2')) }}</p></section>
+    <button class="btn-secondary" type="button" (click)="editar(proyecto.id)">Editar proyecto</button>
+  </ng-container>
+  <ng-template #seleccionaProyecto><div class="empty"><p>Selecciona un proyecto del mapa para consultar sus datos.</p></div></ng-template>
+</aside>

@@ -1,0 +1,74 @@
+<section class="map-area" >
+    <!-- Map Header -->
+    <div class="map-head">
+      <div>
+        <p class="eyebrow">VISTA GENERAL</p>
+        <h1>Mapa de trabajo</h1>
+        <p><b>{{ totalActivos }}</b> proyectos activos conectados</p>
+      </div>
+
+      <!-- Map Search Bar -->
+      <label class="map-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input [(ngModel)]="state.query" placeholder="Buscar clientes o proyectos...">
+      </label>
+    </div>
+
+    <!-- Connections follow the same data coordinates as their project nodes. -->
+    <svg class="connections" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <path *ngFor="let p of proyectosVisibles" class="main-line" [attr.d]="'M 50 50 Q 50 ' + p.y + ' ' + p.x + ' ' + p.y"/>
+    </svg>
+
+    <!-- Dynamic Relation Labels -->
+    <div class="relation-label collab">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M20 8v6M17 11h6"/></svg>
+      Colaboración
+    </div>
+    <div class="relation-label opportunity">✦ Oportunidad</div>
+    <div class="relation-label synergy">↗ Sinergia</div>
+
+    <!-- Project Nodes on the Map -->
+    <button
+      *ngFor="let p of proyectosVisibles"
+      class="project-node"
+      [style.--node-x]="p.x + '%'"
+      [style.--node-y]="p.y + '%'"
+      [class.selected]="api.proyectoSeleccionado?.id === p.id"
+      (click)="seleccionar(p)"
+      [attr.aria-label]="p.nombre + ' ' + p.estado"
+    >
+      <!-- Circular Visual Node Identity -->
+      <span class="node-visual" [ngClass]="p.visualClass"><i></i></span>
+      <strong>{{ p.nombre }}</strong>
+      <small>{{ p.clienteNombre }}</small>
+
+      <em *ngIf="api.proyectoSeleccionado?.id === p.id">● {{ p.estado }}</em>
+    </button>
+
+    <!-- Floating Command Dock -->
+    <div class="command-dock">
+      <button class="create" id="createBtn" (click)="state.openQuickCreate()">
+        <span>＋</span>Crear
+      </button>
+      <i></i>
+      <button id="dockSearch" (click)="state.openSearch()">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        Buscar...
+      </button>
+      <i></i>
+      <button title="Archivos del proyecto" (click)="state.switchTab('archivos')">
+        <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM15 3v5h5M8 13h8M8 17h6"/></svg>
+      </button>
+      <button title="Tareas pendientes" (click)="state.navigate('tareas')">
+        <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v8H3V4h13"/></svg>
+      </button>
+      <button title="Añadir colaborador" (click)="state.collaboratorModalOpen = true">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
+      </button>
+      <i></i>
+      <button title="Más opciones" (click)="state.navigate('configuracion')">•••</button>
+    </div>
+    <div class="map-api-state" *ngIf="cargando">Cargando proyectos…</div>
+    <div class="map-api-state map-api-state-error" *ngIf="error" role="alert">{{ error }} <button type="button" (click)="cargar()">Reintentar</button></div>
+    <div class="map-api-state" *ngIf="!cargando && !error && proyectosVisibles.length === 0">{{ state.query ? 'No hay proyectos que coincidan con la búsqueda.' : 'Todavía no hay proyectos. Crea uno desde la sección Proyectos.' }}</div>
+  </section>

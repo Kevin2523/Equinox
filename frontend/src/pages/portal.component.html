@@ -1,0 +1,112 @@
+<main class="standard">
+<div class="auth-notice portal-preview-notice">Vista previa con datos de demostración. No representa un portal de cliente autenticado.</div>
+<section class="collection">
+    <div class="portal-experience-wrapper">
+      <!-- Branded Customer Portal Header -->
+      <header class="portal-custom-header" [style.background]="state.configuracion.colorSecundario">
+        <div class="portal-header-brand">
+          <span class="brand-mark"><i></i></span>
+          <div>
+            <strong>{{ state.configuracion.nombreEstudio }}</strong>
+            <small>Portal individual del cliente</small>
+          </div>
+        </div>
+        <div class="portal-client-info">
+          <span>Cliente: <b>Ana Rodríguez (Café Unido)</b></span>
+          <button class="btn-secondary-light" (click)="state.navigate('hoy')">← Volver al CRM</button>
+        </div>
+      </header>
+
+      <!-- Portal Hero Welcome -->
+      <div class="portal-hero" [style.border-top]="'4px solid ' + state.configuracion.colorPrimario">
+        <h2>Hola Ana, bienvenidos al portal de seguimiento de tu proyecto.</h2>
+        <p>{{ state.configuracion.mensajeBienvenida }}</p>
+      </div>
+
+      <!-- Portal Project Card -->
+      <div class="portal-project-card" *ngIf="state.selectedProject">
+        <div class="portal-p-head">
+          <div>
+            <span class="eyebrow">PROYECTO EN CURSO</span>
+            <h2>{{ state.selectedProject.nombre }}</h2>
+            <p>{{ state.selectedProject.tipo }} · Entregable final estimado: <b>{{ state.selectedProject.fechaEntrega }}</b></p>
+          </div>
+          <div class="portal-progress-metric">
+            <div
+              class="progress-ring"
+              [style.background]="'conic-gradient(' + state.configuracion.colorPrimario + ' 0% ' + state.selectedProject.progreso + '%, #e9edf4 ' + state.selectedProject.progreso + '% 100%)'"
+            >
+              <span>{{ state.selectedProject.progreso }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Milestones Roadmap -->
+        <div class="portal-milestones">
+          <h3>Hitos y etapas de avance</h3>
+          <div class="milestones-track">
+            <div
+              class="milestone-node"
+              *ngFor="let h of state.selectedProject.hitos"
+              [class.completed]="h.estado === 'COMPLETADO'"
+              [class.current]="h.estado === 'ACTUAL'"
+            >
+              <div class="m-icon">{{ h.estado === 'COMPLETADO' ? '✓' : '●' }}</div>
+              <b>{{ h.titulo }}</b>
+              <small>{{ h.estado === 'COMPLETADO' ? 'Completado' : h.estado === 'ACTUAL' ? 'En proceso' : 'Pendiente' }}</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deliverables Downloads -->
+        <div class="portal-deliverables">
+          <h3>Entregables y archivos listos para descargar</h3>
+          <div class="portal-files-grid">
+            <div class="portal-file-card" *ngFor="let f of state.selectedProject.archivos">
+              <span class="file-preview-sm" [ngClass]="f.previewClass">{{ f.previewIcon }}</span>
+              <div>
+                <b>{{ f.nombre }}</b>
+                <small>{{ f.tamano }} · {{ f.fecha }}</small>
+              </div>
+              <button class="btn-download-portal" (click)="state.equinox.mostrarToast('Descargando archivo ' + f.nombre)">
+                Descargar ↓
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Invoices for Client -->
+        <div class="portal-invoices">
+          <h3>Facturas y pagos</h3>
+          <div class="portal-inv-item" *ngFor="let inv of state.selectedProject.facturas">
+            <div>
+              <b>{{ inv.numero }} — {{ inv.concepto }}</b>
+              <small>Vencimiento: {{ inv.fechaVencimiento }}</small>
+            </div>
+            <div class="portal-inv-right">
+              <strong>B/. {{ inv.monto | number:'1.2-2' }}</strong>
+              <span [class.badge-completado]="inv.estado === 'PAGADA'" [class.badge-revision]="inv.estado === 'PENDIENTE'">
+                {{ inv.estado }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Client Feedback Box -->
+        <div class="portal-feedback-section">
+          <h3>Enviar comentarios o feedback a {{ state.configuracion.nombreFreelancer }}</h3>
+          <div class="portal-chat-box">
+            <div class="portal-bubble" *ngFor="let c of state.selectedProject.comentarios" [class.me]="c.autor === 'CLIENTE'">
+              <div class="p-author"><b>{{ c.nombreAutor }}</b> <small>{{ c.fecha }}</small></div>
+              <p>{{ c.contenido }}</p>
+            </div>
+          </div>
+          <div class="portal-chat-input">
+            <input #clientInput placeholder="Escribe tu mensaje o retroalimentación aquí..." (keyup.enter)="state.addClientFeedbackPortal(clientInput.value); clientInput.value = ''">
+            <button (click)="state.addClientFeedbackPortal(clientInput.value); clientInput.value = ''">Enviar feedback</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

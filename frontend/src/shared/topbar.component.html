@@ -1,0 +1,96 @@
+<!-- ==========================================================================
+     TOPBAR NAVIGATION
+     ========================================================================== -->
+<header class="topnav">
+  <!-- Brand Logo -->
+  <button class="brand" (click)="state.navigate('hoy')" aria-label="Inicio Equinox">
+    <span class="brand-mark"><i></i></span>
+    <strong>equinox</strong>
+  </button>
+
+  <!-- Desktop Navigation -->
+  <nav aria-label="Navegación principal">
+    <button (click)="state.navigate('hoy')" [class.active]="state.page === 'hoy'">
+      <svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9H15v-6H9v6H3z"/></svg>
+      Hoy
+    </button>
+    <button (click)="state.navigate('clientes')" [class.active]="state.page === 'clientes'">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.8M16 3.2a4 4 0 0 1 0 7.6"/></svg>
+      Clientes
+    </button>
+    <button (click)="state.navigate('proyectos')" [class.active]="state.page === 'proyectos'">
+      <svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v11H3zM3 11h18"/></svg>
+      Proyectos
+    </button>
+    <button (click)="state.navigate('tareas')" [class.active]="state.page === 'tareas'">
+      <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v8H3V4h13"/></svg>
+      Tareas
+    </button>
+    <button (click)="state.navigate('finanzas')" [class.active]="state.page === 'finanzas'">
+      <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/></svg>
+      Finanzas
+    </button>
+    <button (click)="state.navigate('portal')" [class.active]="state.page === 'portal'" class="portal-link" title="Vista previa del portal del cliente">
+      <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      Vista previa
+    </button>
+  </nav>
+
+  <!-- Navigation Actions -->
+  <div class="nav-actions">
+    <!-- Search Button -->
+    <button class="nav-icon" id="openSearch" (click)="state.openSearch()" aria-label="Buscar en Equinox (Ctrl+K)" title="Buscar (Ctrl+K)">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+    </button>
+
+    <!-- Notifications Bell -->
+    <div class="notif-wrapper">
+      <button class="nav-icon bell" (click)="state.toggleNotifications()" aria-label="Notificaciones" title="Notificaciones">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M14 21h-4"/></svg>
+        <i *ngIf="state.unreadNotifsCount > 0"></i>
+      </button>
+
+      <!-- Notifications Popover -->
+      <div class="notif-popover" *ngIf="state.notificationsOpen" (click)="$event.stopPropagation()">
+        <div class="notif-header">
+          <strong>Notificaciones</strong>
+          <span class="eyebrow" *ngIf="state.unreadNotifsCount > 0">{{ state.unreadNotifsCount }} nuevas</span>
+        </div>
+        <div class="notif-list">
+          <div class="notif-item" *ngFor="let n of state.notificaciones" [class.unread]="!n.leida">
+            <span class="notif-dot" [class.dot-coral]="n.tipo === 'feedback'" [class.dot-green]="n.tipo === 'pago'" [class.dot-blue]="n.tipo === 'proyecto'"></span>
+            <div>
+              <b>{{ n.titulo }}</b>
+              <p>{{ n.descripcion }}</p>
+              <small>{{ n.tiempo }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Profile Button -->
+    <button class="profile" (click)="state.navigate('configuracion')" aria-label="Perfil y configuración">
+      <span>{{ auth.sesion?.usuario?.nombre?.slice(0, 1) }}{{ auth.sesion?.usuario?.apellido?.slice(0, 1) }}</span>
+      <b>⌄</b>
+    </button>
+    <a class="auth-logout" routerLink="/cerrar-sesion">Cerrar sesión</a>
+
+    <!-- Mobile Menu Trigger -->
+    <button class="mobile-toggle" (click)="state.mobileMenuOpen = !state.mobileMenuOpen" aria-label="Menú móvil">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div class="mobile-nav-drawer" *ngIf="state.mobileMenuOpen">
+  <button (click)="state.navigate('hoy')" [class.active]="state.page === 'hoy'">Hoy (Mapa interactivo)</button>
+  <button (click)="state.navigate('clientes')" [class.active]="state.page === 'clientes'">Clientes</button>
+  <button (click)="state.navigate('proyectos')" [class.active]="state.page === 'proyectos'">Proyectos</button>
+  <button (click)="state.navigate('tareas')" [class.active]="state.page === 'tareas'">Tareas</button>
+  <button (click)="state.navigate('finanzas')" [class.active]="state.page === 'finanzas'">Finanzas</button>
+  <button (click)="state.navigate('portal')" [class.active]="state.page === 'portal'">Vista previa del portal</button>
+  <button (click)="state.navigate('configuracion')" [class.active]="state.page === 'configuracion'">Configuración de Marca</button>
+  <a routerLink="/cerrar-sesion">Cerrar sesión</a>
+</div>
