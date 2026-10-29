@@ -1,0 +1,55 @@
+<main class="standard">
+<section class="collection">
+    <div class="page-title">
+      <div>
+        <p class="eyebrow">EQUINOX / TAREAS</p>
+        <h1>Tareas</h1>
+        <p>Organiza tus entregables diarios con casillas de verificación funcionales.</p>
+      </div>
+      <button class="btn-primary" (click)="state.openQuickCreate('Tarea')">
+        <span>＋</span> Nueva tarea
+      </button>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label class="search-input-pill">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input [(ngModel)]="state.query" placeholder="Buscar tareas...">
+      </label>
+      <div class="filter-pills">
+        <button [class.active]="state.taskFilter === 'TODAS'" (click)="state.taskFilter = 'TODAS'">Todas</button>
+        <button [class.active]="state.taskFilter === 'HOY'" (click)="state.taskFilter = 'HOY'">Para hoy</button>
+        <button [class.active]="state.taskFilter === 'PROXIMAS'" (click)="state.taskFilter = 'PROXIMAS'">Próximas</button>
+        <button [class.active]="state.taskFilter === 'COMPLETADAS'" (click)="state.taskFilter = 'COMPLETADAS'">Completadas</button>
+      </div>
+    </div>
+
+    <!-- Master Tasks List -->
+    <div class="tasks-table-card">
+      <div class="task-master-row" *ngFor="let t of state.allTasks" [class.done]="t.estado === 'COMPLETADA'">
+        <label class="custom-checkbox">
+          <input
+            type="checkbox"
+            [checked]="t.estado === 'COMPLETADA'"
+            (change)="state.toggleTask(t.id)"
+          >
+          <span class="checkmark"></span>
+        </label>
+        <div class="task-master-body">
+          <b [class.strikethrough]="t.estado === 'COMPLETADA'">{{ t.titulo }}</b>
+          <div class="task-tags">
+            <span class="badge-project">{{ t.proyectoNombre }}</span>
+            <span class="priority-tag" [class.urgent]="t.prioridad === 'URGENTE'" [class.high]="t.prioridad === 'ALTA'">
+              {{ t.prioridad }}
+            </span>
+            <small>Vence: {{ t.fechaVencimiento }}</small>
+          </div>
+        </div>
+        <span class="task-status-pill" [class.pill-done]="t.estado === 'COMPLETADA'">
+          {{ t.estado === 'COMPLETADA' ? '✓ Completada' : 'Pendiente' }}
+        </span>
+      </div>
+    </div>
+  </section>
+</main>

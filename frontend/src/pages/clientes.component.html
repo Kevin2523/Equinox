@@ -1,0 +1,71 @@
+<main class="standard">
+<section class="collection">
+    <div class="page-title">
+      <div>
+        <p class="eyebrow">EQUINOX / CLIENTES</p>
+        <h1>Clientes</h1>
+        <p>Directorio y relaciones comerciales activas en Panamá.</p>
+      </div>
+      <button class="btn-primary" (click)="state.openQuickCreate('Cliente')">
+        <span>＋</span> Nuevo cliente
+      </button>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="metrics-row">
+      <div class="metric-card">
+        <small>TOTAL CLIENTES</small>
+        <strong>{{ state.clientes.length }}</strong>
+        <p>Contactos registrados</p>
+      </div>
+      <div class="metric-card">
+        <small>ACTIVOS CON PROYECTO</small>
+        <strong>{{ state.proyectos.length }}</strong>
+        <p>Proyectos en ejecución</p>
+      </div>
+      <div class="metric-card">
+        <small>FACTURADO ACUMULADO</small>
+        <strong>B/. {{ state.totalCobrado | number:'1.2-2' }}</strong>
+        <p>Cobros registrados</p>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label class="search-input-pill">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input [(ngModel)]="state.query" placeholder="Buscar por nombre, empresa o correo...">
+      </label>
+      <div class="filter-pills">
+        <button [class.active]="state.clientFilter === 'TODOS'" (click)="state.clientFilter = 'TODOS'">Todos ({{ state.clientes.length }})</button>
+        <button [class.active]="state.clientFilter === 'ACTIVO'" (click)="state.clientFilter = 'ACTIVO'">Activos</button>
+        <button [class.active]="state.clientFilter === 'PROSPECTO'" (click)="state.clientFilter = 'PROSPECTO'">Prospectos</button>
+      </div>
+    </div>
+
+    <!-- Clients Grid -->
+    <div class="clients-grid">
+      <div class="client-card" *ngFor="let c of state.visibleClients">
+        <div class="client-card-head">
+          <span class="client-avatar" [style.background]="c.avatarColor || '#3568f6'">
+            {{ c.nombre.substring(0, 2).toUpperCase() }}
+          </span>
+          <span class="badge" [class.badge-completado]="c.estado === 'ACTIVO'" [class.badge-planificacion]="c.estado === 'PROSPECTO'">
+            ● {{ c.estado }}
+          </span>
+        </div>
+        <h3>{{ c.nombre }}</h3>
+        <p class="client-company">{{ c.empresa }}</p>
+        <div class="client-contacts">
+          <span>✉ {{ c.correo }}</span>
+          <span>☎ {{ c.telefono }}</span>
+        </div>
+        <p class="client-notes" *ngIf="c.notas">{{ c.notas }}</p>
+        <div class="client-card-foot">
+          <span><b>{{ c.proyectosCount || 1 }}</b> proyecto(s)</span>
+          <button class="btn-card-action" (click)="state.clientDetailModal = c">Ver detalles ›</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
