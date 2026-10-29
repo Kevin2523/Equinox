@@ -1,0 +1,117 @@
+<main class="standard">
+<section class="collection">
+    <div class="page-title">
+      <div>
+        <p class="eyebrow">EQUINOX / CONFIGURACIÓN</p>
+        <h1>Marca y Estudio</h1>
+        <p>Personaliza la identidad visual que verán tus clientes en su portal.</p>
+      </div>
+      <button class="btn-primary" (click)="state.saveConfig()">
+        Guardar cambios
+      </button>
+    </div>
+
+    <div class="settings-layout">
+      <!-- Settings Form -->
+      <div class="settings-form-card">
+        <h3>Datos del estudio</h3>
+        <div class="form-group">
+          <label>Nombre del estudio</label>
+          <input class="form-control" [(ngModel)]="state.configuracion.nombreEstudio">
+        </div>
+        <div class="form-group">
+          <label>Nombre del freelancer</label>
+          <input class="form-control" [(ngModel)]="state.configuracion.nombreFreelancer">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Correo de contacto</label>
+            <input class="form-control" [(ngModel)]="state.configuracion.correo">
+          </div>
+          <div class="form-group">
+            <label>Teléfono (WhatsApp)</label>
+            <input class="form-control" [(ngModel)]="state.configuracion.telefono">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>RUC / Cédula fiscal</label>
+            <input class="form-control" [(ngModel)]="state.configuracion.ruc">
+          </div>
+          <div class="form-group">
+            <label>Moneda principal</label>
+            <input class="form-control" [(ngModel)]="state.configuracion.moneda">
+          </div>
+        </div>
+
+        <h3 class="mt-4">Personalización visual del portal</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Color primario de marca</label>
+            <div class="color-picker-wrapper">
+              <input type="color" [(ngModel)]="state.configuracion.colorPrimario">
+              <span>{{ state.configuracion.colorPrimario }}</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Color secundario</label>
+            <div class="color-picker-wrapper">
+              <input type="color" [(ngModel)]="state.configuracion.colorSecundario">
+              <span>{{ state.configuracion.colorSecundario }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tipografía del portal</label>
+          <select class="form-control" [(ngModel)]="state.configuracion.tipografia">
+            <option value="DM Sans">DM Sans (Elegante y moderna)</option>
+            <option value="Manrope">Manrope (Geométrica)</option>
+            <option value="Inter">Inter (Técnica)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Mensaje de bienvenida para clientes</label>
+          <textarea class="form-control" [(ngModel)]="state.configuracion.mensajeBienvenida"></textarea>
+        </div>
+
+        <button class="btn-primary" (click)="state.saveConfig()">
+          ✓ Guardar configuración
+        </button>
+      </div>
+
+      <!-- Real-Time Portal Preview -->
+      <div class="portal-preview-card">
+        <div class="preview-head">
+          <small>VISTA PREVIA EN VIVO</small>
+          <b>Portal del cliente de {{ state.configuracion.nombreEstudio }}</b>
+        </div>
+        <div class="mockup-frame">
+          <div class="mockup-topbar" [style.background]="state.configuracion.colorSecundario">
+            <div class="mockup-brand">
+              <span class="mockup-dot" [style.background]="state.configuracion.colorPrimario"></span>
+              <strong [style.font-family]="state.configuracion.tipografia">{{ state.configuracion.nombreEstudio }}</strong>
+            </div>
+            <small>Portal de Cliente</small>
+          </div>
+          <div class="mockup-body">
+            <div class="mockup-welcome" [style.border-left-color]="state.configuracion.colorPrimario">
+              <p>{{ state.configuracion.mensajeBienvenida }}</p>
+            </div>
+            <div class="mockup-project">
+              <div class="mockup-p-title">
+                <b>Café Unido</b>
+                <span class="badge badge-revision">En revisión</span>
+              </div>
+              <div class="mockup-p-progress">
+                <div class="mockup-bar" [style.width]="'72%'" [style.background]="state.configuracion.colorPrimario"></div>
+              </div>
+              <small>Avance: 72% · Próxima entrega: 15 abr 2026</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

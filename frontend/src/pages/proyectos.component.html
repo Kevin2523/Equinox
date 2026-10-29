@@ -1,0 +1,58 @@
+<main class="standard">
+<section class="collection">
+    <div class="page-title">
+      <div>
+        <p class="eyebrow">EQUINOX / PROYECTOS</p>
+        <h1>Proyectos</h1>
+        <p>Control de entregables, avance y estados de diseño y desarrollo.</p>
+      </div>
+      <button class="btn-primary" (click)="state.openQuickCreate('Proyecto')">
+        <span>＋</span> Nuevo proyecto
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <label class="search-input-pill">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input [(ngModel)]="state.query" placeholder="Buscar por nombre, cliente o tipo...">
+      </label>
+      <div class="filter-pills">
+        <button [class.active]="state.projectFilter === 'TODOS'" (click)="state.projectFilter = 'TODOS'">Todos ({{ state.proyectos.length }})</button>
+        <button [class.active]="state.projectFilter === 'En revisión'" (click)="state.projectFilter = 'En revisión'">En revisión</button>
+        <button [class.active]="state.projectFilter === 'En progreso'" (click)="state.projectFilter = 'En progreso'">En progreso</button>
+        <button [class.active]="state.projectFilter === 'Por aprobar'" (click)="state.projectFilter = 'Por aprobar'">Por aprobar</button>
+      </div>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="projects-grid">
+      <div class="project-grid-card" *ngFor="let p of state.visibleProjects" (click)="state.selectProject(p); state.navigate('hoy')">
+        <div class="p-card-top">
+          <span class="p-node-thumb" [ngClass]="p.visualClass"></span>
+          <div>
+            <small>{{ p.clienteNombre }}</small>
+            <h3>{{ p.nombre }}</h3>
+            <p>{{ p.tipo }}</p>
+          </div>
+          <span class="badge" [class]="'badge-' + p.estadoBadgeClass">● {{ p.estado }}</span>
+        </div>
+
+        <div class="p-card-progress">
+          <div class="progress-labels">
+            <span>Avance general</span>
+            <b>{{ p.progreso }}%</b>
+          </div>
+          <div class="progress-bar-rail">
+            <div class="progress-bar-fill" [style.width.%]="p.progreso"></div>
+          </div>
+        </div>
+
+        <div class="p-card-foot">
+          <span>Entrega: <b>{{ p.fechaEntrega }}</b></span>
+          <span class="p-budget">B/. {{ p.presupuesto | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

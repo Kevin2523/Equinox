@@ -1,0 +1,76 @@
+<main class="standard">
+<section class="collection">
+    <div class="page-title">
+      <div>
+        <p class="eyebrow">EQUINOX / FINANZAS</p>
+        <h1>Facturación y Pagos</h1>
+        <p>Cobros, cuentas por cobrar y flujo de caja en Balboas (B/.).</p>
+      </div>
+      <button class="btn-primary" (click)="state.openQuickCreate('Factura')">
+        <span>＋</span> Nueva factura
+      </button>
+    </div>
+
+    <!-- Balance Hero Block -->
+    <div class="balance-hero">
+      <div>
+        <small>PENDIENTE POR COBRAR</small>
+        <strong>B/. {{ state.totalPorCobrar | number:'1.2-2' }}</strong>
+        <p>{{ state.allInvoices.length }} facturas emitidas registradas</p>
+      </div>
+      <div class="balance-stats">
+        <div class="stat-pill">
+          <span>COBRADO ESTE MES</span>
+          <b>B/. {{ state.totalCobrado | number:'1.2-2' }}</b>
+        </div>
+        <div class="stat-pill">
+          <span>MONEDA OFICIAL</span>
+          <b>Panamá (PAB / USD)</b>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label class="search-input-pill">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input [(ngModel)]="state.query" placeholder="Buscar por número, cliente o concepto...">
+      </label>
+      <div class="filter-pills">
+        <button [class.active]="state.invoiceFilter === 'TODAS'" (click)="state.invoiceFilter = 'TODAS'">Todas</button>
+        <button [class.active]="state.invoiceFilter === 'PENDIENTES'" (click)="state.invoiceFilter = 'PENDIENTES'">Pendientes</button>
+        <button [class.active]="state.invoiceFilter === 'PAGADAS'" (click)="state.invoiceFilter = 'PAGADAS'">Pagadas</button>
+      </div>
+    </div>
+
+    <!-- Invoices List -->
+    <div class="invoices-table-card">
+      <div class="invoice-row" *ngFor="let inv of state.allInvoices">
+        <div class="inv-num">
+          <b>{{ inv.numero }}</b>
+          <small>{{ inv.fechaEmision }}</small>
+        </div>
+        <div class="inv-main">
+          <b>{{ inv.concepto }}</b>
+          <p>{{ inv.clienteNombre }} · {{ inv.proyectoNombre || 'Proyecto general' }}</p>
+        </div>
+        <div class="inv-due">
+          <small>Vencimiento</small>
+          <span>{{ inv.fechaVencimiento }}</span>
+        </div>
+        <div class="inv-amount">
+          <strong>B/. {{ inv.monto | number:'1.2-2' }}</strong>
+          <span [class.badge-completado]="inv.estado === 'PAGADA'" [class.badge-revision]="inv.estado === 'PENDIENTE'">
+            ● {{ inv.estado }}
+          </span>
+        </div>
+        <div class="inv-action">
+          <button *ngIf="inv.estado !== 'PAGADA'" class="btn-pay" (click)="state.markInvoicePaid(inv.id)">
+            Registrar pago
+          </button>
+          <span *ngIf="inv.estado === 'PAGADA'" class="text-green">✓ Pagado</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

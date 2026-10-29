@@ -618,54 +618,22 @@
   margin-top: 6px;
 }
 
-/* Individual node map coordinates matching prototype without overlaps */
-.n-cafe {
-  left: 45%;
-  top: 38%;
-  width: 155px;
+/* Data driven map positions; x and y come from each project. */
+.project-node {
+  left: clamp(70px, var(--node-x), calc(100% - 70px));
+  top: clamp(74px, var(--node-y), calc(100% - 80px));
+  transform: translate(-50%, -50%);
 }
-.n-cafe .node-visual {
-  width: 118px;
-  height: 118px;
-}
-.n-cafe strong {
-  font-size: 19px;
-}
-
-.n-istmo {
-  left: 20%;
-  top: 25%;
-}
-
-.n-bahia {
-  right: 10%;
-  top: 16%;
-}
-
-.n-taller {
-  left: 4%;
-  top: 47%;
-}
-
-.n-brisa {
-  left: 15%;
-  bottom: 10%;
-}
-
-.n-nomada {
-  right: 4%;
-  top: 43%;
-}
-
-.n-mercado {
-  right: 9%;
-  bottom: 10%;
-}
-
-.n-selva {
-  left: 56%;
-  bottom: 8%;
-}
+.project-node:hover { transform: translate(-50%, calc(-50% - 5px)); }
+.project-node.featured { width: 155px; }
+.project-node.featured .node-visual { width: 118px; height: 118px; }
+.project-node.featured strong { font-size: 19px; }
+app-work-map, app-project-inspector { display: block; min-width: 0; min-height: 0; }
+app-work-map .map-area { height: 100%; }
+app-project-inspector .inspector { height: 100%; }
+app-work-map .connections { inset: 0; width: 100%; height: 100%; }
+@media (max-width: 780px) { app-work-map .map-area { height: 700px; } }
+@media (max-width: 520px) { app-work-map .map-area { height: 620px; } }
 
 /* ==========================================================================
    COMMAND DOCK (BARRA FLOTANTE INFERIOR)
