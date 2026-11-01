@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { obtenerBaseApi } from '../auth/api.config';
+import { AuthService } from '../auth/auth.service';
 
 export type EstadoClienteApi = 'ACTIVO' | 'INACTIVO' | 'PROSPECTO' | 'ARCHIVADO';
 export type EstadoProyectoApi = 'BORRADOR' | 'ACTIVO' | 'PAUSADO' | 'COMPLETADO' | 'CANCELADO';
@@ -48,6 +49,7 @@ export type EditarProyectoApi = Partial<CrearProyectoApi>;
 
 @Injectable({ providedIn: 'root' })
 export class ClientesProyectosApiService {
+  private generacionSesion = 0;
   private readonly clientesSubject = new BehaviorSubject<ClienteApi[]>([]);
   private readonly proyectosSubject = new BehaviorSubject<ProyectoApi[]>([]);
   private readonly proyectoSeleccionadoSubject = new BehaviorSubject<ProyectoApi | null>(null);
@@ -59,14 +61,23 @@ export class ClientesProyectosApiService {
   get proyectos(): ProyectoApi[] { return this.proyectosSubject.value; }
   get proyectoSeleccionado(): ProyectoApi | null { return this.proyectoSeleccionadoSubject.value; }
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private auth?: AuthService) {
+    this.auth?.sesion$.subscribe(() => {
+      this.generacionSesion++;
+      this.clientesSubject.next([]);
+      this.proyectosSubject.next([]);
+      this.proyectoSeleccionadoSubject.next(null);
+    });
+  }
 
   async listarClientes(buscar?: string, estado?: EstadoClienteApi): Promise<ClienteApi[]> {
+    const generacion = this.generacionSesion;
+    const token = this.auth?.token;
     let params = new HttpParams();
     if (buscar?.trim()) params = params.set('buscar', buscar.trim());
     if (estado) params = params.set('estado', estado);
-    const clientes = await firstValueFrom(this.http.get<ClienteApi[]>(`${obtenerBaseApi()}/clientes`, { params }));
-    this.clientesSubject.next(clientes);
+    const clientes = await firstValueFrom(this.http.get<ClienteApi[]>(`${obtenerBaseApi()}/clientes`, { params, headers: { 'Cache-Control': 'no-cache' } }));
+    if (generacion === this.generacionSesion && token === this.auth?.token) this.clientesSubject.next(clientes);
     return clientes;
   }
 
@@ -87,11 +98,13 @@ export class ClientesProyectosApiService {
   }
 
   async listarProyectos(estado?: EstadoProyectoApi, clienteId?: string): Promise<ProyectoApi[]> {
+    const generacion = this.generacionSesion;
+    const token = this.auth?.token;
     let params = new HttpParams();
     if (estado) params = params.set('estado', estado);
     if (clienteId) params = params.set('clienteId', clienteId);
-    const proyectos = await firstValueFrom(this.http.get<ProyectoApi[]>(`${obtenerBaseApi()}/proyectos`, { params }));
-    this.proyectosSubject.next(proyectos);
+    const proyectos = await firstValueFrom(this.http.get<ProyectoApi[]>(`${obtenerBaseApi()}/proyectos`, { params, headers: { 'Cache-Control': 'no-cache' } }));
+    if (generacion === this.generacionSesion && token === this.auth?.token) this.proyectosSubject.next(proyectos);
     return proyectos;
   }
 
@@ -100,8 +113,10 @@ export class ClientesProyectosApiService {
   }
 
   async seleccionarProyecto(id: string): Promise<ProyectoApi> {
+    const generacion = this.generacionSesion;
+    const token = this.auth?.token;
     const proyecto = await this.consultarProyecto(id);
-    this.proyectoSeleccionadoSubject.next(proyecto);
+    if (generacion === this.generacionSesion && token === this.auth?.token) this.proyectoSeleccionadoSubject.next(proyecto);
     return proyecto;
   }
 

@@ -10,6 +10,7 @@ import { NotFoundComponent } from './pages/not-found.component';
 import { FreelancerShellComponent } from './shells/freelancer-shell.component';
 import { ClientShellComponent } from './shells/client-shell.component';
 import { ClientHomeComponent } from './pages/client-home.component';
+import { InvitacionComponent } from './pages/invitacion.component';
 import { LoginComponent } from './pages/login.component';
 import { RegistroComponent } from './pages/registro.component';
 import { RecuperacionComponent } from './pages/recuperacion.component';
@@ -23,6 +24,7 @@ export const routes: Routes = [
   { path: 'registro', component: RegistroComponent, canActivate: [guardPublico] },
   { path: 'recuperar-contrasena', component: RecuperacionComponent },
   { path: 'cerrar-sesion', component: LogoutComponent },
+  { path: 'invitacion/:token', component: InvitacionComponent },
   { path: '', component: FreelancerShellComponent, canActivate: [guardOrganizacion], children: [
     { path: 'dashboard', component: DashboardComponent },
     { path: 'clientes', component: ClientesComponent },

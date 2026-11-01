@@ -1,0 +1,30 @@
+<main class="auth-layout invitation-page">
+  <section class="auth-card invitation-card" aria-labelledby="invitation-heading">
+    <div class="auth-brand"><span class="brand-mark"><i></i></span><strong>equinox</strong></div>
+    <p class="eyebrow">ACCESO AL PORTAL</p><h1 id="invitation-heading">Invitación de cliente</h1>
+    <p class="auth-intro" *ngIf="cargando" role="status">Consultando invitación…</p>
+    <div class="auth-error" role="alert" *ngIf="error && !invitacion">{{ error }} <button *ngIf="puedeReintentarConsulta" class="auth-text-link" type="button" (click)="cargar()" [disabled]="cargando">Reintentar</button></div>
+    <ng-container *ngIf="invitacion as invite">
+      <div class="invitation-brand" *ngIf="invite.organizacion.logoUrl"><img [src]="invite.organizacion.logoUrl" [alt]="'Marca de ' + invite.organizacion.nombre"></div>
+      <p class="auth-intro"><strong>{{ invite.organizacion.nombre }}</strong> te invita a colaborar con <strong>{{ invite.cliente.nombre }}</strong><span *ngIf="invite.cliente.empresa"> ({{ invite.cliente.empresa }})</span>.</p>
+      <dl class="invitation-summary"><div><dt>Correo de la invitación</dt><dd>{{ invite.correoEnmascarado }}</dd></div><div><dt>Acceso</dt><dd>{{ invite.rol === 'TITULAR' ? 'Titular' : 'Colaborador' }}</dd></div></dl>
+      <div *ngIf="aceptada" class="invitation-success" role="status"><h2>Invitación aceptada</h2><p>{{ mensajeExito }} Inicia sesión para entrar al portal; la invitación no inicia una sesión automáticamente.</p><a class="btn-primary auth-submit" routerLink="/inicio-sesion">Ir a iniciar sesión</a></div>
+      <form *ngIf="!aceptada" #form="ngForm" (ngSubmit)="aceptar(form)">
+        <ng-container *ngIf="!invite.esUsuarioExistente">
+          <p>Completa tus datos para crear tu cuenta.</p>
+          <div class="form-group"><label for="invite-nombre">Nombre *</label><input id="invite-nombre" class="form-control" name="nombre" [(ngModel)]="datos.nombre" required minlength="2" autocomplete="given-name"></div>
+          <div class="form-group"><label for="invite-apellido">Apellido (opcional)</label><input id="invite-apellido" class="form-control" name="apellido" [(ngModel)]="datos.apellido" autocomplete="family-name"></div>
+          <div class="form-group"><label for="invite-password">Contraseña (al menos 8 caracteres) *</label><input id="invite-password" class="form-control" type="password" name="contrasena" [(ngModel)]="datos.contrasena" required minlength="8" autocomplete="new-password"></div>
+        </ng-container>
+        <ng-container *ngIf="invite.esUsuarioExistente">
+          <p>Ya existe una cuenta para este correo. Confirma tu contraseña actual para vincular el portal.</p>
+          <div class="form-group"><label for="invite-current-password">Contraseña actual *</label><input id="invite-current-password" class="form-control" type="password" name="contrasena" [(ngModel)]="datos.contrasena" required autocomplete="current-password"></div>
+        </ng-container>
+        <p class="auth-validation" *ngIf="enviada && form.invalid">Revisa los campos requeridos antes de continuar.</p>
+        <p class="auth-error" role="alert" *ngIf="error">{{ error }}</p>
+        <button class="btn-primary auth-submit" type="submit" [disabled]="enviando">{{ enviando ? 'Aceptando…' : 'Aceptar invitación' }}</button>
+      </form>
+    </ng-container>
+    <a class="auth-text-link invitation-login" routerLink="/inicio-sesion" *ngIf="!invitacion && error?.includes('ya fue aceptada')">Iniciar sesión</a>
+  </section>
+</main>

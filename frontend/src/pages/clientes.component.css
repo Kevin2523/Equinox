@@ -1,0 +1,19 @@
+.invitation-note { padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-soft); color: var(--muted); font-size: 13px; }
+.invitation-link { margin: 16px 0; }
+.invitation-link label { display: block; margin-bottom: 6px; font-weight: 600; }
+.invitation-link > div { display: flex; gap: 8px; }
+.invitation-link input { min-width: 0; flex: 1; }
+.invitation-list { list-style: none; padding: 0; margin: 12px 0; }
+.invitation-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.invitation-list li > div:first-child { min-width: 0; display: grid; gap: 3px; overflow-wrap: anywhere; }
+.invitation-list li span, .invitation-list li small { color: var(--muted); font-size: 12px; }
+.invitation-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.invitation-modal hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
+.invitation-modal h3 { font-size: 16px; }
+.invitation-modal > form .modal-actions { margin: 16px 0; flex-wrap: wrap; }
+.auth-success { color: var(--success, #26734d); }
+@media (max-width: 540px) {
+  .invitation-list li { align-items: flex-start; flex-direction: column; }
+  .invitation-actions { justify-content: flex-start; }
+  .invitation-link > div { align-items: stretch; flex-direction: column; }
+}
