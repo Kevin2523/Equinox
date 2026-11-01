@@ -1,4 +1,5 @@
-import 'zone.js';
+// Zone.js se declara en angular.json (polyfills) para que el builder transforme
+// async/await y conserve la detección de cambios tras las respuestas HTTP.
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app.component';
 import { provideRouter } from '@angular/router';
