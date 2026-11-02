@@ -18,6 +18,9 @@ const cliente = (id) => ({ id, nombre: `Cliente ficticio ${id}`, correo: `${id}@
 const invitacion = (id = 'i1', estado = 'PENDIENTE') => ({ id, correo: 'cuenta@example.invalid', rol: 'TITULAR', estado, expiraEn: '2099-01-01T00:00:00Z' });
 const publica = { correoEnmascarado: 'c***@example.invalid', rol: 'TITULAR', cliente: { nombre: 'Cliente ficticio', empresa: null }, organizacion: { nombre: 'Estudio ficticio', logoUrl: null }, esUsuarioExistente: false, expiraEn: '2099-01-01T00:00:00Z' };
 const proyectoVisual = { id: 'p-ficticio', clienteId: 'a', nombre: 'Proyecto visual ficticio', descripcion: 'Descripción de prueba', estado: 'ACTIVO', fechaInicio: '2026-10-01T00:00:00.000Z', fechaEntrega: '2026-11-30T00:00:00.000Z', presupuesto: '500', moneda: 'PAB', cliente: cliente('a') };
+const facturaVisual = { id: 'f-ficticia', clienteId: 'a', proyectoId: null, numero: 'INV-FICTICIA', concepto: 'Servicio ficticio', monto: 1000, montoPendiente: 1000, moneda: 'USD', estado: 'ENVIADA', visibleEnPortal: false, fechaEmision: '2026-11-01', fechaVencimiento: null, pagadaEn: null, cliente: cliente('a') };
+let facturaCompartida = false;
+let portalFinanzasHabilitadas = false;
 const pendientes = [];
 const esperas = [];
 let server, origin, browser, socket, sessionId, profile;
@@ -96,6 +99,9 @@ before(async () => {
       : { tipoAcceso: 'ORGANIZACION', organizacionId: 'o-test', rolOrganizacion: 'PROPIETARIO' } });
     if (pathname === '/api/clientes') return reply(200, [cliente('a'), cliente('b')]);
     if (pathname === '/api/proyectos') return reply(200, paginaFixture === '/proyectos' ? [proyectoVisual] : []);
+    if (paginaFixture === '/finanzas' && req.method === 'GET' && pathname === '/api/facturas') return reply(200, [{ ...facturaVisual, visibleEnPortal: facturaCompartida }]);
+    if (paginaFixture === '/finanzas' && req.method === 'GET' && pathname === '/api/facturas/totales') return reply(200, { totalesPorMoneda: [{ moneda: 'USD', totalPorCobrar: 1000, totalCobrado: 0, facturasEmitidas: 1, facturasPendientes: 1, facturasPagadas: 0 }] });
+    if (paginaFixture === '/finanzas' && req.method === 'GET' && pathname === '/api/organizacion') return reply(200, { portalMostrarFinanzas: portalFinanzasHabilitadas });
     if (paginaFixture === '/proyectos') {
       if (pathname === '/api/proyectos/p-ficticio') return reply(200, proyectoVisual);
       if (['tareas', 'hitos', 'comentarios', 'archivos'].some((recurso) => pathname === `/api/proyectos/p-ficticio/${recurso}`) && req.method === 'GET') return reply(200, []);
@@ -105,13 +111,18 @@ before(async () => {
       if (pathname === '/api/portal/proyectos') return reply(200, [proyectoVisual]);
       if (pathname === '/api/portal/proyectos/p-ficticio') return reply(200, proyectoVisual);
       if (pathname === '/api/portal/proyectos/p-ficticio/hitos') return reply(200, [{ id: 'h-ficticio', titulo: 'Hito ficticio', descripcion: null, estado: 'PENDIENTE', orden: 1, fechaObjetivo: null, completadoEn: null }]);
-      if (pathname === '/api/portal/proyectos/p-ficticio/archivos' || pathname === '/api/portal/proyectos/p-ficticio/comentarios' || pathname === '/api/portal/facturas') return reply(200, []);
+      if (pathname === '/api/portal/facturas') return reply(200, portalFinanzasHabilitadas && facturaCompartida ? [facturaVisual] : []);
+      if (pathname === '/api/portal/proyectos/p-ficticio/archivos' || pathname === '/api/portal/proyectos/p-ficticio/comentarios') return reply(200, []);
     }
     if (pathname.startsWith('/api/')) {
       // No proxy ni conexión a una API externa: todas las respuestas salen de fixtures.
-      const request = { method: req.method, pathname, headers: req.headers, reply };
-      const index = esperas.findIndex((w) => w.method === request.method && w.pathname === pathname);
-      if (index >= 0) esperas.splice(index, 1)[0].resolve(request); else pendientes.push(request);
+      const bloques = [];
+      req.on('data', (bloque) => bloques.push(bloque));
+      req.on('end', () => {
+        const request = { method: req.method, pathname, headers: req.headers, body: Buffer.concat(bloques).toString('utf8'), reply };
+        const index = esperas.findIndex((w) => w.method === request.method && w.pathname === pathname);
+        if (index >= 0) esperas.splice(index, 1)[0].resolve(request); else pendientes.push(request);
+      });
       return;
     }
     const file = path.resolve(bundle, '.' + pathname);
@@ -120,10 +131,10 @@ before(async () => {
       res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'application/octet-stream');
       res.end(fs.readFileSync(file)); return;
     }
-    if (['/clientes', '/proyectos', '/portal'].includes(pathname)) paginaFixture = pathname;
+    if (['/clientes', '/proyectos', '/portal', '/finanzas'].includes(pathname)) paginaFixture = pathname;
     let html = fs.readFileSync(path.join(bundle, 'index.html'), 'utf8');
     html = html.replace('<head>', `<head><script>window.__EQUINOX_API_ORIGIN__=location.origin;
-      if(['/clientes','/proyectos','/portal'].includes(location.pathname)) sessionStorage.setItem('equinox_sesion_token','sesion-ficticia'); else sessionStorage.clear();</script>`);
+      if(['/clientes','/proyectos','/portal','/finanzas'].includes(location.pathname)) sessionStorage.setItem('equinox_sesion_token','sesion-ficticia'); else sessionStorage.clear();</script>`);
     res.setHeader('Content-Type', 'text/html'); res.end(html);
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -164,6 +175,8 @@ before(async () => {
   await send('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
 });
 afterEach(async () => {
+  facturaCompartida = false;
+  portalFinanzasHabilitadas = false;
   for (const request of pendientes.splice(0)) request.reply(503, { error: 'Fin de fixture' });
   esperas.length = 0;
   if (sessionId) await send('Page.navigate', { url: 'about:blank' });
@@ -402,4 +415,74 @@ test('DOM: el selector envía multipart, muestra error recuperable y luego el ar
   assert.equal(await evaluate('document.querySelector("#proyecto-archivo").value'), '');
   await evaluate('document.querySelector("#proyecto-archivo").scrollIntoView()');
   await screenshot('archivos-modal');
+});
+
+test('DOM: modal de pago valida precisión, conserva borrador tras error y cierra solo al persistir', { timeout: 15000 }, async () => {
+  await go('/finanzas');
+  await waitDOM(visible('.invoice-row .btn-pay'));
+  await click('.invoice-row .btn-pay');
+  await waitDOM(visible('.modal-pago'));
+  assert.equal(await evaluate('document.querySelector("#pagoMonto").value'), '1000');
+  assert.equal(await evaluate('document.querySelector("#pagoMoneda").value'), 'USD');
+  assert.equal(await evaluate('document.querySelector("#pagoMetodo").value'), 'TRANSFERENCIA');
+  await fill('#pagoMonto', '1.234');
+  await click('.modal-pago .modal-footer .btn-primary');
+  await waitDOM(visible('.modal-pago .error-banner'));
+  assert.equal(pendientes.some((r) => r.method === 'POST' && r.pathname === '/api/facturas/f-ficticia/pagos'), false);
+  await fill('#pagoMonto', '400');
+  await evaluate(`(() => { const el=document.querySelector('#pagoMetodo'); el.value='EFECTIVO'; el.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+  await click('.modal-pago .modal-footer .btn-primary');
+  const fallo = await take('POST', '/api/facturas/f-ficticia/pagos');
+  assert.equal(await evaluate('document.querySelector("#pagoMonto").value'), '400');
+  assert.equal(JSON.parse(fallo.body).monto, 400);
+  assert.equal(JSON.parse(fallo.body).moneda, 'USD');
+  assert.equal(JSON.parse(fallo.body).metodo, 'EFECTIVO');
+  await finish(fallo, 503, { error: 'Fallo ficticio' });
+  await waitDOM('!!document.querySelector(".modal-pago .error-banner") && !document.querySelector(".modal-pago .modal-footer .btn-primary").disabled');
+  assert.equal(await evaluate('document.querySelector("#pagoMonto").value'), '400');
+  assert.equal(await evaluate('document.querySelector("#pagoMetodo").value'), 'EFECTIVO');
+  await click('.modal-pago .modal-footer .btn-primary');
+  const exito = await take('POST', '/api/facturas/f-ficticia/pagos');
+  await finish(exito, 201, { pago: { id: 'p-ficticio' }, factura: { ...facturaVisual, montoPendiente: 600 }, saldoRestante: 600 });
+  await waitDOM('!document.querySelector(".modal-pago")');
+});
+
+test('DOM: nueva factura desde Finanzas no envía un proyecto implícito', { timeout: 15000 }, async () => {
+  await go('/finanzas');
+  await waitDOM(visible('.page-title .btn-primary'));
+  await click('.page-title .btn-primary');
+  await waitDOM(visible('.quick-modal'));
+  await fill('.quick-modal input[placeholder^="ej. Anticipo"]', 'Servicio ficticio');
+  await click('.quick-modal .modal-actions .btn-primary');
+  assert.equal(await evaluate('document.querySelector(".quick-modal .auth-error")?.textContent || ""'), '');
+  const solicitud = await take('POST', '/api/facturas');
+  const datos = JSON.parse(solicitud.body);
+  assert.equal(datos.clienteId, 'a');
+  assert.equal(datos.proyectoId, null);
+  solicitud.reply(201, { id: 'factura-creada', ...datos });
+  await waitDOM('!document.querySelector(".quick-modal")');
+});
+
+test('DOM: habilitar finanzas y compartir factura permite verla en el portal del cliente', { timeout: 15000 }, async () => {
+  await go('/finanzas');
+  try { await waitDOM(visible('.finance-portal-settings button')); }
+  catch (error) {
+    const estado = await evaluate(`(() => { const el=document.querySelector('.finance-portal-settings'); return { ruta: location.pathname, titulo: document.querySelector('.page-title h1')?.textContent, presente: !!el, texto: el?.textContent, botones: el?.querySelectorAll('button').length }; })()`);
+    assert.fail(JSON.stringify({ estado, solicitudes: traffic.filter((r) => r.pathname === '/api/organizacion').length }));
+  }
+  assert.equal(await evaluate('document.querySelector(".finance-portal-settings").textContent.includes("desactivada")'), true);
+  await click('.finance-portal-settings button');
+  const activar = await take('PATCH', '/api/organizacion');
+  assert.deepEqual(JSON.parse(activar.body), { portalMostrarFinanzas: true });
+  portalFinanzasHabilitadas = true;
+  await finish(activar, 200, { portalMostrarFinanzas: true });
+  await waitDOM('document.querySelector(".finance-portal-settings").textContent.includes("solo las facturas compartidas")');
+  await click('.invoice-row .inv-action .btn-secondary');
+  const compartir = await take('PATCH', '/api/facturas/f-ficticia');
+  assert.deepEqual(JSON.parse(compartir.body), { visibleEnPortal: true });
+  facturaCompartida = true;
+  await finish(compartir, 200, { ...facturaVisual, visibleEnPortal: true });
+  await waitDOM('document.querySelector(".invoice-row .inv-action").textContent.includes("Compartida con cliente")');
+  await go('/portal');
+  await waitDOM('document.querySelector(".portal-invoice-list li")?.textContent.includes("INV-FICTICIA")');
 });

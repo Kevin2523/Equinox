@@ -108,6 +108,8 @@ model Usuario {
   comentarios           Comentario[]
   tareasAsignadas       Tarea[]               @relation("TareasAsignadas")
   creadoPor             Proyecto[]            @relation("ProyectoCreadoPor")
+  historialFacturas     HistorialFactura[]
+  pagosRegistrados      Pago[]
 
   @@map("usuarios")
 }
@@ -136,6 +138,7 @@ model Organizacion {
   clientes              Cliente[]
   proyectos             Proyecto[]
   facturas              Factura[]
+  secuenciaFactura      SecuenciaFactura?
   actividades           Actividad[]
 
   @@map("organizaciones")
@@ -356,28 +359,74 @@ model AccesoPortal {
 }
 
 model Factura {
-  id               String        @id @default(uuid()) @db.Uuid
-  organizacionId   String        @map("organizacion_id") @db.Uuid
-  clienteId        String        @map("cliente_id") @db.Uuid
-  proyectoId       String?       @map("proyecto_id") @db.Uuid
+  id               String             @id @default(uuid()) @db.Uuid
+  organizacionId   String             @map("organizacion_id") @db.Uuid
+  clienteId        String             @map("cliente_id") @db.Uuid
+  proyectoId       String?            @map("proyecto_id") @db.Uuid
   numero           String
   concepto         String
-  monto            Decimal       @db.Decimal(12, 2)
-  moneda           String        @default("PAB")
-  estado           EstadoFactura @default(BORRADOR)
-  fechaEmision     DateTime      @default(now()) @map("fecha_emision") @db.Date
-  fechaVencimiento DateTime?     @map("fecha_vencimiento") @db.Date
-  pagadaEn         DateTime?     @map("pagada_en")
+  monto            Decimal            @db.Decimal(12, 2)
+  moneda           String             @default("PAB")
+  estado           EstadoFactura      @default(BORRADOR)
+  visibleEnPortal  Boolean            @default(true) @map("visible_en_portal")
+  fechaEmision     DateTime           @default(now()) @map("fecha_emision") @db.Date
+  fechaVencimiento DateTime?          @map("fecha_vencimiento") @db.Date
+  pagadaEn         DateTime?          @map("pagada_en")
   notas            String?
-  creadoEn         DateTime      @default(now()) @map("creado_en")
-  actualizadoEn    DateTime      @updatedAt @map("actualizado_en")
-  organizacion     Organizacion  @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  cliente          Cliente       @relation(fields: [clienteId], references: [id], onDelete: Restrict)
-  proyecto         Proyecto?     @relation(fields: [proyectoId], references: [id], onDelete: SetNull)
+  creadoEn         DateTime           @default(now()) @map("creado_en")
+  actualizadoEn    DateTime           @updatedAt @map("actualizado_en")
+  organizacion     Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  cliente          Cliente            @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  proyecto         Proyecto?          @relation(fields: [proyectoId], references: [id], onDelete: SetNull)
+  historial        HistorialFactura[]
+  pagos            Pago[]
 
   @@unique([organizacionId, numero])
   @@index([organizacionId, estado])
+  @@index([clienteId, visibleEnPortal])
   @@map("facturas")
+}
+
+model HistorialFactura {
+  id             String         @id @default(uuid()) @db.Uuid
+  facturaId      String         @map("factura_id") @db.Uuid
+  estadoAnterior EstadoFactura? @map("estado_anterior")
+  estadoNuevo    EstadoFactura  @map("estado_nuevo")
+  usuarioId      String?        @map("usuario_id") @db.Uuid
+  motivo         String?
+  creadoEn       DateTime       @default(now()) @map("creado_en")
+  factura        Factura        @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  usuario        Usuario?       @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([facturaId, creadoEn])
+  @@map("historial_facturas")
+}
+
+model Pago {
+  id              String       @id @default(uuid()) @db.Uuid
+  facturaId       String       @map("factura_id") @db.Uuid
+  monto           Decimal      @db.Decimal(12, 2)
+  moneda          String       @default("PAB")
+  metodo          String?
+  referencia      String?
+  notas           String?
+  registradoPorId String?      @map("registrado_por_id") @db.Uuid
+  creadoEn        DateTime     @default(now()) @map("creado_en")
+  factura         Factura      @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  registradoPor   Usuario?     @relation(fields: [registradoPorId], references: [id], onDelete: SetNull)
+
+  @@index([facturaId, creadoEn])
+  @@map("pagos")
+}
+
+model SecuenciaFactura {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizacionId String       @unique @map("organizacion_id") @db.Uuid
+  ultimoNumero   Int          @default(0) @map("ultimo_numero")
+  actualizadoEn  DateTime     @updatedAt @map("actualizado_en")
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@map("secuencias_facturas")
 }
 
 model Actividad {

@@ -154,8 +154,10 @@
       </div>
       <div class="form-group">
         <label>Cliente</label>
-        <select class="form-control" [(ngModel)]="state.nuevaFactura.clienteId">
-          <option *ngFor="let c of state.equinox.clientes" [value]="c.id">{{ c.nombre }} ({{ c.empresa }})</option>
+        <p *ngIf="state.cargandoClientesFactura" role="status">Cargando clientes…</p>
+        <select class="form-control" [(ngModel)]="state.nuevaFactura.clienteId" [disabled]="state.cargandoClientesFactura">
+          <option value="">Selecciona un cliente</option>
+          <option *ngFor="let c of state.clientes" [value]="c.id">{{ c.nombre }} ({{ c.empresa }})</option>
         </select>
       </div>
       <div class="form-row">
@@ -165,12 +167,18 @@
         </div>
         <div class="form-group">
           <label>Fecha de vencimiento</label>
-          <input class="form-control" [(ngModel)]="state.nuevaFactura.fechaVencimiento" placeholder="ej. 15 días">
+          <input type="date" class="form-control" [(ngModel)]="state.nuevaFactura.fechaVencimiento">
         </div>
       </div>
+      <label class="finance-share-new">
+        <input type="checkbox" [(ngModel)]="state.compartirNuevaFactura">
+        Emitir y compartir esta factura con el cliente
+      </label>
+      <p class="auth-error" role="alert" *ngIf="state.createError">{{ state.createError }}</p>
+      <button *ngIf="state.createError && state.clientes.length === 0 && !state.cargandoClientesFactura" class="btn-secondary" (click)="state.cargarClientesParaFactura()">Reintentar carga de clientes</button>
       <div class="modal-actions">
         <button class="btn-secondary" (click)="state.closeCreateModal()">Cancelar</button>
-        <button class="btn-primary" (click)="state.submitCreate()">Generar factura</button>
+        <button class="btn-primary" (click)="state.submitCreate()" [disabled]="state.crearLoading || state.cargandoClientesFactura">{{ state.crearLoading ? 'Guardando…' : 'Generar factura' }}</button>
       </div>
     </div>
   </section>

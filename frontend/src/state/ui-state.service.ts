@@ -5,6 +5,7 @@ import { EquinoxService } from '../services/equinox.service';
 import { ClientesProyectosApiService, ClienteApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import { TrabajoApiService } from '../services/trabajo-api.service';
 import { AuthService } from '../auth/auth.service';
+import { FacturasApiService, FacturaApi, TotalesFacturasApi, TotalMonedaApi } from '../services/facturas-api.service';
 import {
   Cliente,
   Proyecto,
@@ -44,8 +45,11 @@ export class UiStateService {
   nuevoProyecto = { nombre: '', clienteId: '', descripcion: '', estado: 'BORRADOR' as ProyectoApi['estado'], presupuesto: 0, moneda: 'PAB', fechaInicio: '', fechaEntrega: '' };
   crearLoading = false;
   createError = '';
+  cargandoClientesFactura = false;
+  private solicitudClientesFactura = 0;
   nuevaTarea = { proyectoId: '', titulo: '', prioridad: 'ALTA' as 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE', fechaVencimiento: '' };
   nuevaFactura = { clienteId: '', proyectoId: '', concepto: '', monto: 1200, fechaVencimiento: '' };
+  compartirNuevaFactura = false;
   nuevoColaborador = { nombre: '', rol: 'Diseñador UI', iniciales: '' };
 
   // Inline forms
@@ -63,8 +67,29 @@ export class UiStateService {
   notificaciones: Notificacion[] = [];
   selectedProject: Proyecto | null = null;
   toastMessage = '';
+  facturasReales: Factura[] = [];
+  totalesFacturas: TotalesFacturasApi | null = null;
+  haCargadoFacturas = false;
+  cargandoFacturas = false;
+  errorFacturas = '';
+  portalMostrarFinanzas: boolean | null = null;
+  cargandoPortalFinanzas = false;
+  errorPortalFinanzas = '';
+  visibilidadFacturaEnCursoId: string | null = null;
+  errorVisibilidadFactura = '';
 
-  constructor(public equinox: EquinoxService, public clientesProyectosApi: ClientesProyectosApiService, private router: Router, public trabajo: TrabajoApiService, private auth: AuthService) {
+  // Payment modal state
+  pagoModalOpen = false;
+  facturaSeleccionadaPago: Factura | null = null;
+  nuevoPago = { monto: 0, moneda: 'PAB', metodo: 'TRANSFERENCIA', referencia: '', notas: '' };
+  pagoLoading = false;
+  pagoError = '';
+
+  get totalesPorMoneda(): TotalMonedaApi[] {
+    return this.totalesFacturas?.totalesPorMoneda || [];
+  }
+
+  constructor(public equinox: EquinoxService, public clientesProyectosApi: ClientesProyectosApiService, private router: Router, public trabajo: TrabajoApiService, private auth: AuthService, public facturasApi?: FacturasApiService) {
     this.initialize();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       const segmento = event.urlAfterRedirects.split('?')[0].split('/')[1];
@@ -84,6 +109,17 @@ export class UiStateService {
       if (sel) this.selectedProject = sel;
     });
     this.equinox.toast$.subscribe((msg) => (this.toastMessage = msg));
+    this.auth.sesion$.subscribe((sesion) => {
+      if (sesion && sesion.contexto?.tipoAcceso === 'ORGANIZACION') {
+        void this.cargarFacturas();
+        void this.cargarConfiguracionPortalFinanzas();
+      } else {
+        this.facturasReales = [];
+        this.totalesFacturas = null;
+        this.haCargadoFacturas = false;
+        this.portalMostrarFinanzas = null;
+      }
+    });
   }
 
   get mapActive(): boolean {
@@ -150,34 +186,19 @@ export class UiStateService {
 
   // Filtered invoices across all projects
   get allInvoices(): Factura[] {
-    const facturas = this.equinox.todasLasFacturas();
     const q = this.query.trim().toLowerCase();
-    let res = facturas;
+    let res = this.facturasReales;
 
     if (this.invoiceFilter === 'PENDIENTES') {
-      res = res.filter((f) => f.estado === 'PENDIENTE' || f.estado === 'VENCIDA');
+      res = res.filter((f) => f.estado === 'PENDIENTE' || f.estado === 'ENVIADA' || f.estado === 'VENCIDA' || f.estado === 'BORRADOR');
     } else if (this.invoiceFilter === 'PAGADAS') {
       res = res.filter((f) => f.estado === 'PAGADA');
     }
 
     if (!q) return res;
     return res.filter((f) =>
-      `${f.numero} ${f.concepto} ${f.clienteNombre} ${f.proyectoNombre}`.toLowerCase().includes(q)
+      `${f.numero} ${f.concepto} ${f.clienteNombre} ${f.proyectoNombre || ''}`.toLowerCase().includes(q)
     );
-  }
-
-  // Total pending collection balance
-  get totalPorCobrar(): number {
-    return this.allInvoices
-      .filter((f) => f.estado !== 'PAGADA')
-      .reduce((acc, f) => acc + (f.montoPendiente || f.monto), 0);
-  }
-
-  // Total collected
-  get totalCobrado(): number {
-    return this.allInvoices
-      .filter((f) => f.estado === 'PAGADA')
-      .reduce((acc, f) => acc + f.monto, 0);
   }
 
   // Navigation handlers
@@ -211,19 +232,50 @@ export class UiStateService {
     this.activeCreateType = type || null;
     this.createError = '';
     if (type === 'Tarea') {
-      this.nuevaTarea.proyectoId = this.clientesProyectosApi.proyectoSeleccionado?.id || this.proyectos[0]?.id || '';
+      this.nuevaTarea.proyectoId = this.clientesProyectosApi?.proyectoSeleccionado?.id || this.proyectos[0]?.id || '';
     }
-    if (this.selectedProject) {
-      this.nuevaFactura.proyectoId = this.selectedProject.id;
-      this.nuevaFactura.clienteId = this.selectedProject.clienteId;
+    if (type === 'Factura' && this.nuevaFactura) {
+      this.compartirNuevaFactura = false;
+      this.nuevaFactura.proyectoId = '';
+      if (!this.clientes.some((cliente) => cliente.id === this.nuevaFactura.clienteId)) {
+        this.nuevaFactura.clienteId = this.clientes[0]?.id || '';
+      }
+      if (this.clientes.length === 0) void this.cargarClientesParaFactura();
     }
-    if (this.clientes.length > 0 && !this.nuevoProyecto.clienteId) {
+    if (this.clientes && this.clientes.length > 0 && this.nuevoProyecto && !this.nuevoProyecto.clienteId) {
       this.nuevoProyecto.clienteId = this.clientes[0].id;
     }
   }
 
   selectCreateType(type: 'Cliente' | 'Proyecto' | 'Tarea' | 'Factura') {
     this.activeCreateType = type;
+    if (type === 'Factura') {
+      this.nuevaFactura.proyectoId = '';
+      if (!this.clientes.some((cliente) => cliente.id === this.nuevaFactura.clienteId)) {
+        this.nuevaFactura.clienteId = this.clientes[0]?.id || '';
+      }
+      if (this.clientes.length === 0) void this.cargarClientesParaFactura();
+    }
+  }
+
+  async cargarClientesParaFactura(): Promise<void> {
+    if (!this.clientesProyectosApi || this.cargandoClientesFactura) return;
+    const solicitud = ++this.solicitudClientesFactura;
+    this.cargandoClientesFactura = true;
+    this.createError = '';
+    try {
+      const clientes = await this.clientesProyectosApi.listarClientes();
+      if (solicitud !== this.solicitudClientesFactura || !this.createModalOpen || this.activeCreateType !== 'Factura') return;
+      if (!clientes.some((cliente) => cliente.id === this.nuevaFactura.clienteId)) {
+        this.nuevaFactura.clienteId = clientes[0]?.id || '';
+      }
+    } catch {
+      if (solicitud === this.solicitudClientesFactura && this.createModalOpen && this.activeCreateType === 'Factura') {
+        this.createError = 'No se pudieron cargar los clientes. Reintenta.';
+      }
+    } finally {
+      if (solicitud === this.solicitudClientesFactura) this.cargandoClientesFactura = false;
+    }
   }
 
   async submitCreate() {
@@ -257,16 +309,69 @@ export class UiStateService {
       } catch { this.createError = 'No se pudo crear la tarea. Reintenta.'; this.crearLoading = false; return; }
       this.crearLoading = false;
     } else if (this.activeCreateType === 'Factura') {
-      if (!this.nuevaFactura.concepto || !this.nuevaFactura.monto) return;
-      const cId = this.nuevaFactura.clienteId || this.clientes[0]?.id || 'c-1';
-      this.equinox.crearFactura({
-        clienteId: cId,
-        proyectoId: this.nuevaFactura.proyectoId || this.selectedProject?.id,
-        concepto: this.nuevaFactura.concepto,
-        monto: this.nuevaFactura.monto,
-        fechaVencimiento: this.nuevaFactura.fechaVencimiento || '30 días'
-      });
-      this.nuevaFactura = { clienteId: '', proyectoId: '', concepto: '', monto: 1200, fechaVencimiento: '' };
+      if (this.cargandoClientesFactura) return;
+      if (!this.nuevaFactura.concepto || !this.nuevaFactura.monto) {
+        this.createError = 'El concepto y el monto son obligatorios.';
+        return;
+      }
+      const textoMontoFactura = String(this.nuevaFactura.monto).trim();
+      if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(textoMontoFactura) || Number(textoMontoFactura) <= 0) {
+        this.createError = 'Introduce un monto positivo con máximo dos decimales.';
+        return;
+      }
+      if (!this.nuevaFactura.clienteId || !this.clientes.some(c => c.id === this.nuevaFactura.clienteId)) {
+        this.createError = 'Selecciona un cliente válido.';
+        return;
+      }
+      if (this.nuevaFactura.fechaVencimiento && !/^\d{4}-\d{2}-\d{2}$/.test(this.nuevaFactura.fechaVencimiento)) {
+        this.createError = 'Selecciona una fecha de vencimiento válida.';
+        return;
+      }
+      const cId = this.nuevaFactura.clienteId;
+      if (!cId) {
+        this.createError = 'Debes seleccionar un cliente válido.';
+        return;
+      }
+      this.crearLoading = true;
+      this.createError = '';
+      try {
+        if (this.facturasApi && this.auth.token) {
+          await this.facturasApi.crearFactura({
+            clienteId: cId,
+            proyectoId: null,
+            concepto: this.nuevaFactura.concepto.trim(),
+            monto: Number(this.nuevaFactura.monto),
+            estado: this.compartirNuevaFactura ? 'ENVIADA' : 'BORRADOR',
+            visibleEnPortal: this.compartirNuevaFactura,
+            fechaVencimiento: this.nuevaFactura.fechaVencimiento || null
+          });
+          await this.cargarFacturas();
+          this.nuevaFactura = { clienteId: '', proyectoId: '', concepto: '', monto: 1200, fechaVencimiento: '' };
+          this.compartirNuevaFactura = false;
+          this.createModalOpen = false;
+          this.activeCreateType = null;
+          this.equinox.mostrarToast('Factura generada con éxito');
+        } else {
+          this.createError = 'Servicio de facturación no disponible.';
+        }
+      } catch (error: any) {
+        if (error?.status === 403) {
+          this.createError = 'Solo los propietarios pueden emitir facturas.';
+        } else if (error?.status === 422) {
+          const detalle = error?.error?.detalles?.[0];
+          this.createError = typeof error?.error?.error === 'string' && error.error.error !== 'Datos inválidos'
+            ? error.error.error
+            : detalle && Array.isArray(detalle.path) && typeof detalle.message === 'string'
+              ? `${detalle.path.join('.') || 'Factura'}: ${detalle.message}`
+              : 'Revisa los datos ingresados en la factura.';
+        } else {
+          this.createError = 'No se pudo generar la factura en el servidor.';
+        }
+        return;
+      } finally {
+        this.crearLoading = false;
+      }
+      return;
     }
 
     this.createModalOpen = false;
@@ -283,6 +388,9 @@ export class UiStateService {
   }
 
   closeCreateModal() {
+    this.solicitudClientesFactura++;
+    this.cargandoClientesFactura = false;
+    this.compartirNuevaFactura = false;
     this.createModalOpen = false;
     this.activeCreateType = null;
   }
@@ -319,8 +427,174 @@ export class UiStateService {
     this.equinox.agregarComentario(this.selectedProject.id, text.trim(), 'CLIENTE');
   }
 
-  markInvoicePaid(facturaId: string) {
-    this.equinox.marcarFacturaPagada(facturaId);
+  abrirModalPago(factura: Factura): void {
+    this.facturaSeleccionadaPago = factura;
+    const saldo = factura.montoPendiente !== undefined && factura.montoPendiente > 0
+      ? factura.montoPendiente
+      : factura.monto;
+    this.nuevoPago = {
+      monto: saldo,
+      moneda: factura.moneda || 'PAB',
+      metodo: 'TRANSFERENCIA',
+      referencia: '',
+      notas: '',
+    };
+    this.pagoError = '';
+    this.pagoModalOpen = true;
+  }
+
+  cerrarModalPago(): void {
+    if (!this.pagoLoading) {
+      this.pagoModalOpen = false;
+      this.pagoError = '';
+      this.facturaSeleccionadaPago = null;
+    }
+  }
+
+  async confirmarPago(): Promise<void> {
+    if (!this.facturaSeleccionadaPago) return;
+    const textoMonto = String(this.nuevoPago.monto).trim();
+    const monto = Number(textoMonto);
+    if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(textoMonto) || !Number.isFinite(monto) || monto <= 0) {
+      this.pagoError = 'Introduce un monto positivo con máximo dos decimales.';
+      return;
+    }
+    if (!this.facturasApi || !this.auth.token) {
+      this.pagoError = 'No hay conexión autenticada con el servidor.';
+      return;
+    }
+    this.pagoLoading = true;
+    this.pagoError = '';
+    try {
+      await this.facturasApi.registrarPago(this.facturaSeleccionadaPago.id, {
+        monto,
+        moneda: this.nuevoPago.moneda,
+        metodo: this.nuevoPago.metodo,
+        referencia: this.nuevoPago.referencia?.trim() || null,
+        notas: this.nuevoPago.notas?.trim() || null,
+      });
+      await this.cargarFacturas();
+      const num = this.facturaSeleccionadaPago.numero;
+      this.pagoModalOpen = false;
+      this.facturaSeleccionadaPago = null;
+      this.equinox.mostrarToast(`Pago registrado para la factura ${num}`);
+    } catch (error: any) {
+      if (error?.status === 403) {
+        this.pagoError = 'Solo los propietarios pueden registrar pagos.';
+      } else if (error?.status === 422) {
+        this.pagoError = error?.error?.mensaje || 'El monto o los datos del pago no son válidos.';
+      } else {
+        this.pagoError = 'No se pudo registrar el pago en el servidor.';
+      }
+    } finally {
+      this.pagoLoading = false;
+    }
+  }
+
+  markInvoicePaid(facturaId: string): void {
+    const factura = this.facturasReales.find((f) => f.id === facturaId);
+    if (factura) {
+      this.abrirModalPago(factura);
+    }
+  }
+
+  get puedeGestionarFacturas(): boolean {
+    return this.auth.sesion?.contexto.tipoAcceso === 'ORGANIZACION'
+      && this.auth.sesion.contexto.rolOrganizacion === 'PROPIETARIO';
+  }
+
+  async cargarConfiguracionPortalFinanzas(): Promise<void> {
+    if (!this.facturasApi?.consultarPortalFinanzas || !this.auth.token) return;
+    this.cargandoPortalFinanzas = true;
+    this.errorPortalFinanzas = '';
+    try {
+      const organizacion = await this.facturasApi.consultarPortalFinanzas();
+      this.portalMostrarFinanzas = organizacion.portalMostrarFinanzas;
+    } catch {
+      this.portalMostrarFinanzas = null;
+      this.errorPortalFinanzas = 'No se pudo consultar si las facturas están habilitadas en el portal.';
+    } finally {
+      this.cargandoPortalFinanzas = false;
+    }
+  }
+
+  async cambiarPortalFinanzas(): Promise<void> {
+    if (!this.facturasApi || !this.puedeGestionarFacturas || this.portalMostrarFinanzas === null || this.cargandoPortalFinanzas) return;
+    this.cargandoPortalFinanzas = true;
+    this.errorPortalFinanzas = '';
+    try {
+      const resultado = await this.facturasApi.configurarPortalFinanzas(!this.portalMostrarFinanzas);
+      this.portalMostrarFinanzas = resultado.portalMostrarFinanzas;
+    } catch {
+      this.errorPortalFinanzas = 'No se pudo guardar la configuración del portal. Reintenta.';
+    } finally {
+      this.cargandoPortalFinanzas = false;
+    }
+  }
+
+  async cambiarVisibilidadFactura(factura: Factura): Promise<void> {
+    if (!this.facturasApi || !this.auth.token || this.visibilidadFacturaEnCursoId) return;
+    if (factura.estado === 'CANCELADA') return;
+    this.visibilidadFacturaEnCursoId = factura.id;
+    this.errorVisibilidadFactura = '';
+    const emitir = factura.estado === 'BORRADOR';
+    try {
+      await this.facturasApi.actualizarFactura(factura.id, emitir
+        ? { estado: 'ENVIADA', visibleEnPortal: true }
+        : { visibleEnPortal: !factura.visibleEnPortal });
+      await this.cargarFacturas();
+    } catch {
+      this.errorVisibilidadFactura = 'No se pudo cambiar la visibilidad de la factura. Reintenta.';
+    } finally {
+      this.visibilidadFacturaEnCursoId = null;
+    }
+  }
+
+  async cargarFacturas(): Promise<void> {
+    if (!this.facturasApi || !this.auth.token) {
+      this.facturasReales = [];
+      this.totalesFacturas = null;
+      return;
+    }
+    this.cargandoFacturas = true;
+    this.errorFacturas = '';
+    try {
+      const [facturas, totales] = await Promise.all([
+        this.facturasApi.listarFacturas(),
+        this.facturasApi.consultarTotales()
+      ]);
+      this.facturasReales = facturas.map((f) => this.adaptarFactura(f));
+      this.totalesFacturas = totales;
+    } catch {
+      this.errorFacturas = 'No se pudieron cargar las facturas autorizadas.';
+      this.facturasReales = [];
+      this.totalesFacturas = null;
+    } finally {
+      this.cargandoFacturas = false;
+    }
+  }
+
+  private adaptarFactura(f: FacturaApi): Factura {
+    const estado = f.estado;
+    const monto = typeof f.monto === 'number' ? f.monto : parseFloat(f.monto as any) || 0;
+    const montoPendiente = f.montoPendiente !== undefined ? f.montoPendiente : monto;
+    return {
+      id: f.id,
+      numero: f.numero,
+      concepto: f.concepto,
+      clienteId: f.clienteId,
+      clienteNombre: f.cliente?.nombre || this.clientes?.find((c) => c.id === f.clienteId)?.nombre || 'Cliente',
+      proyectoId: f.proyectoId || undefined,
+      proyectoNombre: f.proyecto?.nombre || this.proyectos?.find((p) => p.id === f.proyectoId)?.nombre || '',
+      monto,
+      moneda: f.moneda || 'PAB',
+      visibleEnPortal: f.visibleEnPortal,
+      montoPendiente,
+      estado,
+      fechaEmision: f.fechaEmision ? f.fechaEmision.slice(0, 10) : '',
+      fechaVencimiento: f.fechaVencimiento ? f.fechaVencimiento.slice(0, 10) : 'Sin fecha',
+      pagadaEn: f.pagadaEn ? f.pagadaEn.slice(0, 10) : undefined
+    };
   }
 
   // Collaborator action

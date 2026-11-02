@@ -1,32 +1,65 @@
 <main class="standard">
-<section class="collection">
+  <section class="collection">
     <div class="page-title">
       <div>
         <p class="eyebrow">EQUINOX / FINANZAS</p>
         <h1>Facturación y Pagos</h1>
-        <p>Cobros, cuentas por cobrar y flujo de caja en Balboas (B/.).</p>
+        <p>Cobros, cuentas por cobrar y flujo de caja con moneda explícita.</p>
       </div>
       <button class="btn-primary" (click)="state.openQuickCreate('Factura')">
         <span>＋</span> Nueva factura
       </button>
     </div>
 
-    <!-- Balance Hero Block -->
-    <div class="balance-hero">
+    <!-- Error Banner con Reintento -->
+    <div class="error-banner" *ngIf="state.errorFacturas">
+      <p>{{ state.errorFacturas }}</p>
+      <button class="btn-secondary" (click)="state.cargarFacturas()">Reintentar</button>
+    </div>
+
+    <section class="finance-portal-settings" aria-label="Facturas en el portal del cliente">
       <div>
-        <small>PENDIENTE POR COBRAR</small>
-        <strong>B/. {{ state.totalPorCobrar | number:'1.2-2' }}</strong>
-        <p>{{ state.allInvoices.length }} facturas emitidas registradas</p>
+        <strong>Facturas en el portal del cliente</strong>
+        <p *ngIf="state.cargandoPortalFinanzas">Consultando configuración…</p>
+        <p *ngIf="state.portalMostrarFinanzas === false">La organización tiene desactivada la consulta de facturas en el portal.</p>
+        <p *ngIf="state.portalMostrarFinanzas === true">El portal muestra solo las facturas compartidas con cada cliente; los borradores siguen privados.</p>
+        <p class="auth-error" role="alert" *ngIf="state.errorPortalFinanzas">{{ state.errorPortalFinanzas }}</p>
       </div>
-      <div class="balance-stats">
-        <div class="stat-pill">
-          <span>COBRADO ESTE MES</span>
-          <b>B/. {{ state.totalCobrado | number:'1.2-2' }}</b>
+      <button class="btn-secondary" *ngIf="state.portalMostrarFinanzas !== null && state.puedeGestionarFacturas"
+        (click)="state.cambiarPortalFinanzas()" [disabled]="state.cargandoPortalFinanzas">
+        {{ state.portalMostrarFinanzas ? 'Desactivar en el portal' : 'Habilitar en el portal' }}
+      </button>
+      <button class="btn-secondary" *ngIf="state.portalMostrarFinanzas === null && !state.cargandoPortalFinanzas"
+        (click)="state.cargarConfiguracionPortalFinanzas()">Reintentar</button>
+    </section>
+    <p class="auth-error" role="alert" *ngIf="state.errorVisibilidadFactura">{{ state.errorVisibilidadFactura }}</p>
+
+    <!-- Balance Hero Blocks by Currency -->
+    <div class="balance-hero-container" *ngIf="state.totalesPorMoneda.length > 0">
+      <div class="balance-hero" *ngFor="let total of state.totalesPorMoneda">
+        <div>
+          <small>PENDIENTE POR COBRAR ({{ total.moneda }})</small>
+          <strong>{{ total.moneda }} {{ total.totalPorCobrar | number:'1.2-2' }}</strong>
+          <p>{{ total.facturasEmitidas }} facturas emitidas ({{ total.facturasPendientes }} pendientes)</p>
         </div>
-        <div class="stat-pill">
-          <span>MONEDA OFICIAL</span>
-          <b>Panamá (PAB / USD)</b>
+        <div class="balance-stats">
+          <div class="stat-pill">
+            <span>COBRADO ({{ total.moneda }})</span>
+            <b>{{ total.moneda }} {{ total.totalCobrado | number:'1.2-2' }}</b>
+          </div>
+          <div class="stat-pill">
+            <span>PAGADAS</span>
+            <b>{{ total.facturasPagadas }} facturas</b>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Fallback si aún no hay facturas -->
+    <div class="balance-hero" *ngIf="state.totalesPorMoneda.length === 0 && !state.cargandoFacturas">
+      <div>
+        <small>SIN FACTURAS</small>
+        <p>No hay importes registrados por moneda.</p>
       </div>
     </div>
 
@@ -45,6 +78,10 @@
 
     <!-- Invoices List -->
     <div class="invoices-table-card">
+      <div class="empty-state" *ngIf="state.allInvoices.length === 0 && !state.cargandoFacturas">
+        <p>No hay facturas registradas en este momento.</p>
+      </div>
+
       <div class="invoice-row" *ngFor="let inv of state.allInvoices">
         <div class="inv-num">
           <b>{{ inv.numero }}</b>
@@ -59,18 +96,156 @@
           <span>{{ inv.fechaVencimiento }}</span>
         </div>
         <div class="inv-amount">
-          <strong>B/. {{ inv.monto | number:'1.2-2' }}</strong>
-          <span [class.badge-completado]="inv.estado === 'PAGADA'" [class.badge-revision]="inv.estado === 'PENDIENTE'">
+          <strong>{{ inv.moneda || 'PAB' }} {{ inv.monto | number:'1.2-2' }}</strong>
+          <small *ngIf="inv.montoPendiente !== undefined && inv.montoPendiente < inv.monto && inv.estado !== 'PAGADA'">
+            Saldo: {{ inv.moneda || 'PAB' }} {{ inv.montoPendiente | number:'1.2-2' }}
+          </small>
+          <span [class.badge-completado]="inv.estado === 'PAGADA'" [class.badge-revision]="inv.estado === 'PENDIENTE' || inv.estado === 'ENVIADA' || inv.estado === 'BORRADOR'">
             ● {{ inv.estado }}
           </span>
         </div>
         <div class="inv-action">
-          <button *ngIf="inv.estado !== 'PAGADA'" class="btn-pay" (click)="state.markInvoicePaid(inv.id)">
+          <button *ngIf="inv.estado !== 'PAGADA'" class="btn-pay" (click)="state.abrirModalPago(inv)">
             Registrar pago
           </button>
           <span *ngIf="inv.estado === 'PAGADA'" class="text-green">✓ Pagado</span>
+          <small>{{ inv.estado === 'BORRADOR' ? 'Borrador privado' : inv.visibleEnPortal ? 'Compartida con cliente' : 'No compartida' }}</small>
+          <button class="btn-secondary" *ngIf="state.puedeGestionarFacturas && inv.estado !== 'CANCELADA'"
+            (click)="state.cambiarVisibilidadFactura(inv)" [disabled]="!!state.visibilidadFacturaEnCursoId">
+            {{ state.visibilidadFacturaEnCursoId === inv.id ? 'Guardando…' : inv.estado === 'BORRADOR' ? 'Emitir y compartir' : inv.visibleEnPortal ? 'Dejar de compartir' : 'Compartir con cliente' }}
+          </button>
         </div>
       </div>
+    </div>
+
+    <!-- Modal Registrar Pago (Soporta pagos parciales, moneda y método explícitos) -->
+    <div class="overlay" *ngIf="state.pagoModalOpen" (click)="state.cerrarModalPago()">
+      <section class="quick-modal modal-pago" role="dialog" aria-modal="true" aria-labelledby="modal-pago-title" (click)="$event.stopPropagation()">
+        <button class="close" type="button" (click)="state.cerrarModalPago()" aria-label="Cerrar modal">×</button>
+
+        <small>REGISTRAR PAGO</small>
+        <h2 id="modal-pago-title">Factura {{ state.facturaSeleccionadaPago?.numero }}</h2>
+        <p class="modal-sub-head-text">{{ state.facturaSeleccionadaPago?.concepto }} · {{ state.facturaSeleccionadaPago?.clienteNombre }}</p>
+
+        <!-- Tarjeta de Saldo Pendiente -->
+        <div class="pago-saldo-card">
+          <div class="pago-saldo-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+          <div class="pago-saldo-detalles">
+            <span class="pago-saldo-label">Saldo pendiente</span>
+            <strong class="pago-saldo-monto">{{ state.facturaSeleccionadaPago?.moneda || 'PAB' }} {{ (state.facturaSeleccionadaPago?.montoPendiente ?? state.facturaSeleccionadaPago?.monto) | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+
+        <form (ngSubmit)="state.confirmarPago()">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pagoMonto">Monto a abonar *</label>
+              <input
+                id="pagoMonto"
+                class="form-control"
+                type="number"
+                step="0.01"
+                min="0.01"
+                [(ngModel)]="state.nuevoPago.monto"
+                name="montoPago"
+                placeholder="0.00"
+                [disabled]="state.pagoLoading"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="pagoMoneda">Moneda</label>
+              <input
+                id="pagoMoneda"
+                class="form-control input-readonly"
+                type="text"
+                [(ngModel)]="state.nuevoPago.moneda"
+                name="monedaPago"
+                readonly
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="pagoMetodo">Método de pago *</label>
+            <select
+              id="pagoMetodo"
+              class="form-control"
+              [(ngModel)]="state.nuevoPago.metodo"
+              name="metodoPago"
+              [disabled]="state.pagoLoading"
+              required
+            >
+              <option value="TRANSFERENCIA">Transferencia / ACH</option>
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TARJETA">Tarjeta de crédito / débito</option>
+              <option value="CHEQUE">Cheque</option>
+              <option value="OTRO">Otro</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="pagoReferencia">Referencia / Comprobante</label>
+            <input
+              id="pagoReferencia"
+              class="form-control"
+              type="text"
+              [(ngModel)]="state.nuevoPago.referencia"
+              name="referenciaPago"
+              placeholder="Ej. ACH-987654"
+              [disabled]="state.pagoLoading"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="pagoNotas">Notas internas</label>
+            <textarea
+              id="pagoNotas"
+              class="form-control"
+              [(ngModel)]="state.nuevoPago.notas"
+              name="notasPago"
+              placeholder="Detalles adicionales del pago..."
+              rows="2"
+              [disabled]="state.pagoLoading"
+            ></textarea>
+          </div>
+
+          <div class="error-banner auth-error pago-error-banner" role="alert" *ngIf="state.pagoError">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <p>{{ state.pagoError }}</p>
+          </div>
+
+          <div class="modal-actions modal-footer">
+            <button
+              type="button"
+              class="btn-secondary"
+              (click)="state.cerrarModalPago()"
+              [disabled]="state.pagoLoading"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn-primary"
+              (click)="state.confirmarPago()"
+              [disabled]="state.pagoLoading"
+            >
+              <span *ngIf="state.pagoLoading">Registrando...</span>
+              <span *ngIf="!state.pagoLoading">Confirmar pago</span>
+            </button>
+          </div>
+        </form>
+      </section>
     </div>
   </section>
 </main>

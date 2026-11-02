@@ -49,8 +49,10 @@ export interface Factura {
   proyectoId?: string;
   proyectoNombre?: string;
   monto: number;
+  moneda?: string;
+  visibleEnPortal?: boolean;
   montoPendiente: number;
-  estado: 'PENDIENTE' | 'PAGADA' | 'VENCIDA' | 'BORRADOR';
+  estado: 'PENDIENTE' | 'PAGADA' | 'VENCIDA' | 'BORRADOR' | 'ENVIADA' | 'CANCELADA';
   fechaEmision: string;
   fechaVencimiento: string;
   pagadaEn?: string;

@@ -19,7 +19,8 @@
     "prueba:portal": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-portal.ts",
     "prueba:clientes-proyectos": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-clientes-proyectos.ts",
     "prueba:tareas-hitos": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue10.ts",
-    "prueba:archivos": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue11.ts"
+    "prueba:archivos": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue11.ts",
+    "prueba:finanzas": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue12.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",
