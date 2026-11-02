@@ -287,7 +287,7 @@ model Hito {
   orden           Int        @default(0)
   fechaObjetivo   DateTime?  @map("fecha_objetivo") @db.Date
   completadoEn    DateTime?  @map("completado_en")
-  visibleEnPortal Boolean    @default(true) @map("visible_en_portal")
+  visibleEnPortal Boolean    @default(false) @map("visible_en_portal")
   creadoEn        DateTime   @default(now()) @map("creado_en")
   actualizadoEn   DateTime   @updatedAt @map("actualizado_en")
   proyecto        Proyecto   @relation(fields: [proyectoId], references: [id], onDelete: Cascade)

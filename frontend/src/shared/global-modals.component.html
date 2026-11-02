@@ -116,7 +116,8 @@
       <div class="form-group">
         <label>Proyecto asignado</label>
         <select class="form-control" [(ngModel)]="state.nuevaTarea.proyectoId">
-        <option *ngFor="let p of state.equinox.proyectos" [value]="p.id">{{ p.nombre }}</option>
+        <option value="" disabled>Selecciona un proyecto</option>
+        <option *ngFor="let p of state.proyectos" [value]="p.id">{{ p.nombre }}</option>
         </select>
       </div>
       <div class="form-row">
@@ -131,12 +132,13 @@
         </div>
         <div class="form-group">
           <label>Fecha límite</label>
-          <input class="form-control" [(ngModel)]="state.nuevaTarea.fechaVencimiento" placeholder="ej. 20 abr 2026">
+          <input class="form-control" type="date" [(ngModel)]="state.nuevaTarea.fechaVencimiento">
         </div>
       </div>
+      <p class="auth-error" role="alert" *ngIf="state.createError">{{ state.createError }}</p>
       <div class="modal-actions">
         <button class="btn-secondary" (click)="state.closeCreateModal()">Cancelar</button>
-        <button class="btn-primary" (click)="state.submitCreate()">Crear tarea</button>
+        <button class="btn-primary" (click)="state.submitCreate()" [disabled]="state.crearLoading">{{ state.crearLoading ? 'Guardando…' : 'Crear tarea' }}</button>
       </div>
     </div>
 
@@ -189,6 +191,8 @@
 
     <!-- Search Live Results -->
     <div class="search-results-panel">
+      <p *ngIf="state.searchLoading" role="status">Buscando tareas…</p>
+      <p *ngIf="state.searchError" role="alert">{{ state.searchError }} <button class="btn-secondary" type="button" (click)="state.cargarTareasBusqueda()">Reintentar</button></p>
       <!-- Proyectos results -->
       <div class="search-cat" *ngIf="state.visibleProjects.length > 0">
         <small>PROYECTOS</small>
@@ -222,7 +226,7 @@
           <span class="sr-icon">✓</span>
           <div>
             <b>{{ t.titulo }}</b>
-            <p>{{ t.proyectoNombre }} · Vence {{ t.fechaVencimiento }}</p>
+            <p>{{ t.proyectoNombre }} · {{ t.fechaVencimiento ? ('Vence ' + t.fechaVencimiento.slice(0, 10)) : 'Sin vencimiento' }}</p>
           </div>
           <span class="priority-tag">{{ t.prioridad }}</span>
         </div>

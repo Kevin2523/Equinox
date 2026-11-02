@@ -3,6 +3,8 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { EquinoxService } from '../services/equinox.service';
 import { ClientesProyectosApiService, ClienteApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
+import { TrabajoApiService } from '../services/trabajo-api.service';
+import { AuthService } from '../auth/auth.service';
 import {
   Cliente,
   Proyecto,
@@ -28,6 +30,8 @@ export class UiStateService {
 
   // Overlays & Modals
   searchOpen = false;
+  searchLoading = false;
+  searchError = '';
   createModalOpen = false;
   activeCreateType: 'Cliente' | 'Proyecto' | 'Tarea' | 'Factura' | null = null;
   notificationsOpen = false;
@@ -47,6 +51,10 @@ export class UiStateService {
   // Inline forms
   inlineTaskTitle = '';
   inlineCommentText = '';
+  inlineTaskError = '';
+  inlineCommentError = '';
+  inlineTaskLoading = false;
+  inlineCommentLoading = false;
 
   // Data references from service
   clientes: Cliente[] = [];
@@ -56,7 +64,7 @@ export class UiStateService {
   selectedProject: Proyecto | null = null;
   toastMessage = '';
 
-  constructor(public equinox: EquinoxService, public clientesProyectosApi: ClientesProyectosApiService, private router: Router) {
+  constructor(public equinox: EquinoxService, public clientesProyectosApi: ClientesProyectosApiService, private router: Router, public trabajo: TrabajoApiService, private auth: AuthService) {
     this.initialize();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       const segmento = event.urlAfterRedirects.split('?')[0].split('/')[1];
@@ -120,16 +128,18 @@ export class UiStateService {
 
   // Filtered tasks across all projects
   get allTasks(): Tarea[] {
-    const tareas = this.equinox.todasLasTareas();
+    const tareas: Tarea[] = this.trabajo.tareasActuales.map((tarea) => ({ ...tarea, proyectoNombre: this.proyectos.find((p) => p.id === tarea.proyectoId)?.nombre || '', fechaVencimiento: tarea.fechaVencimiento || '' }));
     const q = this.query.trim().toLowerCase();
+    const fecha = new Date();
+    const hoy = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
     let res = tareas;
 
     if (this.taskFilter === 'COMPLETADAS') {
       res = res.filter((t) => t.estado === 'COMPLETADA');
     } else if (this.taskFilter === 'HOY') {
-      res = res.filter((t) => t.estado !== 'COMPLETADA' && (t.fechaVencimiento.includes('abr') || t.prioridad === 'URGENTE'));
+      res = res.filter((t) => t.estado !== 'COMPLETADA' && t.fechaVencimiento.slice(0, 10) === hoy);
     } else if (this.taskFilter === 'PROXIMAS') {
-      res = res.filter((t) => t.estado !== 'COMPLETADA');
+      res = res.filter((t) => t.estado !== 'COMPLETADA' && t.fechaVencimiento.slice(0, 10) > hoy);
     }
 
     if (!q) return res;
@@ -191,15 +201,19 @@ export class UiStateService {
   }
 
   toggleTask(tareaId: string) {
-    this.equinox.toggleEstadoTarea(tareaId);
+    const tarea = this.trabajo.tareasActuales.find((item) => item.id === tareaId);
+    if (tarea) void this.trabajo.editarTarea(tarea.proyectoId, tarea.id, { estado: tarea.estado === 'COMPLETADA' ? 'PENDIENTE' : 'COMPLETADA' });
   }
 
   // Create Flow
   openQuickCreate(type?: 'Cliente' | 'Proyecto' | 'Tarea' | 'Factura') {
     this.createModalOpen = true;
     this.activeCreateType = type || null;
+    this.createError = '';
+    if (type === 'Tarea') {
+      this.nuevaTarea.proyectoId = this.clientesProyectosApi.proyectoSeleccionado?.id || this.proyectos[0]?.id || '';
+    }
     if (this.selectedProject) {
-      this.nuevaTarea.proyectoId = this.selectedProject.id;
       this.nuevaFactura.proyectoId = this.selectedProject.id;
       this.nuevaFactura.clienteId = this.selectedProject.clienteId;
     }
@@ -231,10 +245,17 @@ export class UiStateService {
       } catch (error: any) { this.createError = error?.status === 422 ? 'El cliente seleccionado o los datos no son válidos.' : 'No se pudo guardar el proyecto.'; this.crearLoading = false; return; }
       this.crearLoading = false;
     } else if (this.activeCreateType === 'Tarea') {
-      if (!this.nuevaTarea.titulo) return;
-      const pId = this.nuevaTarea.proyectoId || this.selectedProject?.id || this.proyectos[0]?.id;
-      this.equinox.agregarTarea(pId, this.nuevaTarea.titulo, this.nuevaTarea.prioridad, this.nuevaTarea.fechaVencimiento);
-      this.nuevaTarea = { proyectoId: '', titulo: '', prioridad: 'ALTA', fechaVencimiento: '' };
+      const pId = this.nuevaTarea.proyectoId;
+      if (this.nuevaTarea.titulo.trim().length < 2 || !pId || !this.proyectos.some((p) => p.id === pId)) {
+        this.createError = 'Escribe un título de al menos dos caracteres y selecciona un proyecto.'; return;
+      }
+      this.crearLoading = true; this.createError = '';
+      try {
+        await this.trabajo.crearTarea(pId, { titulo: this.nuevaTarea.titulo.trim(), prioridad: this.nuevaTarea.prioridad,
+          fechaVencimiento: this.nuevaTarea.fechaVencimiento || null });
+        this.nuevaTarea = { proyectoId: '', titulo: '', prioridad: 'ALTA', fechaVencimiento: '' };
+      } catch { this.createError = 'No se pudo crear la tarea. Reintenta.'; this.crearLoading = false; return; }
+      this.crearLoading = false;
     } else if (this.activeCreateType === 'Factura') {
       if (!this.nuevaFactura.concepto || !this.nuevaFactura.monto) return;
       const cId = this.nuevaFactura.clienteId || this.clientes[0]?.id || 'c-1';
@@ -267,16 +288,30 @@ export class UiStateService {
   }
 
   // Inline inspector actions
-  addInlineTask() {
-    if (!this.inlineTaskTitle.trim() || !this.selectedProject) return;
-    this.equinox.agregarTarea(this.selectedProject.id, this.inlineTaskTitle.trim(), 'ALTA', 'Próxima semana');
-    this.inlineTaskTitle = '';
+  async addInlineTask(): Promise<void> {
+    const id = this.clientesProyectosApi.proyectoSeleccionado?.id;
+    const titulo = this.inlineTaskTitle.trim();
+    if (!titulo || !id || this.inlineTaskLoading) return;
+    this.inlineTaskLoading = true; this.inlineTaskError = '';
+    try {
+      await this.trabajo.crearTarea(id, { titulo, prioridad: 'ALTA' });
+      if (this.inlineTaskTitle.trim() === titulo) this.inlineTaskTitle = '';
+    } catch {
+      this.inlineTaskError = 'No se pudo crear la tarea. Reintenta.';
+    } finally { this.inlineTaskLoading = false; }
   }
 
-  addInlineComment() {
-    if (!this.inlineCommentText.trim() || !this.selectedProject) return;
-    this.equinox.agregarComentario(this.selectedProject.id, this.inlineCommentText.trim(), 'FREELANCER');
-    this.inlineCommentText = '';
+  async addInlineComment(): Promise<void> {
+    const id = this.clientesProyectosApi.proyectoSeleccionado?.id;
+    const contenido = this.inlineCommentText.trim();
+    if (!contenido || !id || this.inlineCommentLoading) return;
+    this.inlineCommentLoading = true; this.inlineCommentError = '';
+    try {
+      await this.trabajo.comentar(id, contenido);
+      if (this.inlineCommentText.trim() === contenido) this.inlineCommentText = '';
+    } catch {
+      this.inlineCommentError = 'No se pudo enviar el comentario. Reintenta.';
+    } finally { this.inlineCommentLoading = false; }
   }
 
   addClientFeedbackPortal(text: string) {
@@ -309,10 +344,25 @@ export class UiStateService {
   // Global search
   openSearch() {
     this.searchOpen = true;
+    this.searchError = '';
+    void this.cargarTareasBusqueda();
     setTimeout(() => {
       const el = document.getElementById('globalSearchInput');
       if (el) el.focus();
     }, 50);
+  }
+
+  async cargarTareasBusqueda(): Promise<void> {
+    if (this.searchLoading || this.auth.sesion?.contexto.tipoAcceso !== 'ORGANIZACION') return;
+    const token = this.auth.token;
+    this.searchLoading = true; this.searchError = '';
+    try {
+      const proyectos = this.clientesProyectosApi.proyectos.length ? this.clientesProyectosApi.proyectos : await this.clientesProyectosApi.listarProyectos();
+      const tareas = (await Promise.all(proyectos.map((proyecto) => this.trabajo.listarTareas(proyecto.id)))).flat();
+      if (this.auth.token === token) this.trabajo.registrarTareas(tareas);
+    } catch {
+      if (this.auth.token === token) this.searchError = 'No se pudieron buscar las tareas.';
+    } finally { this.searchLoading = false; }
   }
 
   closeSearch() {
