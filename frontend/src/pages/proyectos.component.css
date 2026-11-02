@@ -7,6 +7,11 @@
 .project-work-section li { margin-bottom: 14px; }
 .project-work-section time, .project-work-item small { color: #64748b; font-size: 12px; }
 .project-work-section button { margin: 8px 8px 0 0; }
+.project-files-list { list-style: none; padding: 0; }
+.project-files-list li { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 10px 0; }
+.project-files-list li strong, .project-files-list li small { display: block; overflow-wrap: anywhere; }
+.project-files-list li small { color: var(--muted); margin-top: 4px; }
+.project-work-form progress { width: 100%; }
 .project-work-item { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 10px 0; }
 .project-work-item > strong, .project-work-item > small { display: block; }
 .project-work-form { display: grid; gap: 10px; margin: 12px 0; }
