@@ -15,6 +15,7 @@
   </div>
 </section></main>
 
+<!-- Modal Crear / Editar Proyecto -->
 <div class="overlay" *ngIf="modalFormulario" (click)="modalFormulario = false"><section class="quick-modal" (click)="$event.stopPropagation()">
   <button class="close" type="button" (click)="modalFormulario = false" aria-label="Cerrar">×</button><small>{{ editandoId ? 'EDITAR PROYECTO' : 'NUEVO PROYECTO' }}</small><h2>{{ editandoId ? 'Actualizar proyecto' : 'Crear proyecto' }}</h2>
   <form #form="ngForm" (ngSubmit)="guardar(form)">
@@ -29,43 +30,222 @@
   </form>
 </section></div>
 
-<div class="overlay" *ngIf="modalDetalle" (click)="cerrarDetalle()"><section class="quick-modal" (click)="$event.stopPropagation()"><button class="close" (click)="cerrarDetalle()" aria-label="Cerrar">×</button><small>DETALLE DE PROYECTO</small><p *ngIf="detalleCargando" role="status">Cargando detalles…</p><p class="auth-error" *ngIf="detalleError" role="alert">{{ detalleError }} <button class="btn-secondary" type="button" (click)="cargarDetalle(detalleId || '')">Reintentar</button></p>
-  <ng-container *ngIf="proyectoDetalle as p">
-    <h2>{{ p.nombre }}</h2><p class="mb-3 text-muted">{{ p.cliente?.nombre }} · {{ p.estado }}</p><p>{{ p.descripcion || 'Sin descripción' }}</p>
-    <div class="client-detail-stats"><div><small>PRESUPUESTO</small><b>{{ p.presupuesto === null ? '—' : (p.moneda + ' ' + p.presupuesto) }}</b></div><div><small>INICIO</small><b>{{ p.fechaInicio ? (p.fechaInicio | date:'mediumDate') : '—' }}</b></div><div><small>ENTREGA</small><b>{{ p.fechaEntrega ? (p.fechaEntrega | date:'mediumDate') : '—' }}</b></div></div>
-    <section class="project-work-section"><h3>Progreso de tareas</h3><p>{{ progresoProyecto === null ? 'Sin tareas vigentes' : (progresoProyecto + '% completado') }}</p><small>Tareas completadas entre tareas no canceladas.</small></section>
-    <section class="project-work-section"><h3>Hitos</h3><p *ngIf="!hitosDetalle.length">Todavía no hay hitos.</p>
-      <div class="project-work-item" *ngFor="let hito of hitosDetalle"><strong>{{ hito.titulo }}</strong><small>{{ hito.estado }} · {{ hito.visibleEnPortal ? 'Visible en portal' : 'Solo CRM' }}</small>
-        <p *ngIf="hito.descripcion">{{ hito.descripcion }}</p><time *ngIf="hito.fechaObjetivo" [attr.datetime]="hito.fechaObjetivo">Objetivo: {{ hito.fechaObjetivo.slice(0, 10) }}</time>
-        <div *ngIf="editandoHitoId === hito.id" class="project-work-form">
-          <label>Título <input class="form-control" [(ngModel)]="hitoBorrador.titulo" minlength="2"></label>
-          <label>Descripción <textarea class="form-control" [(ngModel)]="hitoBorrador.descripcion"></textarea></label>
-          <label>Estado <select class="form-control" [(ngModel)]="hitoBorrador.estado"><option value="PENDIENTE">Pendiente</option><option value="EN_PROGRESO">En progreso</option><option value="COMPLETADO">Completado</option><option value="VENCIDO">Vencido</option></select></label>
-          <label>Fecha objetivo <input class="form-control" type="date" [(ngModel)]="hitoBorrador.fechaObjetivo"></label>
-          <label><input type="checkbox" [(ngModel)]="hitoBorrador.visibleEnPortal"> Publicar en el portal del cliente</label>
-          <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="guardarHito(hito)">Guardar hito</button>
-          <button class="btn-secondary" type="button" (click)="editandoHitoId = null">Cancelar</button>
+<!-- Modal Detalle de Proyecto (Ventana emergente amplia en 2 columnas) -->
+<div class="overlay" *ngIf="modalDetalle" (click)="cerrarDetalle()">
+  <section class="quick-modal modal-detalle-amplio" (click)="$event.stopPropagation()">
+
+    <ng-container *ngIf="proyectoDetalle as p">
+      <!-- Cabecera Hero -->
+      <header class="modal-header-hero">
+        <div class="hero-bg-pattern"></div>
+        <div class="modal-header-hero-content">
+          <div class="modal-hero-eyebrow-row">
+            <span class="modal-hero-eyebrow">Detalle de Proyecto</span>
+            <button class="modal-hero-close" (click)="cerrarDetalle()" aria-label="Cerrar" title="Cerrar ventana">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div class="modal-hero-title-row">
+            <div>
+              <h2>{{ p.nombre }}</h2>
+              <p class="modal-hero-subtitle">
+                <span>{{ p.cliente?.nombre || 'Cliente sin asignar' }}{{ p.cliente?.empresa ? ' · ' + p.cliente?.empresa : '' }}</span>
+                <span>•</span>
+                <span class="badge" [ngClass]="claseEstado(p.estado)">● {{ p.estado }}</span>
+              </p>
+            </div>
+            <div class="modal-hero-actions">
+              <button class="btn-secondary" type="button" (click)="abrirEdicion(p.id)">Editar proyecto</button>
+            </div>
+          </div>
         </div>
-        <div *ngIf="editandoHitoId !== hito.id"><button class="btn-secondary" type="button" (click)="editarHito(hito)">Editar hito</button>
-          <button class="btn-secondary" type="button" *ngIf="confirmandoHitoId !== hito.id" (click)="confirmandoHitoId = hito.id">Eliminar</button>
-          <ng-container *ngIf="confirmandoHitoId === hito.id"><button class="btn-secondary" type="button" [disabled]="guardandoHito" (click)="eliminarHito(hito)">Confirmar eliminación</button><button class="btn-secondary" type="button" (click)="confirmandoHitoId = null">Cancelar</button></ng-container>
+      </header>
+
+      <!-- Cuerpo del modal en 2 columnas -->
+      <div class="modal-body-scroll">
+        <p *ngIf="detalleCargando" role="status" class="api-state">Cargando detalles…</p>
+        <p class="auth-error" *ngIf="detalleError" role="alert">{{ detalleError }} <button class="btn-secondary" type="button" (click)="cargarDetalle(detalleId || '')">Reintentar</button></p>
+
+        <div class="modal-detail-columns" *ngIf="!detalleCargando">
+          <!-- Columna Izquierda: Información, Métricas e Hitos -->
+          <div class="column-left">
+            <!-- Métricas Clave -->
+            <div class="stats-cards-grid">
+              <div class="stat-box">
+                <small>Presupuesto</small>
+                <b>{{ p.presupuesto === null ? 'Sin asignar' : (p.moneda + ' ' + (p.presupuesto | number:'1.2-2')) }}</b>
+              </div>
+              <div class="stat-box">
+                <small>Fecha Inicio</small>
+                <b>{{ p.fechaInicio ? (p.fechaInicio | date:'dd MMM yyyy') : 'No definida' }}</b>
+              </div>
+              <div class="stat-box">
+                <small>Fecha Entrega</small>
+                <b>{{ p.fechaEntrega ? (p.fechaEntrega | date:'dd MMM yyyy') : 'No definida' }}</b>
+              </div>
+            </div>
+
+            <!-- Descripción -->
+            <div class="detail-card-panel">
+              <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                Descripción del Proyecto
+              </h3>
+              <p class="detail-desc-text">{{ p.descripcion || 'Sin descripción registrada.' }}</p>
+            </div>
+
+            <!-- Progreso de Tareas -->
+            <div class="task-progress-box">
+              <div class="progress-header-row">
+                <strong>Progreso de Tareas</strong>
+                <span>{{ progresoProyecto === null ? '0%' : (progresoProyecto + '%') }}</span>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill" [style.width.%]="progresoProyecto || 0"></div>
+              </div>
+              <p class="progress-subtext">{{ progresoProyecto === null ? 'Sin tareas vigentes registradas.' : 'Tareas completadas entre tareas no canceladas.' }}</p>
+            </div>
+
+            <!-- Sección de Hitos -->
+            <div class="detail-card-panel">
+              <div class="milestones-header">
+                <h3>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                  Hitos del Proyecto
+                </h3>
+              </div>
+
+              <p *ngIf="!hitosDetalle.length" class="text-muted" style="font-size: 13px; font-style: italic;">Todavía no hay hitos registrados para este proyecto.</p>
+
+              <div class="milestones-list" *ngIf="hitosDetalle.length">
+                <div class="milestone-item-card" *ngFor="let hito of hitosDetalle">
+                  <div class="milestone-head">
+                    <div>
+                      <h4 class="milestone-title">{{ hito.titulo }}</h4>
+                      <div class="milestone-badges">
+                        <span class="badge" [ngClass]="hito.estado === 'COMPLETADO' ? 'badge-completado' : 'badge-progreso'">{{ hito.estado }}</span>
+                        <span class="badge" style="background: #f1f5f9; color: #475569;">{{ hito.visibleEnPortal ? 'Visible en portal' : 'Solo CRM' }}</span>
+                      </div>
+                    </div>
+                    <time class="milestone-date" *ngIf="hito.fechaObjetivo" [attr.datetime]="hito.fechaObjetivo">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      {{ hito.fechaObjetivo.slice(0, 10) }}
+                    </time>
+                  </div>
+
+                  <p class="milestone-desc" *ngIf="hito.descripcion">{{ hito.descripcion }}</p>
+
+                  <!-- Edición inline de hito -->
+                  <div *ngIf="editandoHitoId === hito.id" class="milestone-form-box">
+                    <label>Título <input class="form-control" [(ngModel)]="hitoBorrador.titulo" minlength="2"></label>
+                    <label>Descripción <textarea class="form-control" [(ngModel)]="hitoBorrador.descripcion"></textarea></label>
+                    <div class="form-row">
+                      <label>Estado 
+                        <select class="form-control" [(ngModel)]="hitoBorrador.estado">
+                          <option value="PENDIENTE">Pendiente</option>
+                          <option value="EN_PROGRESO">En progreso</option>
+                          <option value="COMPLETADO">Completado</option>
+                          <option value="VENCIDO">Vencido</option>
+                        </select>
+                      </label>
+                      <label>Fecha objetivo <input class="form-control" type="date" [(ngModel)]="hitoBorrador.fechaObjetivo"></label>
+                    </div>
+                    <label><input type="checkbox" [(ngModel)]="hitoBorrador.visibleEnPortal"> Publicar en el portal del cliente</label>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                      <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="guardarHito(hito)">Guardar</button>
+                      <button class="btn-secondary" type="button" (click)="editandoHitoId = null">Cancelar</button>
+                    </div>
+                  </div>
+
+                  <div class="milestone-actions" *ngIf="editandoHitoId !== hito.id">
+                    <button class="btn-secondary" style="padding: 5px 10px; font-size: 11px;" type="button" (click)="editarHito(hito)">Editar hito</button>
+                    <button class="btn-secondary" style="padding: 5px 10px; font-size: 11px;" type="button" *ngIf="confirmandoHitoId !== hito.id" (click)="confirmandoHitoId = hito.id">Eliminar</button>
+                    <ng-container *ngIf="confirmandoHitoId === hito.id">
+                      <button class="btn-secondary" style="padding: 5px 10px; font-size: 11px; color: #dc2626;" type="button" [disabled]="guardandoHito" (click)="eliminarHito(hito)">Confirmar eliminación</button>
+                      <button class="btn-secondary" style="padding: 5px 10px; font-size: 11px;" type="button" (click)="confirmandoHitoId = null">Cancelar</button>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Formulario para nuevo hito -->
+              <div class="milestone-form-box">
+                <h4>+ Agregar nuevo hito</h4>
+                <label>Título <input class="form-control" [(ngModel)]="nuevoHito.titulo" minlength="2" placeholder="Ej. Entrega de bocetos iniciales"></label>
+                <label>Descripción <textarea class="form-control" [(ngModel)]="nuevoHito.descripcion" placeholder="Detalles de lo que se entregará o revisará..."></textarea></label>
+                <div class="form-row">
+                  <label>Fecha objetivo <input class="form-control" type="date" [(ngModel)]="nuevoHito.fechaObjetivo"></label>
+                  <label style="display: flex; align-items: center; gap: 8px; margin-top: 22px;">
+                    <input type="checkbox" [(ngModel)]="nuevoHito.visibleEnPortal"> Visible en portal del cliente
+                  </label>
+                </div>
+                <div style="margin-top: 10px;">
+                  <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="crearHito()">{{ guardandoHito ? 'Guardando…' : 'Crear hito' }}</button>
+                </div>
+              </div>
+              <p class="auth-error" *ngIf="errorHitos" role="alert">{{ errorHitos }}</p>
+            </div>
+          </div>
+
+          <!-- Columna Derecha: Conversación y Comentarios -->
+          <div class="column-right">
+            <div class="detail-card-panel comments-container">
+              <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Conversación y Bitácora
+              </h3>
+
+              <p *ngIf="!comentariosDetalle.length" class="text-muted" style="font-size: 13px; font-style: italic; margin-bottom: 16px;">Todavía no hay notas ni comentarios registrados.</p>
+
+              <ol class="comments-list" *ngIf="comentariosDetalle.length">
+                <li class="comment-card" *ngFor="let comentario of comentariosDetalle">
+                  <div class="comment-header">
+                    <span class="comment-author">{{ autor(comentario) }}</span>
+                    <time class="comment-time" [attr.datetime]="comentario.creadoEn">{{ comentario.creadoEn | date:'short' }}</time>
+                  </div>
+                  <p class="comment-content">{{ comentario.contenido }}</p>
+                </li>
+              </ol>
+
+              <div class="comment-composer">
+                <label for="crm-comentario" style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">Nuevo comentario o actualización:</label>
+                <textarea id="crm-comentario" class="form-control" [(ngModel)]="comentarioNuevo" maxlength="2000" rows="3" placeholder="Escribe un comentario o nota interna..."></textarea>
+                <p class="auth-error" *ngIf="errorComentario" role="alert">{{ errorComentario }}</p>
+                <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                  <button class="btn-primary" type="button" [disabled]="enviandoComentario || !comentarioNuevo.trim()" (click)="enviarComentario()">{{ enviandoComentario ? 'Enviando…' : 'Enviar comentario' }}</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="project-work-form"><h4>Nuevo hito</h4>
-        <label>Título <input class="form-control" [(ngModel)]="nuevoHito.titulo" minlength="2"></label>
-        <label>Descripción <textarea class="form-control" [(ngModel)]="nuevoHito.descripcion"></textarea></label>
-        <label>Fecha objetivo <input class="form-control" type="date" [(ngModel)]="nuevoHito.fechaObjetivo"></label>
-        <label><input type="checkbox" [(ngModel)]="nuevoHito.visibleEnPortal"> Publicar en el portal del cliente</label>
-        <p>Los hitos nuevos empiezan ocultos hasta que decidas publicarlos.</p>
-        <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="crearHito()">{{ guardandoHito ? 'Guardando…' : 'Crear hito' }}</button>
-      </div><p class="auth-error" *ngIf="errorHitos" role="alert">{{ errorHitos }}</p>
-    </section>
-    <section class="project-work-section"><h3>Conversación</h3><p *ngIf="!comentariosDetalle.length">Todavía no hay comentarios.</p>
-      <ol><li *ngFor="let comentario of comentariosDetalle"><strong>{{ autor(comentario) }}</strong> · <time [attr.datetime]="comentario.creadoEn">{{ comentario.creadoEn | date:'medium' }}</time><p>{{ comentario.contenido }}</p></li></ol>
-      <label for="crm-comentario">Nuevo comentario</label><textarea id="crm-comentario" class="form-control" [(ngModel)]="comentarioNuevo" maxlength="2000" rows="3"></textarea>
-      <p class="auth-error" *ngIf="errorComentario" role="alert">{{ errorComentario }}</p>
-      <button class="btn-primary" type="button" [disabled]="enviandoComentario || !comentarioNuevo.trim()" (click)="enviarComentario()">{{ enviandoComentario ? 'Enviando…' : 'Enviar comentario' }}</button>
-    </section>
-    <div class="modal-actions mt-4"><button class="btn-secondary" (click)="cerrarDetalle()">Cerrar</button><button class="btn-primary" (click)="abrirEdicion(p.id)">Editar proyecto</button></div>
-  </ng-container>
-</section></div>
+
+      <!-- Barra de pie del modal -->
+      <footer class="modal-footer-bar">
+        <button class="btn-secondary" type="button" (click)="cerrarDetalle()">Cerrar</button>
+        <button class="btn-primary" type="button" (click)="abrirEdicion(p.id)">Editar proyecto</button>
+      </footer>
+    </ng-container>
+
+  </section>
+</div>
