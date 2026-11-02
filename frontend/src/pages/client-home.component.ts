@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ArchivoPortal, ComentarioPortal, FacturaPortal, HitoPortal, IdentidadPortal, ProyectoPortal } from '../models/portal.model';
 import { PortalApiService } from '../services/portal-api.service';
+import { ArchivosApiService } from '../services/archivos-api.service';
 
 @Component({
   selector: 'app-client-home', standalone: true, imports: [CommonModule, FormsModule],
@@ -27,13 +28,15 @@ export class ClientHomeComponent implements OnInit {
   errorDetalle = '';
   errorFacturas = '';
   errorComentario = '';
+  errorDescarga = '';
+  descargandoId: string | null = null;
   comentario = '';
   logoFallido = false;
   private solicitudDetalle = 0;
   private solicitudProyectos = 0;
   private solicitudFacturas = 0;
 
-  constructor(private api: PortalApiService) {}
+  constructor(private api: PortalApiService, private archivosApi: ArchivosApiService) {}
 
   ngOnInit(): void {
     void this.cargarIdentidad();
@@ -83,6 +86,7 @@ export class ClientHomeComponent implements OnInit {
     this.proyecto = null;
     this.comentario = '';
     this.errorComentario = '';
+    this.errorDescarga = '';
     this.limpiarDetalle();
     this.cargandoDetalle = true;
     this.errorDetalle = '';
@@ -144,6 +148,15 @@ export class ClientHomeComponent implements OnInit {
     } finally {
       this.enviandoComentario = false;
     }
+  }
+
+  async descargarArchivo(archivo: ArchivoPortal): Promise<void> {
+    if (!this.proyectoId || this.descargandoId) return;
+    const proyectoId = this.proyectoId;
+    this.descargandoId = archivo.id; this.errorDescarga = '';
+    try { await this.archivosApi.guardarDescarga(proyectoId, archivo, true); }
+    catch { if (this.proyectoId === proyectoId) this.errorDescarga = 'No se pudo descargar el archivo. Reintenta.'; }
+    finally { this.descargandoId = null; }
   }
 
   get avanceHitos(): number | null {

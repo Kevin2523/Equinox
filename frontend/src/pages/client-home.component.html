@@ -73,9 +73,10 @@
             <ul class="portal-files" *ngIf="archivos.length">
               <li *ngFor="let archivo of archivos"><div><strong>{{ archivo.nombre }}</strong>
                 <p *ngIf="archivo.descripcion">{{ archivo.descripcion }}</p><small>{{ archivo.tipo }} · {{ tamanoArchivo(archivo.tamanoBytes) }}</small></div>
-                <a class="btn-secondary" [href]="archivo.url" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Abrir archivo ' + archivo.nombre">Abrir archivo</a>
+                <button type="button" class="btn-secondary" [disabled]="!!descargandoId" (click)="descargarArchivo(archivo)" [attr.aria-label]="'Descargar archivo ' + archivo.nombre">{{ descargandoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
               </li>
             </ul>
+            <p class="portal-error-text" *ngIf="errorDescarga" role="alert">{{ errorDescarga }}</p>
           </section>
           </div>
 

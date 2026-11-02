@@ -60,6 +60,33 @@
         <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="crearHito()">{{ guardandoHito ? 'Guardando…' : 'Crear hito' }}</button>
       </div><p class="auth-error" *ngIf="errorHitos" role="alert">{{ errorHitos }}</p>
     </section>
+    <section class="project-work-section"><h3>Archivos</h3><p *ngIf="!archivosDetalle.length">Todavía no hay archivos cargados.</p>
+      <ul class="project-files-list" *ngIf="archivosDetalle.length">
+        <li *ngFor="let archivo of archivosDetalle">
+          <strong>{{ archivo.nombre }}</strong> · <small>{{ archivo.visibilidad === 'CLIENTE' ? 'Visible al cliente' : 'Solo equipo' }} · {{ archivo.tamanoBytes | number }} bytes</small>
+          <div>
+            <button class="btn-secondary" type="button" [disabled]="!!descargandoArchivoId" (click)="descargarArchivo(archivo)">{{ descargandoArchivoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
+            <button class="btn-secondary" type="button" *ngIf="confirmarEliminarArchivoId !== archivo.id" (click)="confirmarEliminarArchivoId = archivo.id">Eliminar</button>
+            <ng-container *ngIf="confirmarEliminarArchivoId === archivo.id">
+              <button class="btn-secondary" type="button" [disabled]="!!eliminandoArchivoId" (click)="eliminarArchivo(archivo)">Confirmar eliminación</button>
+              <button class="btn-secondary" type="button" (click)="confirmarEliminarArchivoId = null">Cancelar</button>
+            </ng-container>
+          </div>
+        </li>
+      </ul>
+      <div class="project-work-form">
+        <label for="proyecto-archivo">Seleccionar archivo (PDF, PNG, JPG, WebP, GIF, TXT; máx 8 MB)</label>
+        <input id="proyecto-archivo" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt" (change)="elegirArchivo($event)">
+        <label for="archivo-visibilidad">Visibilidad</label>
+        <select id="archivo-visibilidad" class="form-control" [(ngModel)]="visibilidadArchivo">
+          <option value="INTERNA">Solo equipo</option>
+          <option value="CLIENTE">Visible al cliente</option>
+        </select>
+        <progress *ngIf="subiendoArchivo" [value]="progresoArchivo" max="100"></progress>
+        <button class="btn-primary" type="button" [disabled]="!archivoElegido || subiendoArchivo" (click)="subirArchivo()">{{ subiendoArchivo ? 'Subiendo…' : 'Subir archivo' }}</button>
+      </div>
+      <p class="auth-error" *ngIf="errorArchivos" role="alert">{{ errorArchivos }}</p>
+    </section>
     <section class="project-work-section"><h3>Conversación</h3><p *ngIf="!comentariosDetalle.length">Todavía no hay comentarios.</p>
       <ol><li *ngFor="let comentario of comentariosDetalle"><strong>{{ autor(comentario) }}</strong> · <time [attr.datetime]="comentario.creadoEn">{{ comentario.creadoEn | date:'medium' }}</time><p>{{ comentario.contenido }}</p></li></ol>
       <label for="crm-comentario">Nuevo comentario</label><textarea id="crm-comentario" class="form-control" [(ngModel)]="comentarioNuevo" maxlength="2000" rows="3"></textarea>

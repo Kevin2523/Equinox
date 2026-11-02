@@ -4,6 +4,7 @@ import { prisma } from "../prisma.js";
 import type { SolicitudAutenticada } from "../tipos.js";
 import { ErrorHttp } from "../utilidades/errores.js";
 import { registrarActividad } from "../utilidades/actividad.js";
+import { enviarArchivo } from "../almacenamiento/descarga.js";
 
 export const rutasPortal = Router();
 const uuid = z.string().uuid();
@@ -70,10 +71,20 @@ rutasPortal.get("/proyectos/:proyectoId/archivos", async (req: SolicitudAutentic
     const proyecto = await proyectoAutorizado(req);
     res.json(await prisma.archivo.findMany({
       where: { proyectoId: proyecto.id, visibilidad: "CLIENTE" },
-      select: { id: true, nombre: true, descripcion: true, url: true, tipoMime: true, tamanoBytes: true, tipo: true, publicadoEn: true },
+      select: { id: true, nombre: true, nombreOriginal: true, descripcion: true, tipoMime: true, tamanoBytes: true, tipo: true, publicadoEn: true },
       orderBy: { creadoEn: "desc" },
     }));
   } catch (err) { next(err); }
+});
+
+rutasPortal.get("/proyectos/:proyectoId/archivos/:archivoId/descargar", async (req: SolicitudAutenticada, res, next) => {
+  try {
+    const proyecto = await proyectoAutorizado(req);
+    const archivo = await prisma.archivo.findFirst({ where: { id: uuid.parse(req.params.archivoId), proyectoId: proyecto.id, visibilidad: "CLIENTE" },
+      select: { url: true, nombreOriginal: true, tipoMime: true } });
+    if (!archivo) throw new ErrorHttp(404, "Archivo no encontrado");
+    await enviarArchivo(res, archivo);
+  } catch (error) { next(error); }
 });
 
 rutasPortal.get("/proyectos/:proyectoId/comentarios", async (req: SolicitudAutenticada, res, next) => {
