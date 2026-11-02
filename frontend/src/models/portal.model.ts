@@ -32,7 +32,7 @@ export interface ArchivoPortal {
   id: string;
   nombre: string;
   descripcion: string | null;
-  url: string;
+  nombreOriginal: string;
   tipoMime: string;
   tamanoBytes: number;
   tipo: 'ARCHIVO' | 'ENTREGABLE' | 'IMAGEN' | 'DOCUMENTO';

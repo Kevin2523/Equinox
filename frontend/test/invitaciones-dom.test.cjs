@@ -96,6 +96,10 @@ before(async () => {
       : { tipoAcceso: 'ORGANIZACION', organizacionId: 'o-test', rolOrganizacion: 'PROPIETARIO' } });
     if (pathname === '/api/clientes') return reply(200, [cliente('a'), cliente('b')]);
     if (pathname === '/api/proyectos') return reply(200, paginaFixture === '/proyectos' ? [proyectoVisual] : []);
+    if (paginaFixture === '/proyectos') {
+      if (pathname === '/api/proyectos/p-ficticio') return reply(200, proyectoVisual);
+      if (['tareas', 'hitos', 'comentarios', 'archivos'].some((recurso) => pathname === `/api/proyectos/p-ficticio/${recurso}`) && req.method === 'GET') return reply(200, []);
+    }
     if (paginaFixture === '/portal') {
       if (pathname === '/api/portal') return reply(200, { cliente: { id: 'a', nombre: 'Cliente ficticio', empresa: null }, estudio: { nombre: 'Estudio ficticio', logoUrl: null, colorPrimario: '#3568f6', colorSecundario: null, tipografia: null } });
       if (pathname === '/api/portal/proyectos') return reply(200, [proyectoVisual]);
@@ -105,7 +109,7 @@ before(async () => {
     }
     if (pathname.startsWith('/api/')) {
       // No proxy ni conexión a una API externa: todas las respuestas salen de fixtures.
-      const request = { method: req.method, pathname, reply };
+      const request = { method: req.method, pathname, headers: req.headers, reply };
       const index = esperas.findIndex((w) => w.method === request.method && w.pathname === pathname);
       if (index >= 0) esperas.splice(index, 1)[0].resolve(request); else pendientes.push(request);
       return;
@@ -373,4 +377,29 @@ test('DOM: un proyecto del portal usa el ancho disponible y reorganiza su detall
   assert.equal(mobile.pageFits, true);
   assert.equal(mobile.headerSeparated, true);
   await screenshot('portal-movil');
+});
+
+test('DOM: el selector envía multipart, muestra error recuperable y luego el archivo cargado', { timeout: 15000 }, async () => {
+  await go('/proyectos', 1100, 800);
+  await waitDOM(visible('.project-card-main'));
+  await click('.project-card-main');
+  await waitDOM(visible('#proyecto-archivo'));
+  await evaluate(`(() => { const input=document.querySelector('#proyecto-archivo');
+    const datos=new DataTransfer(); datos.items.add(new File(['%PDF-1.7\\n%%EOF'], 'archivo-ficticio.pdf', {type:'application/pdf'}));
+    input.files=datos.files; input.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+  const subir = `document.querySelector('#proyecto-archivo').closest('.project-work-section').querySelector('button.btn-primary')`;
+  await evaluate(`${subir}.click()`);
+  const primera = await take('POST', '/api/proyectos/p-ficticio/archivos');
+  assert.match(primera.headers['content-type'], /^multipart\/form-data; boundary=/);
+  assert.equal(await evaluate('!!document.querySelector("#proyecto-archivo").closest(".project-work-section").querySelector("progress")'), true);
+  assert.equal(await evaluate(`${subir}.disabled`), true);
+  primera.reply(422, { error: 'Formato ficticio inválido' });
+  await waitDOM('!!document.querySelector(".project-work-section .auth-error") && !document.querySelector("#proyecto-archivo").closest(".project-work-section").querySelector("button.btn-primary").disabled');
+  await evaluate(`${subir}.click()`);
+  (await take('POST', '/api/proyectos/p-ficticio/archivos')).reply(201, { id: 'archivo-ficticio', proyectoId: 'p-ficticio', nombre: 'archivo-ficticio.pdf', nombreOriginal: 'archivo-ficticio.pdf', tipoMime: 'application/pdf', tamanoBytes: 19, tipo: 'ARCHIVO', visibilidad: 'INTERNA', descripcion: null, publicadoEn: null, creadoEn: '2026-11-01T00:00:00Z' });
+  await waitDOM('document.querySelector(".project-files-list")?.textContent.includes("archivo-ficticio.pdf") && !document.querySelector("#proyecto-archivo").closest(".project-work-section").querySelector("progress")');
+  assert.equal(await evaluate('document.querySelector(".project-work-section .auth-error") === null'), true);
+  assert.equal(await evaluate('document.querySelector("#proyecto-archivo").value'), '');
+  await evaluate('document.querySelector("#proyecto-archivo").scrollIntoView()');
+  await screenshot('archivos-modal');
 });
