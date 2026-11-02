@@ -7,7 +7,8 @@ import { UiStateService } from '../state/ui-state.service';
   selector: 'app-finanzas',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './finanzas.component.html'
+  templateUrl: './finanzas.component.html',
+  styleUrl: './finanzas.component.css'
 })
 export class FinanzasComponent {
   constructor(public state: UiStateService) {}

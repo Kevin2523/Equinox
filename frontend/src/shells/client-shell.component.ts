@@ -8,7 +8,14 @@ import { AuthService } from '../auth/auth.service';
   template: `<header class="topnav client-shell-nav">
     <div class="brand"><span class="brand-mark"><i></i></span><strong>equinox</strong></div>
     <span>Portal del cliente</span>
-    <button type="button" class="btn-secondary" (click)="salir()" [disabled]="saliendo">{{ saliendo ? 'Cerrando…' : 'Cerrar sesión' }}</button>
+    <button type="button" class="btn-secondary" (click)="salir()" [disabled]="saliendo">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+      <span>{{ saliendo ? 'Cerrando…' : 'Cerrar sesión' }}</span>
+    </button>
   </header>
   <section class="auth-logout-error" role="alert" *ngIf="errorCierre">
     <p>No se pudo confirmar el cierre de sesión en el servidor. Tu sesión podría seguir activa.</p>

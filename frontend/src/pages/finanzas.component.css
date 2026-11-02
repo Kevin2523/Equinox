@@ -1,0 +1,147 @@
+/* ==========================================================================
+   FINANZAS / FACTURACIÓN Y PAGOS STYLES
+   ========================================================================== */
+
+.balance-hero-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.balance-hero-container .balance-hero {
+  margin-bottom: 0;
+}
+
+.btn-pay {
+  background: var(--green, #16a34a);
+  color: #ffffff;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-pay:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+}
+
+.inv-amount small {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   MODAL REGISTRAR PAGO
+   ========================================================================== */
+
+.modal-pago {
+  width: min(520px, 94vw);
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+
+.modal-sub-head-text {
+  font-size: 13px;
+  color: #64748b;
+  margin: -10px 0 18px 0;
+}
+
+.pago-saldo-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #3b82f6;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.pago-saldo-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.pago-saldo-detalles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pago-saldo-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.pago-saldo-monto {
+  font-size: 20px;
+  font-family: var(--font-display, inherit);
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.input-readonly {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  cursor: not-allowed;
+  font-weight: 600 !important;
+}
+
+.pago-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 10px;
+  color: #b91c1c;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.pago-error-banner svg {
+  flex-shrink: 0;
+}
+
+.finance-portal-settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 16px 0 22px;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid #dfe5f0;
+  border-radius: 16px;
+}
+.finance-portal-settings p { margin: 5px 0 0; color: #65718a; }
+.inv-action { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.inv-action small { color: #65718a; }
+.inv-action .btn-secondary { padding: 7px 9px; font-size: 12px; }
+.invoice-row { grid-template-columns: 120px minmax(170px, 1fr) 115px 130px minmax(145px, 190px); gap: 12px; }
+@media (max-width: 850px) {
+  .finance-portal-settings { flex-wrap: wrap; }
+  .invoice-row { grid-template-columns: 1fr; }
+}

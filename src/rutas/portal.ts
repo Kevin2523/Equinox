@@ -127,8 +127,17 @@ rutasPortal.get("/facturas", async (req: SolicitudAutenticada, res, next) => {
     const { clienteId, organizacionId } = contexto(req);
     const organizacion = await prisma.organizacion.findUnique({ where: { id: organizacionId }, select: { portalMostrarFinanzas: true } });
     if (!organizacion?.portalMostrarFinanzas) return res.json([]);
+    const where: any = {
+      clienteId,
+      organizacionId,
+      visibleEnPortal: true,
+      estado: { in: ["ENVIADA", "PAGADA", "VENCIDA"] },
+    };
+    if (req.query.proyectoId && typeof req.query.proyectoId === "string") {
+      where.proyectoId = uuid.parse(req.query.proyectoId);
+    }
     res.json(await prisma.factura.findMany({
-      where: { clienteId, organizacionId, estado: { in: ["ENVIADA", "PAGADA", "VENCIDA"] } },
+      where,
       select: { id: true, proyectoId: true, numero: true, concepto: true, monto: true, moneda: true,
         estado: true, fechaEmision: true, fechaVencimiento: true, pagadaEn: true },
       orderBy: { fechaEmision: "desc" },
