@@ -16,7 +16,7 @@ export interface Tarea {
   proyectoId: string;
   proyectoNombre?: string;
   titulo: string;
-  estado: 'PENDIENTE' | 'EN_PROGRESO' | 'COMPLETADA';
+  estado: 'PENDIENTE' | 'EN_PROGRESO' | 'BLOQUEADA' | 'COMPLETADA' | 'CANCELADA';
   prioridad: 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
   fechaVencimiento: string;
   asignadoA?: string;

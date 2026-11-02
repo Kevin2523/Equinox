@@ -1,55 +1,42 @@
-<main class="standard">
-<section class="collection">
-    <div class="page-title">
-      <div>
-        <p class="eyebrow">EQUINOX / TAREAS</p>
-        <h1>Tareas</h1>
-        <p>Organiza tus entregables diarios con casillas de verificación funcionales.</p>
-      </div>
-      <button class="btn-primary" (click)="state.openQuickCreate('Tarea')">
-        <span>＋</span> Nueva tarea
-      </button>
-    </div>
-
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <label class="search-input-pill">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input [(ngModel)]="state.query" placeholder="Buscar tareas...">
-      </label>
-      <div class="filter-pills">
-        <button [class.active]="state.taskFilter === 'TODAS'" (click)="state.taskFilter = 'TODAS'">Todas</button>
-        <button [class.active]="state.taskFilter === 'HOY'" (click)="state.taskFilter = 'HOY'">Para hoy</button>
-        <button [class.active]="state.taskFilter === 'PROXIMAS'" (click)="state.taskFilter = 'PROXIMAS'">Próximas</button>
-        <button [class.active]="state.taskFilter === 'COMPLETADAS'" (click)="state.taskFilter = 'COMPLETADAS'">Completadas</button>
-      </div>
-    </div>
-
-    <!-- Master Tasks List -->
-    <div class="tasks-table-card">
-      <div class="task-master-row" *ngFor="let t of state.allTasks" [class.done]="t.estado === 'COMPLETADA'">
-        <label class="custom-checkbox">
-          <input
-            type="checkbox"
-            [checked]="t.estado === 'COMPLETADA'"
-            (change)="state.toggleTask(t.id)"
-          >
-          <span class="checkmark"></span>
-        </label>
-        <div class="task-master-body">
-          <b [class.strikethrough]="t.estado === 'COMPLETADA'">{{ t.titulo }}</b>
-          <div class="task-tags">
-            <span class="badge-project">{{ t.proyectoNombre }}</span>
-            <span class="priority-tag" [class.urgent]="t.prioridad === 'URGENTE'" [class.high]="t.prioridad === 'ALTA'">
-              {{ t.prioridad }}
-            </span>
-            <small>Vence: {{ t.fechaVencimiento }}</small>
-          </div>
+<main class="standard"><section class="collection">
+  <div class="page-title"><div><p class="eyebrow">EQUINOX / TAREAS</p><h1>Tareas</h1>
+    <p>Progreso por proyecto: tareas completadas entre tareas no canceladas. Sin tareas, el progreso queda sin definir.</p></div>
+    <button class="btn-primary" type="button" (click)="state.openQuickCreate('Tarea')" [disabled]="!state.proyectos.length"><span>＋</span> Nueva tarea</button>
+  </div>
+  <div class="filter-bar"><label class="search-input-pill"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+    <input [(ngModel)]="state.query" placeholder="Buscar tareas..." aria-label="Buscar tareas"></label>
+    <div class="filter-pills"><button [class.active]="state.taskFilter === 'TODAS'" (click)="state.taskFilter = 'TODAS'">Todas</button>
+      <button [class.active]="state.taskFilter === 'HOY'" (click)="state.taskFilter = 'HOY'">Para hoy</button>
+      <button [class.active]="state.taskFilter === 'PROXIMAS'" (click)="state.taskFilter = 'PROXIMAS'">Próximas</button>
+      <button [class.active]="state.taskFilter === 'COMPLETADAS'" (click)="state.taskFilter = 'COMPLETADAS'">Completadas</button></div></div>
+  <p class="api-state" *ngIf="cargando" role="status">Cargando tareas…</p>
+  <div class="api-state api-state-error" *ngIf="error" role="alert">{{ error }} <button class="btn-secondary" (click)="cargar()">Reintentar</button></div>
+  <p class="api-state api-state-error" *ngIf="errorAccion" role="alert">{{ errorAccion }}</p>
+  <p class="api-state" *ngIf="!cargando && !error && !state.proyectos.length">Crea un proyecto antes de registrar tareas.</p>
+  <p class="api-state" *ngIf="!cargando && !error && state.proyectos.length && !visibles.length">No hay tareas que coincidan con este filtro.</p>
+  <div class="tasks-table-card" *ngIf="!cargando && !error">
+    <div class="task-master-row" *ngFor="let tarea of visibles" [class.done]="tarea.estado === 'COMPLETADA'">
+      <label class="custom-checkbox"><input type="checkbox" [checked]="tarea.estado === 'COMPLETADA'" [disabled]="guardando"
+        [attr.aria-label]="'Completar ' + tarea.titulo" (change)="alternar(tarea)"><span class="checkmark"></span></label>
+      <div class="task-master-body"><b [class.strikethrough]="tarea.estado === 'COMPLETADA'">{{ tarea.titulo }}</b><p *ngIf="tarea.descripcion">{{ tarea.descripcion }}</p>
+        <div class="task-tags"><span class="badge-project">{{ tarea.proyectoNombre }}</span><span class="priority-tag">{{ tarea.prioridad }}</span>
+          <small>{{ tarea.fechaVencimiento ? ('Vence: ' + tarea.fechaVencimiento.slice(0, 10)) : 'Sin vencimiento' }}</small>
+          <small *ngIf="progreso(tarea.proyectoId) !== null">Proyecto: {{ progreso(tarea.proyectoId) }}%</small></div>
+        <div *ngIf="editandoId === tarea.id" class="form-row">
+          <label>Título <input class="form-control" [(ngModel)]="borrador.titulo" minlength="2"></label>
+          <label>Descripción <textarea class="form-control" [(ngModel)]="borrador.descripcion"></textarea></label>
+          <label>Estado <select class="form-control" [(ngModel)]="borrador.estado"><option value="PENDIENTE">Pendiente</option><option value="EN_PROGRESO">En progreso</option><option value="BLOQUEADA">Bloqueada</option><option value="COMPLETADA">Completada</option><option value="CANCELADA">Cancelada</option></select></label>
+          <label>Prioridad <select class="form-control" [(ngModel)]="borrador.prioridad"><option value="BAJA">Baja</option><option value="MEDIA">Media</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></label>
+          <label>Vencimiento <input class="form-control" type="date" [(ngModel)]="borrador.fechaVencimiento"></label>
+          <button class="btn-primary" type="button" [disabled]="guardando" (click)="guardar(tarea)">Guardar</button>
+          <button class="btn-secondary" type="button" (click)="editandoId = null">Cancelar</button>
         </div>
-        <span class="task-status-pill" [class.pill-done]="t.estado === 'COMPLETADA'">
-          {{ t.estado === 'COMPLETADA' ? '✓ Completada' : 'Pendiente' }}
-        </span>
       </div>
+      <span class="task-status-pill" [class.pill-done]="tarea.estado === 'COMPLETADA'">{{ tarea.estado }}</span>
+      <button class="btn-secondary" type="button" (click)="iniciarEdicion(tarea)">Editar</button>
+      <button class="btn-secondary" type="button" *ngIf="confirmandoEliminarId !== tarea.id" (click)="confirmandoEliminarId = tarea.id">Eliminar</button>
+      <ng-container *ngIf="confirmandoEliminarId === tarea.id"><button class="btn-secondary" type="button" [disabled]="guardando" (click)="eliminar(tarea)">Confirmar eliminación</button>
+        <button class="btn-secondary" type="button" (click)="confirmandoEliminarId = null">Cancelar</button></ng-container>
     </div>
-  </section>
-</main>
+  </div>
+</section></main>

@@ -28,7 +28,7 @@
     <p class="portal-state" *ngIf="cargandoProyectos" role="status" aria-live="polite">Cargando tus proyectos…</p>
     <div class="portal-state portal-error" *ngIf="errorProyectos" role="alert">{{ errorProyectos }} <button type="button" class="btn-secondary" (click)="cargarProyectos()">Reintentar</button></div>
     <p class="portal-state" *ngIf="!cargandoProyectos && !errorProyectos && proyectos.length === 0">Todavía no hay proyectos compartidos contigo.</p>
-    <div class="portal-workspace" *ngIf="!errorProyectos && proyectos.length">
+    <div class="portal-workspace" [class.single-project]="proyectos.length === 1" *ngIf="!errorProyectos && proyectos.length">
       <nav class="portal-project-list" aria-label="Seleccionar proyecto" *ngIf="proyectos.length > 1">
         <button *ngFor="let item of proyectos" type="button" [class.selected]="proyectoId === item.id"
           [attr.aria-pressed]="proyectoId === item.id" (click)="seleccionarProyecto(item.id)">
@@ -49,9 +49,10 @@
             <p *ngIf="actual.fechaEntrega"><span>Entrega</span><strong>{{ actual.fechaEntrega | date:'mediumDate' }}</strong></p>
           </div>
 
+          <div class="portal-detail-grid">
           <section class="portal-content-section" aria-labelledby="milestones-heading">
             <div class="portal-section-heading"><h4 id="milestones-heading">Hitos compartidos</h4>
-              <span *ngIf="avanceHitos !== null">{{ avanceHitos }}% de hitos completados</span></div>
+              <span *ngIf="avanceHitos !== null">{{ avanceHitos }}% de hitos compartidos completados</span></div>
             <div class="portal-progress" *ngIf="avanceHitos !== null" role="progressbar" aria-label="Avance de hitos compartidos"
               aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="avanceHitos">
               <span [style.width.%]="avanceHitos" [style.backgroundColor]="identidad?.estudio?.colorPrimario || 'var(--blue)'"></span>
@@ -76,8 +77,9 @@
               </li>
             </ul>
           </section>
+          </div>
 
-          <section class="portal-content-section" aria-labelledby="comments-heading">
+          <section class="portal-content-section portal-conversation" aria-labelledby="comments-heading">
             <div class="portal-section-heading"><h4 id="comments-heading">Conversación del proyecto</h4></div>
             <p class="portal-inline-empty" *ngIf="comentarios.length === 0">Todavía no hay comentarios en este proyecto.</p>
             <ol class="portal-comments" *ngIf="comentarios.length">

@@ -16,21 +16,29 @@
 .portal-section-heading h4 { margin: 0; font-size: 17px; }
 .portal-section-heading > span { color: var(--ink-secondary); font-size: 12px; }
 .portal-workspace { display: grid; grid-template-columns: minmax(190px, 250px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.portal-workspace.single-project { grid-template-columns: minmax(0, 1fr); }
 .portal-project-list { display: grid; gap: 8px; }
 .portal-project-list button { display: grid; gap: 6px; width: 100%; padding: 14px; text-align: left; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; }
 .portal-project-list button:hover, .portal-project-list button.selected { border-color: var(--portal-primary); box-shadow: var(--shadow-sm); }
 .portal-project-list button:focus-visible, .portal-comment-form button:focus-visible, .portal-page a:focus-visible, .portal-page button:focus-visible { outline: 3px solid var(--portal-primary); outline-offset: 3px; }
 .portal-project-list span { color: var(--muted); font-size: 11px; }
-.portal-project-detail, .portal-invoices { min-width: 0; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-sm); }
+.portal-project-detail, .portal-invoices { min-width: 0; padding: 26px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-sm); }
 .project-heading { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
-.project-heading h3 { font-size: 24px; }
-.project-heading > div > p:last-child { color: var(--ink-secondary); margin: 8px 0 0; line-height: 1.5; }
+.project-heading h3 { font-size: clamp(24px, 3vw, 32px); line-height: 1.2; margin: 4px 0 0; }
+.project-heading > div { min-width: 0; max-width: 75ch; }
+.project-heading > div > p:last-child { color: var(--ink-secondary); margin: 10px 0 0; line-height: 1.6; }
 .project-status, .invoice-amount span { padding: 5px 10px; border-radius: var(--radius-full); background: var(--blue-soft); color: var(--portal-primary); font-size: 11px; font-weight: 700; white-space: nowrap; }
-.project-dates { display: flex; flex-wrap: wrap; gap: 24px; padding: 16px 0 4px; }
-.project-dates p { display: grid; gap: 3px; margin: 0; }
+.project-dates { display: flex; flex-wrap: wrap; gap: 12px; padding: 20px 0 4px; }
+.project-dates p { display: grid; gap: 3px; min-width: 150px; margin: 0; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: #f8faff; }
 .project-dates span, .project-dates strong { font-size: 12px; }
 .project-dates span { color: var(--muted); }
 .portal-content-section { margin-top: 24px; padding-top: 21px; border-top: 1px solid var(--line); }
+.portal-detail-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); align-items: start; gap: 18px; margin-top: 24px; }
+.portal-detail-grid .portal-content-section { min-width: 0; height: 100%; margin: 0; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcff; }
+.portal-detail-grid .portal-section-heading { align-items: start; flex-wrap: wrap; }
+.portal-detail-grid .portal-section-heading > span { max-width: 170px; text-align: right; line-height: 1.35; }
+.portal-conversation { padding-top: 24px; }
+.portal-conversation .portal-comments, .portal-conversation .portal-comment-form { max-width: 850px; }
 .portal-progress { height: 8px; overflow: hidden; margin: 12px 0 18px; border-radius: 99px; background: #edf0f6; }
 .portal-progress span { display: block; height: 100%; border-radius: inherit; transition: width .2s ease; }
 .portal-milestones, .portal-comments, .portal-files, .portal-invoice-list { margin: 0; padding: 0; list-style: none; }
@@ -42,12 +50,13 @@
 .portal-milestones strong, .portal-files strong { color: var(--navy); font-size: 13px; }
 .portal-milestones p, .portal-files p { margin: 4px 0; color: var(--ink-secondary); font-size: 12px; }
 .portal-milestones small, .portal-files small { color: var(--muted); font-size: 11px; }
+.portal-milestones small { display: block; margin-top: 5px; }
 .portal-files li, .portal-invoice-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .portal-files li:last-child, .portal-invoice-list li:last-child { border-bottom: 0; }
 .portal-files li > div, .portal-invoice-list li > div:first-child { min-width: 0; }
 .portal-files .btn-secondary { flex-shrink: 0; font-size: 12px; }
 .portal-comments { display: grid; gap: 10px; }
-.portal-comments li { max-width: 88%; padding: 13px 15px; border-radius: 14px 14px 14px 3px; background: #f3f5f9; }
+.portal-comments li { max-width: min(78%, 620px); padding: 13px 15px; border-radius: 14px 14px 14px 3px; background: #f3f5f9; }
 .portal-comments li.from-client { margin-left: auto; border-radius: 14px 14px 3px 14px; background: var(--blue-soft); }
 .portal-comments li > div { display: flex; justify-content: space-between; gap: 14px; color: var(--navy); font-size: 11px; }
 .portal-comments time { color: var(--muted); font-size: 10px; }
@@ -73,6 +82,8 @@
   .portal-banner { align-items: flex-start; padding: 15px; }
   .portal-client-identity { max-width: 42%; }
   .portal-workspace { grid-template-columns: 1fr; }
+  .portal-detail-grid { grid-template-columns: 1fr; }
+  .portal-detail-grid .portal-content-section { height: auto; }
   .portal-project-list { display: flex; overflow-x: auto; padding: 2px 2px 8px; }
   .portal-project-list button { min-width: 190px; }
 }
@@ -81,7 +92,9 @@
   .portal-client-identity { max-width: none; text-align: left; }
   .portal-brand img, .portal-brand-fallback { width: 40px; height: 40px; }
   .portal-project-detail, .portal-invoices { padding: 16px; }
+  .portal-detail-grid .portal-content-section { padding: 16px; }
   .project-heading { display: grid; }
+  .project-status { justify-self: start; }
   .portal-files li, .portal-invoice-list li { align-items: flex-start; }
   .portal-comments li { max-width: 96%; }
 }

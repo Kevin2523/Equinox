@@ -17,6 +17,7 @@ const chrome = process.env.EQUINOX_TEST_BROWSER || [
 const cliente = (id) => ({ id, nombre: `Cliente ficticio ${id}`, correo: `${id}@example.invalid`, estado: 'ACTIVO', _count: { proyectos: 0 } });
 const invitacion = (id = 'i1', estado = 'PENDIENTE') => ({ id, correo: 'cuenta@example.invalid', rol: 'TITULAR', estado, expiraEn: '2099-01-01T00:00:00Z' });
 const publica = { correoEnmascarado: 'c***@example.invalid', rol: 'TITULAR', cliente: { nombre: 'Cliente ficticio', empresa: null }, organizacion: { nombre: 'Estudio ficticio', logoUrl: null }, esUsuarioExistente: false, expiraEn: '2099-01-01T00:00:00Z' };
+const proyectoVisual = { id: 'p-ficticio', clienteId: 'a', nombre: 'Proyecto visual ficticio', descripcion: 'Descripción de prueba', estado: 'ACTIVO', fechaInicio: '2026-10-01T00:00:00.000Z', fechaEntrega: '2026-11-30T00:00:00.000Z', presupuesto: '500', moneda: 'PAB', cliente: cliente('a') };
 const pendientes = [];
 const esperas = [];
 let server, origin, browser, socket, sessionId, profile;
@@ -25,6 +26,7 @@ const commands = new Map();
 const traffic = [];
 const completions = new Map();
 let responseId = 0;
+let paginaFixture = '';
 const send = (method, params = {}, session = sessionId) => new Promise((resolve, reject) => {
   const id = ++sequence; commands.set(id, { resolve, reject });
   socket.send(JSON.stringify({ id, method, params, ...(session ? { sessionId: session } : {}) }));
@@ -89,9 +91,18 @@ before(async () => {
   server = http.createServer((req, res) => {
     const pathname = new URL(req.url, origin).pathname;
     const reply = (status, body, marker) => { if (!res.writableEnded) { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(marker ? { 'X-Equinox-Fixture': marker } : {}) }); res.end(JSON.stringify(body)); } };
-    if (pathname === '/api/autenticacion/yo') return reply(200, { usuario: { id: 'u-test', nombre: 'Usuario ficticio' }, sesion: { tipoAcceso: 'ORGANIZACION', organizacionId: 'o-test', rolOrganizacion: 'PROPIETARIO' } });
+    if (pathname === '/api/autenticacion/yo') return reply(200, { usuario: { id: 'u-test', nombre: 'Usuario ficticio' }, sesion: paginaFixture === '/portal'
+      ? { tipoAcceso: 'CLIENTE', organizacionId: 'o-test', clienteId: 'a', rolCliente: 'TITULAR' }
+      : { tipoAcceso: 'ORGANIZACION', organizacionId: 'o-test', rolOrganizacion: 'PROPIETARIO' } });
     if (pathname === '/api/clientes') return reply(200, [cliente('a'), cliente('b')]);
-    if (pathname === '/api/proyectos') return reply(200, []);
+    if (pathname === '/api/proyectos') return reply(200, paginaFixture === '/proyectos' ? [proyectoVisual] : []);
+    if (paginaFixture === '/portal') {
+      if (pathname === '/api/portal') return reply(200, { cliente: { id: 'a', nombre: 'Cliente ficticio', empresa: null }, estudio: { nombre: 'Estudio ficticio', logoUrl: null, colorPrimario: '#3568f6', colorSecundario: null, tipografia: null } });
+      if (pathname === '/api/portal/proyectos') return reply(200, [proyectoVisual]);
+      if (pathname === '/api/portal/proyectos/p-ficticio') return reply(200, proyectoVisual);
+      if (pathname === '/api/portal/proyectos/p-ficticio/hitos') return reply(200, [{ id: 'h-ficticio', titulo: 'Hito ficticio', descripcion: null, estado: 'PENDIENTE', orden: 1, fechaObjetivo: null, completadoEn: null }]);
+      if (pathname === '/api/portal/proyectos/p-ficticio/archivos' || pathname === '/api/portal/proyectos/p-ficticio/comentarios' || pathname === '/api/portal/facturas') return reply(200, []);
+    }
     if (pathname.startsWith('/api/')) {
       // No proxy ni conexión a una API externa: todas las respuestas salen de fixtures.
       const request = { method: req.method, pathname, reply };
@@ -105,9 +116,10 @@ before(async () => {
       res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'application/octet-stream');
       res.end(fs.readFileSync(file)); return;
     }
+    if (['/clientes', '/proyectos', '/portal'].includes(pathname)) paginaFixture = pathname;
     let html = fs.readFileSync(path.join(bundle, 'index.html'), 'utf8');
     html = html.replace('<head>', `<head><script>window.__EQUINOX_API_ORIGIN__=location.origin;
-      if(location.pathname==='/clientes') sessionStorage.setItem('equinox_sesion_token','sesion-ficticia'); else sessionStorage.clear();</script>`);
+      if(['/clientes','/proyectos','/portal'].includes(location.pathname)) sessionStorage.setItem('equinox_sesion_token','sesion-ficticia'); else sessionStorage.clear();</script>`);
     res.setHeader('Content-Type', 'text/html'); res.end(html);
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -322,4 +334,43 @@ test('DOM: formulario de cliente conserva scroll y acciones sticky en pantalla b
     return { scroll: modal.scrollHeight>modal.clientHeight, sticky: getComputedStyle(actions).position, visible: rect.bottom<=innerHeight && rect.top>=0 }; })()`);
   assert.equal(layout.scroll, true); assert.equal(layout.sticky, 'sticky'); assert.equal(layout.visible, true);
   await screenshot('cliente-modal-scroll');
+});
+
+test('DOM: búsqueda y miniatura del proyecto no desbordan su contenedor', { timeout: 15000 }, async () => {
+  await go('/proyectos', 1440, 900);
+  await waitDOM(visible('.project-grid-card'));
+  const layout = await evaluate(`(() => { const icon=document.querySelector('.search-input-pill svg');
+    const card=document.querySelector('.project-grid-card'); const thumb=card.querySelector('.p-node-thumb');
+    const i=icon.getBoundingClientRect(), c=card.getBoundingClientRect(), t=thumb.getBoundingClientRect();
+    return { iconWidth:i.width, iconHeight:i.height, thumbInside:t.left>=c.left && t.right<=c.right && t.top>=c.top && t.bottom<=c.bottom,
+      decoration:getComputedStyle(thumb,'::before').content }; })()`);
+  assert.equal(layout.iconWidth, 18);
+  assert.equal(layout.iconHeight, 18);
+  assert.equal(layout.thumbInside, true);
+  assert.equal(layout.decoration, 'none');
+  await screenshot('proyectos-layout');
+});
+
+test('DOM: un proyecto del portal usa el ancho disponible y reorganiza su detalle en móvil', { timeout: 15000 }, async () => {
+  await go('/portal', 1440, 900);
+  await waitDOM(visible('.portal-detail-grid .portal-milestones li'));
+  const desktop = await evaluate(`(() => { const w=document.querySelector('.portal-workspace').getBoundingClientRect();
+    const d=document.querySelector('.portal-project-detail').getBoundingClientRect();
+    const cards=[...document.querySelectorAll('.portal-detail-grid > section')].map(el=>el.getBoundingClientRect());
+    return { detailWidth:d.width, workspaceWidth:w.width, twoColumns:cards.length===2 && cards[1].left>cards[0].left }; })()`);
+  assert.ok(desktop.detailWidth >= desktop.workspaceWidth - 2);
+  assert.equal(desktop.twoColumns, true);
+  await screenshot('portal-escritorio');
+  await go('/portal', 390, 780);
+  await waitDOM(visible('.portal-detail-grid .portal-milestones li'));
+  const mobile = await evaluate(`(() => { const cards=[...document.querySelectorAll('.portal-detail-grid > section')].map(el=>el.getBoundingClientRect());
+    const brand=document.querySelector('.client-shell-nav .brand').getBoundingClientRect();
+    const title=document.querySelector('.client-shell-nav > span').getBoundingClientRect();
+    const logout=document.querySelector('.client-shell-nav > button').getBoundingClientRect();
+    return { stacked:cards.length===2 && cards[1].top>=cards[0].bottom, pageFits:document.documentElement.scrollWidth<=innerWidth,
+      headerSeparated:title.top>=brand.bottom && logout.left>=brand.right }; })()`);
+  assert.equal(mobile.stacked, true);
+  assert.equal(mobile.pageFits, true);
+  assert.equal(mobile.headerSeparated, true);
+  await screenshot('portal-movil');
 });

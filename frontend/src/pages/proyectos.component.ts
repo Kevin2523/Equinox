@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ClienteApi, ClientesProyectosApiService, EstadoProyectoApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
+import { ComentarioApi, HitoApi, TareaApi, TrabajoApiService, progresoTareas } from '../services/trabajo-api.service';
 
-@Component({ selector: 'app-proyectos', standalone: true, imports: [CommonModule, FormsModule], templateUrl: './proyectos.component.html' })
-export class ProyectosComponent implements OnInit {
+@Component({ selector: 'app-proyectos', standalone: true, imports: [CommonModule, FormsModule], templateUrl: './proyectos.component.html', styleUrl: './proyectos.component.css' })
+export class ProyectosComponent implements OnInit, OnDestroy {
   clientes: ClienteApi[] = [];
   busqueda = '';
   filtroEstado: 'TODOS' | EstadoProyectoApi = 'TODOS';
@@ -20,12 +21,37 @@ export class ProyectosComponent implements OnInit {
   detalleError = '';
   editandoId: string | null = null;
   proyectoDetalle: ProyectoApi | null = null;
+  detalleId: string | null = null;
+  tareasDetalle: TareaApi[] = [];
+  hitosDetalle: HitoApi[] = [];
+  comentariosDetalle: ComentarioApi[] = [];
+  nuevoHito = { titulo: '', descripcion: '', fechaObjetivo: '', visibleEnPortal: false };
+  editandoHitoId: string | null = null;
+  confirmandoHitoId: string | null = null;
+  hitoBorrador = { titulo: '', descripcion: '', estado: 'PENDIENTE' as HitoApi['estado'], fechaObjetivo: '', visibleEnPortal: false };
+  comentarioNuevo = '';
+  guardandoHito = false;
+  enviandoComentario = false;
+  errorHitos = '';
+  errorComentario = '';
+  private solicitudDetalle = 0;
+  private operacionHito = 0;
+  private operacionComentario = 0;
+  private reiniciarDetalle(): void {
+    ++this.operacionHito; ++this.operacionComentario;
+    this.guardandoHito = false; this.enviandoComentario = false;
+    this.nuevoHito = { titulo: '', descripcion: '', fechaObjetivo: '', visibleEnPortal: false };
+    this.hitoBorrador = { titulo: '', descripcion: '', estado: 'PENDIENTE', fechaObjetivo: '', visibleEnPortal: false };
+    this.comentarioNuevo = ''; this.editandoHitoId = null; this.confirmandoHitoId = null;
+    this.errorHitos = ''; this.errorComentario = '';
+  }
   formulario = this.formularioVacio();
 
-  constructor(public api: ClientesProyectosApiService, private route: ActivatedRoute) {}
+  constructor(public api: ClientesProyectosApiService, private route: ActivatedRoute, private trabajo: TrabajoApiService) {}
   ngOnInit(): void {
     void this.inicializar();
   }
+  ngOnDestroy(): void { this.cerrarDetalle(); }
 
   get proyectos(): ProyectoApi[] { return this.api.proyectos; }
   get proyectosVisibles(): ProyectoApi[] {
@@ -34,6 +60,11 @@ export class ProyectosComponent implements OnInit {
       (!query || `${p.nombre} ${p.cliente?.nombre || ''} ${p.cliente?.empresa || ''} ${p.descripcion || ''}`.toLocaleLowerCase().includes(query)));
   }
   get proyectosActivos(): number { return this.proyectos.filter((p) => p.estado === 'ACTIVO').length; }
+  get progresoProyecto(): number | null { return progresoTareas(this.tareasDetalle); }
+  autor(comentario: ComentarioApi): string {
+    const nombre = [comentario.usuario?.nombre, comentario.usuario?.apellido].filter(Boolean).join(' ');
+    return nombre || 'Cuenta eliminada';
+  }
   claseEstado(estado: EstadoProyectoApi): string {
     return `badge-${estado === 'ACTIVO' ? 'progreso' : estado === 'COMPLETADO' ? 'completado' : estado === 'BORRADOR' ? 'planificacion' : estado === 'PAUSADO' ? 'aprobar' : 'revision'}`;
   }
@@ -62,10 +93,91 @@ export class ProyectosComponent implements OnInit {
   nuevo(): void { this.editandoId = null; this.formulario = this.formularioVacio(); this.formulario.clienteId = this.clientes[0]?.id || ''; this.enviado = false; this.errorGuardar = ''; this.modalFormulario = true; }
 
   async verDetalle(proyecto: ProyectoApi): Promise<void> {
-    this.modalDetalle = true; this.detalleCargando = true; this.detalleError = ''; this.proyectoDetalle = null;
-    try { this.proyectoDetalle = await this.api.consultarProyecto(proyecto.id); }
-    catch { this.detalleError = 'No se pudieron consultar los datos de este proyecto.'; }
-    finally { this.detalleCargando = false; }
+    this.modalDetalle = true;
+    await this.cargarDetalle(proyecto.id);
+  }
+
+  async cargarDetalle(id: string): Promise<void> {
+    if (!id) return;
+    this.reiniciarDetalle();
+    this.detalleId = id;
+    const solicitud = ++this.solicitudDetalle;
+    this.detalleCargando = true; this.detalleError = ''; this.proyectoDetalle = null;
+    this.tareasDetalle = []; this.hitosDetalle = []; this.comentariosDetalle = [];
+    this.errorHitos = ''; this.errorComentario = '';
+    try {
+      const [proyecto, tareas, hitos, comentarios] = await Promise.all([
+        this.api.consultarProyecto(id), this.trabajo.listarTareas(id), this.trabajo.listarHitos(id), this.trabajo.listarComentarios(id)
+      ]);
+      if (solicitud !== this.solicitudDetalle || !this.modalDetalle) return;
+      this.proyectoDetalle = proyecto; this.tareasDetalle = tareas; this.hitosDetalle = hitos; this.comentariosDetalle = comentarios;
+    } catch {
+      if (solicitud === this.solicitudDetalle && this.modalDetalle) this.detalleError = 'No se pudieron consultar tareas, hitos o comentarios. Reintenta.';
+    } finally {
+      if (solicitud === this.solicitudDetalle) this.detalleCargando = false;
+    }
+  }
+  cerrarDetalle(): void { this.reiniciarDetalle(); ++this.solicitudDetalle; this.modalDetalle = false; this.proyectoDetalle = null; this.detalleId = null; }
+
+  async crearHito(): Promise<void> {
+    const id = this.proyectoDetalle?.id;
+    if (!id || this.guardandoHito) return;
+    if (this.nuevoHito.titulo.trim().length < 2) { this.errorHitos = 'El título requiere al menos dos caracteres.'; return; }
+    const generacion = ++this.operacionHito;
+    this.guardandoHito = true; this.errorHitos = '';
+    try {
+      const hito = await this.trabajo.crearHito(id, { titulo: this.nuevoHito.titulo.trim(), descripcion: this.nuevoHito.descripcion.trim() || null,
+        fechaObjetivo: this.nuevoHito.fechaObjetivo || null, visibleEnPortal: this.nuevoHito.visibleEnPortal });
+      if (generacion === this.operacionHito && this.proyectoDetalle?.id === id && this.modalDetalle) {
+        this.hitosDetalle = [...this.hitosDetalle, hito];
+        this.nuevoHito = { titulo: '', descripcion: '', fechaObjetivo: '', visibleEnPortal: false };
+      }
+    } catch { if (generacion === this.operacionHito) this.errorHitos = 'No se pudo crear el hito. Reintenta.'; }
+    finally { if (generacion === this.operacionHito) this.guardandoHito = false; }
+  }
+  editarHito(hito: HitoApi): void {
+    this.editandoHitoId = hito.id; this.errorHitos = '';
+    this.hitoBorrador = { titulo: hito.titulo, descripcion: hito.descripcion || '', estado: hito.estado, fechaObjetivo: hito.fechaObjetivo?.slice(0, 10) || '', visibleEnPortal: hito.visibleEnPortal };
+  }
+  async guardarHito(hito: HitoApi): Promise<void> {
+    const id = this.proyectoDetalle?.id;
+    if (!id || this.guardandoHito) return;
+    if (this.hitoBorrador.titulo.trim().length < 2) { this.errorHitos = 'El título requiere al menos dos caracteres.'; return; }
+    const generacion = ++this.operacionHito;
+    this.guardandoHito = true; this.errorHitos = '';
+    try {
+      const actualizado = await this.trabajo.editarHito(id, hito.id, { titulo: this.hitoBorrador.titulo.trim(), descripcion: this.hitoBorrador.descripcion.trim() || null, estado: this.hitoBorrador.estado,
+        fechaObjetivo: this.hitoBorrador.fechaObjetivo || null, visibleEnPortal: this.hitoBorrador.visibleEnPortal });
+      if (generacion === this.operacionHito && this.proyectoDetalle?.id === id && this.modalDetalle) {
+        this.hitosDetalle = this.hitosDetalle.map((item) => item.id === hito.id ? actualizado : item);
+        this.editandoHitoId = null;
+      }
+    } catch { if (generacion === this.operacionHito) this.errorHitos = 'No se pudo guardar el hito. Reintenta.'; }
+    finally { if (generacion === this.operacionHito) this.guardandoHito = false; }
+  }
+  async eliminarHito(hito: HitoApi): Promise<void> {
+    const id = this.proyectoDetalle?.id;
+    if (!id || this.guardandoHito) return;
+    const generacion = ++this.operacionHito;
+    this.guardandoHito = true; this.errorHitos = '';
+    try {
+      await this.trabajo.eliminarHito(id, hito.id);
+      if (generacion === this.operacionHito && this.proyectoDetalle?.id === id && this.modalDetalle) this.hitosDetalle = this.hitosDetalle.filter((item) => item.id !== hito.id);
+    } catch { if (generacion === this.operacionHito) this.errorHitos = 'No se pudo eliminar el hito. Reintenta.'; }
+    finally { if (generacion === this.operacionHito) this.guardandoHito = false; }
+  }
+  async enviarComentario(): Promise<void> {
+    const id = this.proyectoDetalle?.id;
+    const contenido = this.comentarioNuevo.trim();
+    if (!id || this.enviandoComentario) return;
+    if (!contenido || contenido.length > 2000) { this.errorComentario = 'Escribe entre 1 y 2000 caracteres.'; return; }
+    const generacion = ++this.operacionComentario;
+    this.enviandoComentario = true; this.errorComentario = '';
+    try {
+      const comentario = await this.trabajo.comentar(id, contenido);
+      if (generacion === this.operacionComentario && this.proyectoDetalle?.id === id && this.modalDetalle) { this.comentariosDetalle = [...this.comentariosDetalle, comentario]; this.comentarioNuevo = ''; }
+    } catch { if (generacion === this.operacionComentario) this.errorComentario = 'No se pudo enviar el comentario. Reintenta.'; }
+    finally { if (generacion === this.operacionComentario) this.enviandoComentario = false; }
   }
 
   async abrirEdicion(id: string): Promise<void> {
