@@ -20,12 +20,14 @@
     </svg>
 
     <!-- Dynamic Relation Labels -->
-    <div class="relation-label collab">
-      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M20 8v6M17 11h6"/></svg>
-      Colaboración
-    </div>
-    <div class="relation-label opportunity">✦ Oportunidad</div>
-    <div class="relation-label synergy">↗ Sinergia</div>
+    <ng-container *ngIf="proyectosVisibles.length > 0">
+      <div class="relation-label collab">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 8M20 8v6M17 11h6"/></svg>
+        Colaboración
+      </div>
+      <div class="relation-label opportunity">✦ Oportunidad</div>
+      <div class="relation-label synergy">↗ Sinergia</div>
+    </ng-container>
 
     <!-- Project Nodes on the Map -->
     <button
@@ -56,13 +58,13 @@
         Buscar...
       </button>
       <i></i>
-      <button title="Archivos del proyecto" (click)="state.switchTab('archivos')">
+      <button title="Archivos del proyecto" [disabled]="!api.proyectoSeleccionado" (click)="state.switchTab('archivos')">
         <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM15 3v5h5M8 13h8M8 17h6"/></svg>
       </button>
       <button title="Tareas pendientes" (click)="state.navigate('tareas')">
         <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v8H3V4h13"/></svg>
       </button>
-      <button title="Añadir colaborador" (click)="state.collaboratorModalOpen = true">
+      <button title="Añadir colaborador no disponible" disabled class="btn-dock-disabled" aria-label="Añadir colaborador no disponible">
         <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
       </button>
       <i></i>

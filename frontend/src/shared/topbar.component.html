@@ -57,6 +57,7 @@
           <span class="eyebrow" *ngIf="state.unreadNotifsCount > 0">{{ state.unreadNotifsCount }} nuevas</span>
         </div>
         <div class="notif-list">
+          <p class="notif-empty" *ngIf="state.notificaciones.length === 0">No tienes notificaciones pendientes.</p>
           <div class="notif-item" *ngFor="let n of state.notificaciones" [class.unread]="!n.leida">
             <span class="notif-dot" [class.dot-coral]="n.tipo === 'feedback'" [class.dot-green]="n.tipo === 'pago'" [class.dot-blue]="n.tipo === 'proyecto'"></span>
             <div>

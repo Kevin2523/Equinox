@@ -248,18 +248,11 @@
   <section class="quick-modal" (click)="$event.stopPropagation()">
     <button class="close" (click)="state.collaboratorModalOpen = false">×</button>
     <small>EQUIPO DE TRABAJO</small>
-    <h2>Añadir colaborador a {{ state.selectedProject?.nombre }}</h2>
-    <div class="form-group">
-      <label>Nombre del colaborador</label>
-      <input class="form-control" [(ngModel)]="state.nuevoColaborador.nombre" placeholder="ej. Laura Morales" autofocus>
-    </div>
-    <div class="form-group">
-      <label>Rol o especialidad</label>
-      <input class="form-control" [(ngModel)]="state.nuevoColaborador.rol" placeholder="ej. Ilustradora, Desarrollador, Copywriter">
-    </div>
+    <h2>Añadir colaborador a {{ state.selectedProject?.nombre || "proyecto" }}</h2>
+    <p class="text-muted mb-3">La asignación directa de colaboradores a proyectos no está disponible en la versión actual del plan.</p>
     <div class="modal-actions">
-      <button class="btn-secondary" (click)="state.collaboratorModalOpen = false">Cancelar</button>
-      <button class="btn-primary" (click)="state.addCollaborator()">Añadir al proyecto</button>
+      <button class="btn-secondary" (click)="state.collaboratorModalOpen = false">Cerrar</button>
+      <button class="btn-primary" disabled>No disponible</button>
     </div>
   </section>
 </div>

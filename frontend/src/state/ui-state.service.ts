@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs';
+import { BehaviorSubject, Observable, filter } from 'rxjs';
 import { EquinoxService } from '../services/equinox.service';
 import { ClientesProyectosApiService, ClienteApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import { TrabajoApiService } from '../services/trabajo-api.service';
 import { AuthService } from '../auth/auth.service';
 import { FacturasApiService, FacturaApi, TotalesFacturasApi, TotalMonedaApi } from '../services/facturas-api.service';
+import { OrganizacionApiService, ActualizarOrganizacionApi } from '../services/organizacion-api.service';
 import {
   Cliente,
   Proyecto,
@@ -21,6 +22,21 @@ export class UiStateService {
   page: 'hoy' | 'clientes' | 'proyectos' | 'tareas' | 'finanzas' | 'configuracion' | 'portal' = 'hoy';
   tab: 'resumen' | 'tareas' | 'archivos' | 'factura' | 'feedback' = 'resumen';
   mobileMenuOpen = false;
+
+  // Sesión y concurrencia
+  private sesionGeneracion = 0;
+  private solicitudFacturas = 0;
+  private solicitudPortalFinanzas = 0;
+  private solicitudConfiguracion = 0;
+
+  private obtenerIdentificadorSesion(): string {
+    const sesion = this.auth?.sesion;
+    const token = this.auth?.token || '';
+    if (!sesion || !token || sesion.contexto?.tipoAcceso !== 'ORGANIZACION') return '';
+    const orgId = (sesion.contexto as any)?.organizacionId || 'org-default';
+    const usuarioId = sesion.usuario?.id || 'u-default';
+    return `${token}:${orgId}:${usuarioId}`;
+  }
 
   // Search & Filters
   query = '';
@@ -68,6 +84,13 @@ export class UiStateService {
   selectedProject: Proyecto | null = null;
   toastMessage = '';
   facturasReales: Factura[] = [];
+  private facturasRealesSubject?: BehaviorSubject<Factura[]>;
+  get facturasReales$(): Observable<Factura[]> {
+    if (!this.facturasRealesSubject) {
+      this.facturasRealesSubject = new BehaviorSubject<Factura[]>(this.facturasReales || []);
+    }
+    return this.facturasRealesSubject.asObservable();
+  }
   totalesFacturas: TotalesFacturasApi | null = null;
   haCargadoFacturas = false;
   cargandoFacturas = false;
@@ -77,6 +100,10 @@ export class UiStateService {
   errorPortalFinanzas = '';
   visibilidadFacturaEnCursoId: string | null = null;
   errorVisibilidadFactura = '';
+  cargandoConfiguracion = false;
+  guardandoConfiguracion = false;
+  errorConfiguracion = '';
+  exitoConfiguracion = '';
 
   // Payment modal state
   pagoModalOpen = false;
@@ -89,7 +116,7 @@ export class UiStateService {
     return this.totalesFacturas?.totalesPorMoneda || [];
   }
 
-  constructor(public equinox: EquinoxService, public clientesProyectosApi: ClientesProyectosApiService, private router: Router, public trabajo: TrabajoApiService, private auth: AuthService, public facturasApi?: FacturasApiService) {
+  constructor(public equinox: EquinoxService, public clientesProyectosApi: ClientesProyectosApiService, private router: Router, public trabajo: TrabajoApiService, private auth: AuthService, public facturasApi?: FacturasApiService, public organizacionApi?: OrganizacionApiService) {
     this.initialize();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       const segmento = event.urlAfterRedirects.split('?')[0].split('/')[1];
@@ -105,19 +132,43 @@ export class UiStateService {
     this.clientesProyectosApi.proyectos$.subscribe((p) => (this.proyectos = p.map((proyecto) => this.adaptarProyecto(proyecto))));
     this.equinox.configuracion$.subscribe((cfg) => (this.configuracion = cfg));
     this.equinox.notificaciones$.subscribe((n) => (this.notificaciones = n));
-    this.equinox.proyectoSeleccionado$.subscribe((sel) => {
-      if (sel) this.selectedProject = sel;
+    this.clientesProyectosApi.proyectoSeleccionado$.subscribe((sel) => {
+      this.selectedProject = sel ? this.adaptarProyecto(sel) : null;
     });
     this.equinox.toast$.subscribe((msg) => (this.toastMessage = msg));
     this.auth.sesion$.subscribe((sesion) => {
+      this.sesionGeneracion = (this.sesionGeneracion || 0) + 1;
+      this.solicitudFacturas = (this.solicitudFacturas || 0) + 1;
+      this.solicitudPortalFinanzas = (this.solicitudPortalFinanzas || 0) + 1;
+      this.solicitudConfiguracion = (this.solicitudConfiguracion || 0) + 1;
+
+      // Vaciar sin esperar a la API: el estado compartido nunca debe conservar
+      // datos de la sesión anterior durante la carga de la siguiente.
+      this.facturasReales = [];
+      this.facturasRealesSubject?.next([]);
+      this.totalesFacturas = null;
+      this.haCargadoFacturas = false;
+      this.portalMostrarFinanzas = null;
+      this.equinox.limpiarConfiguracionSesion();
+      this.errorFacturas = '';
+      this.errorPortalFinanzas = '';
+      this.errorConfiguracion = '';
+      this.exitoConfiguracion = '';
+      this.errorVisibilidadFactura = '';
+      this.visibilidadFacturaEnCursoId = null;
+      this.cargandoFacturas = false;
+      this.cargandoPortalFinanzas = false;
+      this.cargandoConfiguracion = false;
+      this.guardandoConfiguracion = false;
+      this.pagoModalOpen = false;
+      this.facturaSeleccionadaPago = null;
+      this.pagoLoading = false;
+      this.pagoError = '';
+
       if (sesion && sesion.contexto?.tipoAcceso === 'ORGANIZACION') {
         void this.cargarFacturas();
         void this.cargarConfiguracionPortalFinanzas();
-      } else {
-        this.facturasReales = [];
-        this.totalesFacturas = null;
-        this.haCargadoFacturas = false;
-        this.portalMostrarFinanzas = null;
+        void this.cargarOrganizacion();
       }
     });
   }
@@ -213,6 +264,7 @@ export class UiStateService {
   selectProject(p: Proyecto) {
     this.selectedProject = p;
     this.equinox.seleccionarProyecto(p);
+    void this.clientesProyectosApi.seleccionarProyecto(p.id).catch(() => {});
     this.tab = 'resumen';
     this.equinox.mostrarToast(`Proyecto seleccionado: ${p.nombre}`);
   }
@@ -422,9 +474,8 @@ export class UiStateService {
     } finally { this.inlineCommentLoading = false; }
   }
 
-  addClientFeedbackPortal(text: string) {
-    if (!text.trim() || !this.selectedProject) return;
-    this.equinox.agregarComentario(this.selectedProject.id, text.trim(), 'CLIENTE');
+  addClientFeedbackPortal(_text: string) {
+    // La retroalimentación se realiza mediante el portal de cliente autenticado.
   }
 
   abrirModalPago(factura: Factura): void {
@@ -453,6 +504,7 @@ export class UiStateService {
 
   async confirmarPago(): Promise<void> {
     if (!this.facturaSeleccionadaPago) return;
+    const factura = this.facturaSeleccionadaPago;
     const textoMonto = String(this.nuevoPago.monto).trim();
     const monto = Number(textoMonto);
     if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(textoMonto) || !Number.isFinite(monto) || monto <= 0) {
@@ -463,22 +515,27 @@ export class UiStateService {
       this.pagoError = 'No hay conexión autenticada con el servidor.';
       return;
     }
+    const generacion = this.sesionGeneracion;
+    const sesionId = this.obtenerIdentificadorSesion();
     this.pagoLoading = true;
     this.pagoError = '';
     try {
-      await this.facturasApi.registrarPago(this.facturaSeleccionadaPago.id, {
+      await this.facturasApi.registrarPago(factura.id, {
         monto,
         moneda: this.nuevoPago.moneda,
         metodo: this.nuevoPago.metodo,
         referencia: this.nuevoPago.referencia?.trim() || null,
         notas: this.nuevoPago.notas?.trim() || null,
       });
+      if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
       await this.cargarFacturas();
-      const num = this.facturaSeleccionadaPago.numero;
+      if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
+      const num = factura.numero;
       this.pagoModalOpen = false;
       this.facturaSeleccionadaPago = null;
       this.equinox.mostrarToast(`Pago registrado para la factura ${num}`);
     } catch (error: any) {
+      if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
       if (error?.status === 403) {
         this.pagoError = 'Solo los propietarios pueden registrar pagos.';
       } else if (error?.status === 422) {
@@ -487,7 +544,7 @@ export class UiStateService {
         this.pagoError = 'No se pudo registrar el pago en el servidor.';
       }
     } finally {
-      this.pagoLoading = false;
+      if (generacion === this.sesionGeneracion && sesionId === this.obtenerIdentificadorSesion()) this.pagoLoading = false;
     }
   }
 
@@ -504,37 +561,70 @@ export class UiStateService {
   }
 
   async cargarConfiguracionPortalFinanzas(): Promise<void> {
-    if (!this.facturasApi?.consultarPortalFinanzas || !this.auth.token) return;
+    const sesionId = this.obtenerIdentificadorSesion();
+    if (!this.facturasApi?.consultarPortalFinanzas || !this.auth.token || !sesionId) {
+      this.portalMostrarFinanzas = null;
+      this.cargandoPortalFinanzas = false;
+      return;
+    }
+    const generacion = this.sesionGeneracion || 0;
+    const solicitud = (this.solicitudPortalFinanzas = (this.solicitudPortalFinanzas || 0) + 1);
     this.cargandoPortalFinanzas = true;
     this.errorPortalFinanzas = '';
     try {
       const organizacion = await this.facturasApi.consultarPortalFinanzas();
+      if (
+        (this.sesionGeneracion || 0) !== generacion ||
+        this.obtenerIdentificadorSesion() !== sesionId ||
+        solicitud !== this.solicitudPortalFinanzas
+      ) {
+        return;
+      }
       this.portalMostrarFinanzas = organizacion.portalMostrarFinanzas;
     } catch {
+      if (
+        (this.sesionGeneracion || 0) !== generacion ||
+        this.obtenerIdentificadorSesion() !== sesionId ||
+        solicitud !== this.solicitudPortalFinanzas
+      ) {
+        return;
+      }
       this.portalMostrarFinanzas = null;
       this.errorPortalFinanzas = 'No se pudo consultar si las facturas están habilitadas en el portal.';
     } finally {
-      this.cargandoPortalFinanzas = false;
+      if (
+        (this.sesionGeneracion || 0) === generacion &&
+        this.obtenerIdentificadorSesion() === sesionId &&
+        solicitud === this.solicitudPortalFinanzas
+      ) {
+        this.cargandoPortalFinanzas = false;
+      }
     }
   }
 
   async cambiarPortalFinanzas(): Promise<void> {
     if (!this.facturasApi || !this.puedeGestionarFacturas || this.portalMostrarFinanzas === null || this.cargandoPortalFinanzas) return;
+    const generacion = this.sesionGeneracion;
+    const sesionId = this.obtenerIdentificadorSesion();
     this.cargandoPortalFinanzas = true;
     this.errorPortalFinanzas = '';
     try {
       const resultado = await this.facturasApi.configurarPortalFinanzas(!this.portalMostrarFinanzas);
+      if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
       this.portalMostrarFinanzas = resultado.portalMostrarFinanzas;
     } catch {
+      if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
       this.errorPortalFinanzas = 'No se pudo guardar la configuración del portal. Reintenta.';
     } finally {
-      this.cargandoPortalFinanzas = false;
+      if (generacion === this.sesionGeneracion && sesionId === this.obtenerIdentificadorSesion()) this.cargandoPortalFinanzas = false;
     }
   }
 
   async cambiarVisibilidadFactura(factura: Factura): Promise<void> {
     if (!this.facturasApi || !this.auth.token || this.visibilidadFacturaEnCursoId) return;
     if (factura.estado === 'CANCELADA') return;
+    const generacion = this.sesionGeneracion;
+    const sesionId = this.obtenerIdentificadorSesion();
     this.visibilidadFacturaEnCursoId = factura.id;
     this.errorVisibilidadFactura = '';
     const emitir = factura.estado === 'BORRADOR';
@@ -542,20 +632,28 @@ export class UiStateService {
       await this.facturasApi.actualizarFactura(factura.id, emitir
         ? { estado: 'ENVIADA', visibleEnPortal: true }
         : { visibleEnPortal: !factura.visibleEnPortal });
+      if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
       await this.cargarFacturas();
     } catch {
+      if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
       this.errorVisibilidadFactura = 'No se pudo cambiar la visibilidad de la factura. Reintenta.';
     } finally {
-      this.visibilidadFacturaEnCursoId = null;
+      if (generacion === this.sesionGeneracion && sesionId === this.obtenerIdentificadorSesion()) this.visibilidadFacturaEnCursoId = null;
     }
   }
 
   async cargarFacturas(): Promise<void> {
-    if (!this.facturasApi || !this.auth.token) {
+    const sesionId = this.obtenerIdentificadorSesion();
+    if (!this.facturasApi || !this.auth.token || !sesionId) {
       this.facturasReales = [];
       this.totalesFacturas = null;
+      this.haCargadoFacturas = false;
+      this.cargandoFacturas = false;
+      this.facturasRealesSubject?.next([]);
       return;
     }
+    const generacion = this.sesionGeneracion || 0;
+    const solicitud = (this.solicitudFacturas = (this.solicitudFacturas || 0) + 1);
     this.cargandoFacturas = true;
     this.errorFacturas = '';
     try {
@@ -563,14 +661,37 @@ export class UiStateService {
         this.facturasApi.listarFacturas(),
         this.facturasApi.consultarTotales()
       ]);
+      if (
+        (this.sesionGeneracion || 0) !== generacion ||
+        this.obtenerIdentificadorSesion() !== sesionId ||
+        solicitud !== this.solicitudFacturas
+      ) {
+        return;
+      }
       this.facturasReales = facturas.map((f) => this.adaptarFactura(f));
       this.totalesFacturas = totales;
+      this.haCargadoFacturas = true;
+      this.facturasRealesSubject?.next(this.facturasReales);
     } catch {
+      if (
+        (this.sesionGeneracion || 0) !== generacion ||
+        this.obtenerIdentificadorSesion() !== sesionId ||
+        solicitud !== this.solicitudFacturas
+      ) {
+        return;
+      }
       this.errorFacturas = 'No se pudieron cargar las facturas autorizadas.';
       this.facturasReales = [];
       this.totalesFacturas = null;
+      this.facturasRealesSubject?.next([]);
     } finally {
-      this.cargandoFacturas = false;
+      if (
+        (this.sesionGeneracion || 0) === generacion &&
+        this.obtenerIdentificadorSesion() === sesionId &&
+        solicitud === this.solicitudFacturas
+      ) {
+        this.cargandoFacturas = false;
+      }
     }
   }
 
@@ -599,19 +720,6 @@ export class UiStateService {
 
   // Collaborator action
   addCollaborator() {
-    if (!this.nuevoColaborador.nombre.trim() || !this.selectedProject) return;
-    const iniciales = this.nuevoColaborador.nombre
-      .split(' ')
-      .map((w) => w[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
-    this.selectedProject.participantes.push({
-      iniciales,
-      color: '#7a55d8'
-    });
-    this.equinox.mostrarToast(`Colaborador ${this.nuevoColaborador.nombre} añadido`);
-    this.nuevoColaborador = { nombre: '', rol: 'Diseñador UI', iniciales: '' };
     this.collaboratorModalOpen = false;
   }
 
@@ -667,8 +775,106 @@ export class UiStateService {
     }
   }
 
-  saveConfig() {
-    this.equinox.actualizarConfiguracion(this.configuracion);
+  get puedeGestionarOrganizacion(): boolean {
+    return this.auth.sesion?.contexto.tipoAcceso === 'ORGANIZACION'
+      && this.auth.sesion.contexto.rolOrganizacion === 'PROPIETARIO';
+  }
+
+  async cargarOrganizacion(): Promise<void> {
+    const sesionId = this.obtenerIdentificadorSesion();
+    if (!this.organizacionApi || !this.auth.token || !sesionId) {
+      this.cargandoConfiguracion = false;
+      return;
+    }
+    const generacion = this.sesionGeneracion || 0;
+    const solicitud = (this.solicitudConfiguracion = (this.solicitudConfiguracion || 0) + 1);
+    this.cargandoConfiguracion = true;
+    this.errorConfiguracion = '';
+    try {
+      const org = await this.organizacionApi.consultar();
+      if (
+        (this.sesionGeneracion || 0) !== generacion ||
+        this.obtenerIdentificadorSesion() !== sesionId ||
+        solicitud !== this.solicitudConfiguracion
+      ) {
+        return;
+      }
+      const usuario = this.auth.sesion?.usuario;
+      const nombreUsuario = [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ');
+      const config: ConfiguracionEstudio = {
+        nombreEstudio: org.nombre || '',
+        nombreFreelancer: nombreUsuario || '',
+        correo: org.correoContacto || usuario?.correo || '',
+        telefono: org.telefono || '',
+        ruc: org.ruc || '',
+        moneda: org.moneda || 'PAB',
+        colorPrimario: org.colorPrimario || '#2563eb',
+        colorSecundario: org.colorSecundario || '#0f172a',
+        tipografia: org.tipografia || 'Inter',
+        mensajeBienvenida: org.descripcion || ''
+      };
+      this.configuracion = config;
+      this.equinox.actualizarConfiguracion(config);
+    } catch {
+      if (
+        (this.sesionGeneracion || 0) !== generacion ||
+        this.obtenerIdentificadorSesion() !== sesionId ||
+        solicitud !== this.solicitudConfiguracion
+      ) {
+        return;
+      }
+      this.errorConfiguracion = 'No se pudo cargar la configuración de la organización.';
+    } finally {
+      if (
+        (this.sesionGeneracion || 0) === generacion &&
+        this.obtenerIdentificadorSesion() === sesionId &&
+        solicitud === this.solicitudConfiguracion
+      ) {
+        this.cargandoConfiguracion = false;
+      }
+    }
+  }
+
+  async saveConfig(): Promise<void> {
+    if (!this.puedeGestionarOrganizacion) {
+      this.errorConfiguracion = 'Solo los propietarios pueden modificar la configuración de la organización.';
+      return;
+    }
+    if (!this.organizacionApi || !this.auth.token || this.guardandoConfiguracion) return;
+    const generacion = this.sesionGeneracion;
+    const sesionId = this.obtenerIdentificadorSesion();
+    this.guardandoConfiguracion = true;
+    this.errorConfiguracion = '';
+    this.exitoConfiguracion = '';
+    try {
+      const payload: ActualizarOrganizacionApi = {
+        nombre: this.configuracion.nombreEstudio?.trim() || undefined,
+        descripcion: this.configuracion.mensajeBienvenida || null,
+        moneda: this.configuracion.moneda?.trim() || undefined,
+        ruc: this.configuracion.ruc?.trim() || null,
+        telefono: this.configuracion.telefono?.trim() || null,
+        correoContacto: this.configuracion.correo?.trim() || null,
+        colorPrimario: this.configuracion.colorPrimario,
+        colorSecundario: this.configuracion.colorSecundario,
+        tipografia: this.configuracion.tipografia
+      };
+      await this.organizacionApi.actualizar(payload);
+      if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
+      this.equinox.actualizarConfiguracion(this.configuracion);
+      this.exitoConfiguracion = 'Configuración guardada correctamente.';
+      this.equinox.mostrarToast('Configuración guardada con éxito');
+    } catch (error: any) {
+      if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
+      if (error?.status === 403) {
+        this.errorConfiguracion = 'Solo los propietarios pueden modificar la configuración de la organización.';
+      } else if (error?.status === 422) {
+        this.errorConfiguracion = 'Revisa los datos ingresados en la configuración.';
+      } else {
+        this.errorConfiguracion = 'No se pudo guardar la configuración en el servidor.';
+      }
+    } finally {
+      if (generacion === this.sesionGeneracion && sesionId === this.obtenerIdentificadorSesion()) this.guardandoConfiguracion = false;
+    }
   }
 
   handleKeyboardShortcut(event: KeyboardEvent) {

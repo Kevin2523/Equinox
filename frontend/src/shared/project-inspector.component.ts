@@ -14,6 +14,10 @@ import { Router } from '@angular/router';
 export class ProjectInspectorComponent {
   constructor(public api: ClientesProyectosApiService, private router: Router) {}
 
+  nuevoProyecto(): void {
+    void this.router.navigate(['/proyectos']);
+  }
+
   editar(id: string): void {
     void this.router.navigate(['/proyectos'], { queryParams: { editar: id } });
   }
