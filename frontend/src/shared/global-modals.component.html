@@ -1,12 +1,12 @@
 <!-- 1. Quick Create Modal ("¿Qué quieres crear?") -->
 <div class="overlay" *ngIf="state.createModalOpen" (click)="state.closeCreateModal()">
-  <section class="quick-modal" (click)="$event.stopPropagation()">
+  <section class="quick-modal" role="dialog" aria-modal="true" aria-label="Crear cliente, proyecto, tarea o factura" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
     <button class="close" (click)="state.closeCreateModal()" aria-label="Cerrar modal">×</button>
 
     <!-- Choice Selection Step -->
     <div *ngIf="!state.activeCreateType">
       <small>ACCIÓN RÁPIDA</small>
-      <h2>¿Qué quieres crear?</h2>
+      <h2 id="create-dialog-title">¿Qué quieres crear?</h2>
       <div class="modal-choices">
         <button (click)="state.selectCreateType('Cliente')">
           <span>＋</span>
@@ -186,7 +186,7 @@
 
 <!-- 2. Global Search Overlay (Ctrl+K) -->
 <div class="search-overlay" *ngIf="state.searchOpen" (click)="state.closeSearch()">
-  <div class="search-modal-box" (click)="$event.stopPropagation()">
+  <div class="search-modal-box" role="dialog" aria-modal="true" aria-label="Búsqueda global" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
     <label class="search-bar-input">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
       <input
@@ -204,40 +204,40 @@
       <!-- Proyectos results -->
       <div class="search-cat" *ngIf="state.visibleProjects.length > 0">
         <small>PROYECTOS</small>
-        <div class="search-result-row" *ngFor="let p of state.visibleProjects.slice(0, 4)" (click)="state.selectSearchResult('proyecto', p)">
+        <button type="button" class="search-result-row" *ngFor="let p of state.visibleProjects.slice(0, 4)" (click)="state.selectSearchResult('proyecto', p)">
           <span class="sr-icon">◇</span>
-          <div>
+          <span class="search-result-details">
             <b>{{ p.nombre }}</b>
             <p>{{ p.tipo }} · {{ p.clienteNombre }}</p>
-          </div>
+          </span>
           <span class="badge" [class]="'badge-' + p.estadoBadgeClass">{{ p.estado }}</span>
-        </div>
+        </button>
       </div>
 
       <!-- Clientes results -->
       <div class="search-cat" *ngIf="state.visibleClients.length > 0">
         <small>CLIENTES</small>
-        <div class="search-result-row" *ngFor="let c of state.visibleClients.slice(0, 3)" (click)="state.selectSearchResult('cliente', c)">
+        <button type="button" class="search-result-row" *ngFor="let c of state.visibleClients.slice(0, 3)" (click)="state.selectSearchResult('cliente', c)">
           <span class="sr-icon">👤</span>
-          <div>
+          <span class="search-result-details">
             <b>{{ c.nombre }}</b>
             <p>{{ c.empresa }} · {{ c.correo }}</p>
-          </div>
+          </span>
           <span class="badge badge-completado">{{ c.estado }}</span>
-        </div>
+        </button>
       </div>
 
       <!-- Tareas results -->
       <div class="search-cat" *ngIf="state.allTasks.length > 0">
         <small>TAREAS</small>
-        <div class="search-result-row" *ngFor="let t of state.allTasks.slice(0, 3)" (click)="state.selectSearchResult('tarea', t)">
+        <button type="button" class="search-result-row" *ngFor="let t of state.allTasks.slice(0, 3)" (click)="state.selectSearchResult('tarea', t)">
           <span class="sr-icon">✓</span>
-          <div>
+          <span class="search-result-details">
             <b>{{ t.titulo }}</b>
             <p>{{ t.proyectoNombre }} · {{ t.fechaVencimiento ? ('Vence ' + t.fechaVencimiento.slice(0, 10)) : 'Sin vencimiento' }}</p>
-          </div>
+          </span>
           <span class="priority-tag">{{ t.prioridad }}</span>
-        </div>
+        </button>
       </div>
     </div>
   </div>
@@ -245,7 +245,7 @@
 
 <!-- 3. Collaborator Modal -->
 <div class="overlay" *ngIf="state.collaboratorModalOpen" (click)="state.collaboratorModalOpen = false">
-  <section class="quick-modal" (click)="$event.stopPropagation()">
+  <section class="quick-modal" role="dialog" aria-modal="true" aria-label="Añadir colaborador" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
     <button class="close" (click)="state.collaboratorModalOpen = false">×</button>
     <small>EQUIPO DE TRABAJO</small>
     <h2>Añadir colaborador a {{ state.selectedProject?.nombre || "proyecto" }}</h2>
@@ -259,7 +259,7 @@
 
 <!-- 4. Client Detail Modal -->
 <div class="overlay" *ngIf="state.clientDetailModal" (click)="state.clientDetailModal = null">
-  <section class="quick-modal" (click)="$event.stopPropagation()">
+  <section class="quick-modal" role="dialog" aria-modal="true" aria-label="Detalle de cliente" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
     <button class="close" (click)="state.clientDetailModal = null">×</button>
     <small>DETALLE DE CLIENTE</small>
     <h2>{{ state.clientDetailModal.nombre }}</h2>

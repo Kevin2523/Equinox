@@ -1,41 +1,64 @@
 <main class="portal-page" [style.fontFamily]="identidad?.estudio?.tipografia || null"
   [style.--portal-primary]="identidad?.estudio?.colorPrimario || '#3568f6'">
-  <section class="portal-banner" aria-labelledby="portal-heading"
-    [style.borderTopColor]="identidad?.estudio?.colorPrimario || 'var(--blue)'"
-    [style.borderBottomColor]="identidad?.estudio?.colorSecundario || 'var(--line)'">
-    <div class="portal-brand" *ngIf="identidad as cuenta">
-      <img *ngIf="cuenta.estudio.logoUrl && !logoFallido" [src]="cuenta.estudio.logoUrl" [alt]="'Marca de ' + cuenta.estudio.nombre" (error)="logoFallido = true">
-      <span class="portal-brand-fallback" *ngIf="!cuenta.estudio.logoUrl || logoFallido" aria-hidden="true"
-        [style.backgroundColor]="cuenta.estudio.colorPrimario || 'var(--blue)'">{{ cuenta.estudio.nombre.slice(0, 1).toUpperCase() }}</span>
-      <div><p class="eyebrow">PORTAL DEL CLIENTE</p><strong>{{ cuenta.estudio.nombre }}</strong></div>
-    </div>
-    <div class="portal-banner-loading" *ngIf="cargandoIdentidad" role="status" aria-live="polite">Cargando la identidad del portal…</div>
-    <div class="portal-banner-error" *ngIf="errorIdentidad" role="alert">
-      <span>{{ errorIdentidad }}</span><button type="button" class="btn-secondary" (click)="cargarIdentidad()">Reintentar</button>
-    </div>
-    <div class="portal-banner-center" *ngIf="identidad as cuenta">
-      <span class="portal-secure-badge">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-        </svg>
-        Canal seguro
-      </span>
-    </div>
-    <div class="portal-client-identity" *ngIf="identidad as cuenta">
-      <div class="client-avatar-badge" aria-hidden="true">{{ cuenta.cliente.nombre.slice(0, 1).toUpperCase() }}</div>
-      <div class="client-text-block">
-        <span>Cuenta de cliente</span><strong>{{ cuenta.cliente.nombre }}</strong><small *ngIf="cuenta.cliente.empresa">{{ cuenta.cliente.empresa }}</small>
-      </div>
-    </div>
-  </section>
 
-  <header class="portal-welcome" *ngIf="identidad as cuenta">
-    <div><p class="eyebrow">ESPACIO COMPARTIDO</p><h1 id="portal-heading">Hola, {{ cuenta.cliente.nombre }}</h1>
-      <p>Consulta los proyectos, entregables y conversaciones que el equipo ha compartido contigo.</p></div>
-  </header>
+  <div class="portal-hero-surface">
+    <section class="portal-banner" aria-labelledby="portal-heading">
+      <div class="portal-brand" *ngIf="identidad as cuenta">
+        <img *ngIf="cuenta.estudio.logoUrl && !logoFallido" [src]="cuenta.estudio.logoUrl" [alt]="'Marca de ' + cuenta.estudio.nombre" (error)="logoFallido = true">
+        <span class="portal-brand-fallback" *ngIf="!cuenta.estudio.logoUrl || logoFallido" aria-hidden="true"
+          [style.backgroundColor]="cuenta.estudio.colorPrimario || 'var(--blue)'">{{ cuenta.estudio.nombre.slice(0, 1).toUpperCase() }}</span>
+        <div><p class="eyebrow">PORTAL DEL CLIENTE</p><strong>{{ cuenta.estudio.nombre }}</strong></div>
+      </div>
+      <div class="portal-banner-loading" *ngIf="cargandoIdentidad" role="status" aria-live="polite">Cargando la identidad del portal…</div>
+      <div class="portal-banner-error" *ngIf="errorIdentidad" role="alert">
+        <span>{{ errorIdentidad }}</span><button type="button" class="btn-secondary" (click)="cargarIdentidad()">Reintentar</button>
+      </div>
+      <div class="portal-banner-center" *ngIf="identidad as cuenta">
+        <span class="portal-secure-badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          Canal seguro
+        </span>
+      </div>
+      <div class="portal-client-identity" *ngIf="identidad as cuenta">
+        <div class="client-avatar-badge" aria-hidden="true">{{ cuenta.cliente.nombre.slice(0, 1).toUpperCase() }}</div>
+        <div class="client-text-block">
+          <span>Cuenta de cliente</span><strong>{{ cuenta.cliente.nombre }}</strong><small *ngIf="cuenta.cliente.empresa">{{ cuenta.cliente.empresa }}</small>
+        </div>
+      </div>
+    </section>
+
+    <header class="portal-welcome" *ngIf="identidad as cuenta">
+      <div class="portal-welcome-copy">
+        <p class="eyebrow">ESPACIO COMPARTIDO</p>
+        <h1 id="portal-heading">Hola, {{ cuenta.cliente.nombre }}</h1>
+        <p>Consulta los proyectos, entregables y conversaciones que el equipo ha compartido contigo.</p>
+      </div>
+      <div class="portal-welcome-stats" aria-label="Resumen de tu portal">
+        <div class="portal-stat-pill">
+          <span class="stat-label">Avance de hitos</span>
+          <strong>{{ cargandoDetalle || errorDetalle || !proyecto ? '—' : avanceHitos !== null ? (avanceHitos + '%') : 'Sin hitos' }}</strong>
+          <small>{{ cargandoDetalle ? 'Consultando…' : errorDetalle || !proyecto ? 'Sin datos disponibles' : hitos.length + (hitos.length === 1 ? ' hito visible' : ' hitos visibles') }}</small>
+        </div>
+        <div class="portal-stat-pill">
+          <span class="stat-label">Entregables</span>
+          <strong>{{ cargandoDetalle || errorDetalle || !proyecto ? '—' : archivos.length }}</strong>
+          <small>{{ cargandoDetalle ? 'Consultando…' : errorDetalle || !proyecto ? 'Sin datos disponibles' : archivos.length === 1 ? 'Archivo compartido' : 'Archivos compartidos' }}</small>
+        </div>
+        <div class="portal-stat-pill">
+          <span class="stat-label">Facturación</span>
+          <strong>{{ cargandoFacturas || errorFacturas ? '—' : facturas.length }}</strong>
+          <small>{{ cargandoFacturas ? 'Consultando…' : errorFacturas ? 'Sin datos disponibles' : facturas.length === 1 ? 'Factura autorizada' : 'Facturas autorizadas' }}</small>
+        </div>
+      </div>
+    </header>
+  </div>
 
   <section class="portal-projects" aria-labelledby="projects-heading">
-    <div class="portal-section-heading"><div><p class="eyebrow">SEGUIMIENTO</p><h2 id="projects-heading">Tus proyectos</h2></div></div>
+    <div class="portal-section-heading portal-projects-heading" [class.sr-only-heading]="proyectos.length <= 1">
+      <div><p class="eyebrow">SEGUIMIENTO</p><h2 id="projects-heading">Tus proyectos</h2></div>
+    </div>
     <p class="portal-state" *ngIf="cargandoProyectos" role="status" aria-live="polite">Cargando tus proyectos…</p>
     <div class="portal-state portal-error" *ngIf="errorProyectos" role="alert">{{ errorProyectos }} <button type="button" class="btn-secondary" (click)="cargarProyectos()">Reintentar</button></div>
     <p class="portal-state" *ngIf="!cargandoProyectos && !errorProyectos && proyectos.length === 0">Todavía no hay proyectos compartidos contigo.</p>
@@ -51,19 +74,21 @@
         <p class="portal-state" *ngIf="cargandoDetalle" role="status">Cargando el proyecto…</p>
         <div class="portal-state portal-error" *ngIf="errorDetalle" role="alert">{{ errorDetalle }} <button type="button" class="btn-secondary" (click)="reintentarDetalle()">Reintentar</button></div>
         <ng-container *ngIf="proyecto as actual">
-          <header class="project-heading">
-            <div><p class="eyebrow">PROYECTO</p><h3>{{ actual.nombre }}</h3><p *ngIf="actual.descripcion">{{ actual.descripcion }}</p></div>
-            <span class="project-status">{{ actual.estado }}</span>
-          </header>
-          <div class="project-dates">
-            <p *ngIf="actual.fechaInicio"><span>Inicio</span><strong>{{ actual.fechaInicio | date:'mediumDate' }}</strong></p>
-            <p *ngIf="actual.fechaEntrega"><span>Entrega</span><strong>{{ actual.fechaEntrega | date:'mediumDate' }}</strong></p>
+          <div class="project-top-bar">
+            <header class="project-heading">
+              <div><p class="eyebrow">PROYECTO</p><h3>{{ actual.nombre }}</h3><p *ngIf="actual.descripcion">{{ actual.descripcion }}</p></div>
+              <span class="project-status">{{ actual.estado }}</span>
+            </header>
+            <div class="project-dates" *ngIf="actual.fechaInicio || actual.fechaEntrega">
+              <p *ngIf="actual.fechaInicio"><span>Inicio</span><strong>{{ actual.fechaInicio | date:'mediumDate' }}</strong></p>
+              <p *ngIf="actual.fechaEntrega"><span>Entrega</span><strong>{{ actual.fechaEntrega | date:'mediumDate' }}</strong></p>
+            </div>
           </div>
 
           <div class="portal-detail-grid">
           <section class="portal-content-section" aria-labelledby="milestones-heading">
             <div class="portal-section-heading"><h4 id="milestones-heading">Hitos compartidos</h4>
-              <span *ngIf="avanceHitos !== null">{{ avanceHitos }}% de hitos compartidos completados</span></div>
+              <span *ngIf="avanceHitos !== null">{{ avanceHitos }}% completado</span></div>
             <div class="portal-progress" *ngIf="avanceHitos !== null" role="progressbar" aria-label="Avance de hitos compartidos"
               aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="avanceHitos">
               <span [style.width.%]="avanceHitos" [style.backgroundColor]="identidad?.estudio?.colorPrimario || 'var(--blue)'"></span>
@@ -79,7 +104,8 @@
           </section>
 
           <section class="portal-content-section" aria-labelledby="files-heading">
-            <div class="portal-section-heading"><h4 id="files-heading">Archivos compartidos</h4></div>
+            <div class="portal-section-heading"><h4 id="files-heading">Archivos compartidos</h4>
+              <span *ngIf="archivos.length">{{ archivos.length }} {{ archivos.length === 1 ? 'archivo' : 'archivos' }}</span></div>
             <p class="portal-inline-empty" *ngIf="archivos.length === 0">No hay archivos disponibles para este proyecto.</p>
             <ul class="portal-files" *ngIf="archivos.length">
               <li *ngFor="let archivo of archivos"><div><strong>{{ archivo.nombre }}</strong>
@@ -92,22 +118,29 @@
           </div>
 
           <section class="portal-content-section portal-conversation" aria-labelledby="comments-heading">
-            <div class="portal-section-heading"><h4 id="comments-heading">Conversación del proyecto</h4></div>
-            <p class="portal-inline-empty" *ngIf="comentarios.length === 0">Todavía no hay comentarios en este proyecto.</p>
-            <ol class="portal-comments" *ngIf="comentarios.length">
-              <li *ngFor="let mensaje of comentarios" [class.from-client]="mensaje.autor === 'CLIENTE'">
-                <div><strong>{{ autorComentario(mensaje) }}</strong><time [attr.datetime]="mensaje.creadoEn">{{ mensaje.creadoEn | date:'medium' }}</time></div>
-                <p>{{ mensaje.contenido }}</p>
-              </li>
-            </ol>
-            <form class="portal-comment-form" (ngSubmit)="enviarComentario()">
-              <label for="portal-comment">Enviar un comentario</label>
-              <textarea id="portal-comment" name="contenido" [(ngModel)]="comentario" maxlength="2000" rows="3"
-                placeholder="Escribe un mensaje para el equipo" [attr.aria-describedby]="errorComentario ? 'portal-comment-error' : 'portal-comment-help'"></textarea>
-              <small id="portal-comment-help">Máximo 2000 caracteres.</small>
-              <p id="portal-comment-error" class="portal-error-text" *ngIf="errorComentario" role="alert">{{ errorComentario }}</p>
-              <button type="submit" class="btn-primary" [disabled]="enviandoComentario || !comentario.trim()">{{ enviandoComentario ? 'Enviando…' : 'Enviar comentario' }}</button>
-            </form>
+            <div class="portal-section-heading"><h4 id="comments-heading">Conversación del proyecto</h4>
+              <span>{{ comentarios.length }} {{ comentarios.length === 1 ? 'mensaje' : 'mensajes' }}</span></div>
+            <div class="portal-conversation-grid">
+              <div class="portal-conversation-feed">
+                <p class="portal-inline-empty" *ngIf="comentarios.length === 0">Todavía no hay comentarios en este proyecto.</p>
+                <ol class="portal-comments" *ngIf="comentarios.length">
+                  <li *ngFor="let mensaje of comentarios" [class.from-client]="mensaje.autor === 'CLIENTE'">
+                    <div><strong>{{ autorComentario(mensaje) }}</strong><time [attr.datetime]="mensaje.creadoEn">{{ mensaje.creadoEn | date:'medium' }}</time></div>
+                    <p>{{ mensaje.contenido }}</p>
+                  </li>
+                </ol>
+              </div>
+              <form class="portal-comment-form" (ngSubmit)="enviarComentario()">
+                <label for="portal-comment">Enviar un comentario</label>
+                <textarea id="portal-comment" name="contenido" [(ngModel)]="comentario" maxlength="2000" rows="3"
+                  placeholder="Escribe un mensaje para el equipo" [attr.aria-describedby]="errorComentario ? 'portal-comment-error' : 'portal-comment-help'"></textarea>
+                <div class="portal-comment-footer">
+                  <small id="portal-comment-help">Máximo 2000 caracteres.</small>
+                  <button type="submit" class="btn-primary" [disabled]="enviandoComentario || !comentario.trim()">{{ enviandoComentario ? 'Enviando…' : 'Enviar comentario' }}</button>
+                </div>
+                <p id="portal-comment-error" class="portal-error-text" *ngIf="errorComentario" role="alert">{{ errorComentario }}</p>
+              </form>
+            </div>
           </section>
         </ng-container>
       </article>
@@ -115,7 +148,8 @@
   </section>
 
   <section class="portal-invoices" aria-labelledby="invoices-heading">
-    <div class="portal-section-heading"><div><p class="eyebrow">CUENTA</p><h2 id="invoices-heading">Facturas compartidas</h2></div></div>
+    <div class="portal-section-heading"><div><p class="eyebrow">CUENTA</p><h2 id="invoices-heading">Facturas compartidas</h2></div>
+      <span *ngIf="facturas.length">{{ facturas.length }} {{ facturas.length === 1 ? 'factura' : 'facturas' }}</span></div>
     <p class="portal-state" *ngIf="cargandoFacturas" role="status" aria-live="polite">Consultando facturas autorizadas…</p>
     <div class="portal-state portal-error" *ngIf="errorFacturas" role="alert">{{ errorFacturas }} <button type="button" class="btn-secondary" (click)="cargarFacturas()">Reintentar</button></div>
     <p class="portal-state" *ngIf="!cargandoFacturas && !errorFacturas && facturas.length === 0">No hay facturas compartidas disponibles.</p>

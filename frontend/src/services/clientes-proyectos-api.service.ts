@@ -50,6 +50,7 @@ export type EditarProyectoApi = Partial<CrearProyectoApi>;
 @Injectable({ providedIn: 'root' })
 export class ClientesProyectosApiService {
   private generacionSesion = 0;
+  private solicitudSeleccion = 0;
   private readonly clientesSubject = new BehaviorSubject<ClienteApi[]>([]);
   private readonly proyectosSubject = new BehaviorSubject<ProyectoApi[]>([]);
   private readonly proyectoSeleccionadoSubject = new BehaviorSubject<ProyectoApi | null>(null);
@@ -64,6 +65,7 @@ export class ClientesProyectosApiService {
   constructor(private http: HttpClient, private auth?: AuthService) {
     this.auth?.sesion$.subscribe(() => {
       this.generacionSesion++;
+      this.solicitudSeleccion++;
       this.clientesSubject.next([]);
       this.proyectosSubject.next([]);
       this.proyectoSeleccionadoSubject.next(null);
@@ -113,14 +115,15 @@ export class ClientesProyectosApiService {
   }
 
   async seleccionarProyecto(id: string): Promise<ProyectoApi> {
+    const solicitud = ++this.solicitudSeleccion;
     const generacion = this.generacionSesion;
     const token = this.auth?.token;
     const proyecto = await this.consultarProyecto(id);
-    if (generacion === this.generacionSesion && token === this.auth?.token) this.proyectoSeleccionadoSubject.next(proyecto);
+    if (solicitud === this.solicitudSeleccion && generacion === this.generacionSesion && token === this.auth?.token) this.proyectoSeleccionadoSubject.next(proyecto);
     return proyecto;
   }
 
-  limpiarProyectoSeleccionado(): void { this.proyectoSeleccionadoSubject.next(null); }
+  limpiarProyectoSeleccionado(): void { this.solicitudSeleccion++; this.proyectoSeleccionadoSubject.next(null); }
 
   async crearProyecto(datos: CrearProyectoApi): Promise<ProyectoApi> {
     const proyecto = await firstValueFrom(this.http.post<ProyectoApi>(`${obtenerBaseApi()}/proyectos`, datos));

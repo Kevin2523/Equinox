@@ -1,13 +1,19 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ClienteApi, ClientesProyectosApiService, EstadoProyectoApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import { ComentarioApi, HitoApi, TareaApi, TrabajoApiService, progresoTareas } from '../services/trabajo-api.service';
 import { ArchivoApi, ArchivosApiService } from '../services/archivos-api.service';
+import { DialogFocusDirective } from '../shared/dialog-focus.directive';
 
-@Component({ selector: 'app-proyectos', standalone: true, imports: [CommonModule, FormsModule], templateUrl: './proyectos.component.html', styleUrl: './proyectos.component.css' })
+@Component({ selector: 'app-proyectos', standalone: true, imports: [CommonModule, FormsModule, DialogFocusDirective], templateUrl: './proyectos.component.html', styleUrl: './proyectos.component.css' })
 export class ProyectosComponent implements OnInit, OnDestroy {
+  @HostListener('document:keydown.escape')
+  cerrarModalConEscape(): void {
+    if (this.modalDetalle) this.cerrarDetalle();
+    else this.modalFormulario = false;
+  }
   private archivoInput?: HTMLInputElement;
   clientes: ClienteApi[] = [];
   busqueda = '';
@@ -19,6 +25,20 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   enviado = false;
   modalFormulario = false;
   modalDetalle = false;
+  pestanaDetalle: 'hitos' | 'archivos' | 'bitacora' = 'hitos';
+
+  moverPestana(event: KeyboardEvent): void {
+    const orden: Array<typeof this.pestanaDetalle> = ['hitos', 'archivos', 'bitacora'];
+    const actual = orden.indexOf(this.pestanaDetalle);
+    const siguiente = event.key === 'ArrowRight' ? (actual + 1) % orden.length
+      : event.key === 'ArrowLeft' ? (actual + orden.length - 1) % orden.length
+      : event.key === 'Home' ? 0 : event.key === 'End' ? orden.length - 1 : -1;
+    if (siguiente < 0) return;
+    event.preventDefault();
+    this.pestanaDetalle = orden[siguiente];
+    (event.currentTarget as HTMLElement).parentElement?.querySelectorAll<HTMLElement>('[role="tab"]')[siguiente]?.focus();
+  }
+  mostrarFormularioHito = false;
   detalleCargando = false;
   detalleError = '';
   editandoId: string | null = null;
@@ -52,6 +72,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   private reiniciarDetalle(): void {
     ++this.operacionHito; ++this.operacionComentario;
     this.guardandoHito = false; this.enviandoComentario = false;
+    this.pestanaDetalle = 'hitos'; this.mostrarFormularioHito = false;
     this.nuevoHito = { titulo: '', descripcion: '', fechaObjetivo: '', visibleEnPortal: false };
     this.hitoBorrador = { titulo: '', descripcion: '', estado: 'PENDIENTE', fechaObjetivo: '', visibleEnPortal: false };
     this.comentarioNuevo = ''; this.editandoHitoId = null; this.confirmandoHitoId = null;
@@ -105,7 +126,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     }
   }
 
-  nuevo(): void { this.editandoId = null; this.formulario = this.formularioVacio(); this.formulario.clienteId = this.clientes[0]?.id || ''; this.enviado = false; this.errorGuardar = ''; this.modalFormulario = true; }
+  nuevo(): void { this.editandoId = null; this.formulario = this.formularioVacio(); this.enviado = false; this.errorGuardar = ''; this.modalFormulario = true; }
 
   async verDetalle(proyecto: ProyectoApi): Promise<void> {
     this.modalDetalle = true;

@@ -120,7 +120,7 @@
 
     <!-- Modal Registrar Pago (Soporta pagos parciales, moneda y método explícitos) -->
     <div class="overlay" *ngIf="state.pagoModalOpen" (click)="state.cerrarModalPago()">
-      <section class="quick-modal modal-pago" role="dialog" aria-modal="true" aria-labelledby="modal-pago-title" (click)="$event.stopPropagation()">
+      <section class="quick-modal modal-pago" role="dialog" aria-modal="true" aria-labelledby="modal-pago-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
         <button class="close" type="button" (click)="state.cerrarModalPago()" aria-label="Cerrar modal">×</button>
 
         <small>REGISTRAR PAGO</small>

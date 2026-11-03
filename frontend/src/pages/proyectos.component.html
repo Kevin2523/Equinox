@@ -1,5 +1,5 @@
 <main class="standard"><section class="collection">
-  <div class="page-title"><div><p class="eyebrow">EQUINOX / PROYECTOS</p><h1>Proyectos</h1><p>Proyectos asociados a los clientes de tu organización.</p></div><button class="btn-primary" (click)="nuevo()" [disabled]="!clientes.length"><span>＋</span> Nuevo proyecto</button></div>
+  <div class="page-title"><div><p class="eyebrow">EQUINOX / PROYECTOS</p><h1>Proyectos</h1><p>Proyectos asociados a los clientes de tu organización.</p></div><button class="btn-primary" (click)="nuevo()" [disabled]="!clientes.length"><span>+</span> Nuevo proyecto</button></div>
   <div class="metrics-row"><div class="metric-card"><small>TOTAL PROYECTOS</small><strong>{{ proyectos.length }}</strong><p>En esta organización</p></div><div class="metric-card"><small>PROYECTOS ACTIVOS</small><strong>{{ proyectosActivos }}</strong><p>Estado ACTIVO</p></div><div class="metric-card"><small>CLIENTES</small><strong>{{ clientes.length }}</strong><p>Disponibles para asociar</p></div></div>
   <div class="filter-bar"><label class="search-input-pill"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input [(ngModel)]="busqueda" placeholder="Buscar por nombre, cliente o descripción..."></label><div class="filter-pills">
     <button [class.active]="filtroEstado === 'TODOS'" (click)="filtroEstado = 'TODOS'">Todos</button><button [class.active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado = 'ACTIVO'">Activos</button><button [class.active]="filtroEstado === 'BORRADOR'" (click)="filtroEstado = 'BORRADOR'">Borradores</button><button [class.active]="filtroEstado === 'PAUSADO'" (click)="filtroEstado = 'PAUSADO'">Pausados</button><button [class.active]="filtroEstado === 'COMPLETADO'" (click)="filtroEstado = 'COMPLETADO'">Completados</button>
@@ -17,7 +17,7 @@
 
 <!-- Modal Crear / Editar Proyecto (Ventana emergente ancha) -->
 <div class="overlay" *ngIf="modalFormulario" (click)="modalFormulario = false">
-  <section class="quick-modal modal-formulario-amplio" (click)="$event.stopPropagation()">
+  <section class="quick-modal modal-formulario-amplio" role="dialog" aria-modal="true" aria-labelledby="proyecto-form-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
     <!-- Cabecera Hero -->
     <header class="modal-header-hero">
       <div class="hero-bg-pattern"></div>
@@ -33,7 +33,7 @@
         </div>
         <div class="modal-hero-title-row">
           <div>
-            <h2>{{ editandoId ? 'Actualizar proyecto' : 'Crear nuevo proyecto' }}</h2>
+            <h2 id="proyecto-form-title">{{ editandoId ? 'Actualizar proyecto' : 'Crear nuevo proyecto' }}</h2>
             <p class="modal-hero-subtitle">Completa los datos del proyecto y su vinculación con el cliente.</p>
           </div>
         </div>
@@ -103,9 +103,9 @@
   </section>
 </div>
 
-<!-- Modal Detalle de Proyecto (Ventana emergente amplia en 2 columnas) -->
+<!-- Modal Detalle de Proyecto (Inspector moderno estructurado con pestañas) -->
 <div class="overlay" *ngIf="modalDetalle" (click)="cerrarDetalle()">
-  <section class="quick-modal modal-detalle-amplio" (click)="$event.stopPropagation()">
+  <section class="quick-modal modal-detalle-amplio" role="dialog" aria-modal="true" aria-labelledby="proyecto-detail-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
 
     <ng-container *ngIf="proyectoDetalle as p">
       <!-- Cabecera Hero -->
@@ -124,7 +124,7 @@
 
           <div class="modal-hero-title-row">
             <div>
-              <h2>{{ p.nombre }}</h2>
+              <h2 id="proyecto-detail-title">{{ p.nombre }}</h2>
               <p class="modal-hero-subtitle">
                 <span>{{ p.cliente?.nombre || 'Cliente sin asignar' }}{{ p.cliente?.empresa ? ' · ' + p.cliente?.empresa : '' }}</span>
                 <span>•</span>
@@ -138,261 +138,318 @@
         </div>
       </header>
 
-      <!-- Cuerpo del modal en 2 columnas -->
-      <div class="modal-body-scroll">
+      <!-- Cuerpo del modal -->
+      <div class="modal-body-scroll pd-modal-body">
         <p *ngIf="detalleCargando" role="status" class="api-state">Cargando detalles…</p>
         <p class="auth-error" *ngIf="detalleError" role="alert">{{ detalleError }} <button class="btn-secondary" type="button" (click)="cargarDetalle(detalleId || '')">Reintentar</button></p>
 
-        <div class="modal-detail-columns" *ngIf="!detalleCargando">
-          <!-- Columna Izquierda: Información, Métricas e Hitos -->
-          <div class="column-left">
-            <!-- Métricas Clave -->
-            <div class="stats-cards-grid">
-              <div class="stat-box">
-                <small>
+        <div *ngIf="!detalleCargando">
+          <!-- Resumen Ejecutivo Superior: Franja unificada sin cajas anidadas -->
+          <div class="pd-hero-summary">
+            <p class="pd-desc-text" *ngIf="p.descripcion">{{ p.descripcion }}</p>
+
+            <div class="pd-metrics-strip">
+              <div class="pd-metric-item">
+                <span class="pd-metric-label">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                   Presupuesto
-                </small>
-                <b>{{ p.presupuesto === null ? 'Sin asignar' : (p.moneda + ' ' + (p.presupuesto | number:'1.2-2')) }}</b>
+                </span>
+                <strong class="pd-metric-value">{{ p.presupuesto === null ? 'Sin asignar' : (p.moneda + ' ' + (p.presupuesto | number:'1.2-2')) }}</strong>
               </div>
-              <div class="stat-box">
-                <small>
+
+              <div class="pd-metric-item">
+                <span class="pd-metric-label">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   Fecha Inicio
-                </small>
-                <b>{{ p.fechaInicio ? (p.fechaInicio | date:'dd MMM yyyy') : 'No definida' }}</b>
+                </span>
+                <strong class="pd-metric-value">{{ p.fechaInicio ? (p.fechaInicio | date:'dd MMM yyyy') : 'No definida' }}</strong>
               </div>
-              <div class="stat-box">
-                <small>
+
+              <div class="pd-metric-item">
+                <span class="pd-metric-label">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   Fecha Entrega
-                </small>
-                <b>{{ p.fechaEntrega ? (p.fechaEntrega | date:'dd MMM yyyy') : 'No definida' }}</b>
-              </div>
-            </div>
-
-            <!-- Descripción -->
-            <div class="detail-card-panel project-work-section">
-              <h3>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="8" y1="6" x2="21" y2="6"></line>
-                  <line x1="8" y1="12" x2="21" y2="12"></line>
-                  <line x1="8" y1="18" x2="21" y2="18"></line>
-                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                </svg>
-                Descripción del Proyecto
-              </h3>
-              <p class="detail-desc-text">{{ p.descripcion || 'Sin descripción registrada para este proyecto.' }}</p>
-            </div>
-
-            <!-- Progreso de Tareas -->
-            <div class="task-progress-box">
-              <div class="progress-header-row">
-                <strong>Progreso de Tareas</strong>
-                <span>{{ progresoProyecto === null ? '0%' : (progresoProyecto + '%') }}</span>
-              </div>
-              <div class="progress-bar-container">
-                <div class="progress-bar-fill" [style.width.%]="progresoProyecto || 0"></div>
-              </div>
-              <p class="progress-subtext">{{ progresoProyecto === null ? 'Sin tareas vigentes registradas.' : 'Tareas completadas entre tareas no canceladas.' }}</p>
-            </div>
-
-            <!-- Sección de Hitos -->
-            <div class="detail-card-panel">
-              <div class="milestones-header">
-                <h3>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
-                  Hitos del Proyecto
-                </h3>
+                </span>
+                <strong class="pd-metric-value">{{ p.fechaEntrega ? (p.fechaEntrega | date:'dd MMM yyyy') : 'No definida' }}</strong>
               </div>
 
-              <p *ngIf="!hitosDetalle.length" class="text-muted" style="font-size: 13px; font-style: italic; margin-bottom: 12px;">Todavía no hay hitos registrados para este proyecto.</p>
-
-              <div class="milestones-list" *ngIf="hitosDetalle.length">
-                <div class="milestone-item-card" *ngFor="let hito of hitosDetalle">
-                  <div class="milestone-head">
-                    <div>
-                      <h4 class="milestone-title">{{ hito.titulo }}</h4>
-                      <div class="milestone-badges">
-                        <span class="badge" [ngClass]="hito.estado === 'COMPLETADO' ? 'badge-status-completado' : (hito.estado === 'PENDIENTE' ? 'badge-status-pendiente' : 'badge-status-progreso')">
-                          {{ hito.estado }}
-                        </span>
-                        <span class="badge" style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600;">
-                          {{ hito.visibleEnPortal ? 'Visible en portal' : 'Solo CRM' }}
-                        </span>
-                      </div>
-                    </div>
-                    <time class="milestone-date" *ngIf="hito.fechaObjetivo" [attr.datetime]="hito.fechaObjetivo">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                      </svg>
-                      {{ hito.fechaObjetivo.slice(0, 10) }}
-                    </time>
-                  </div>
-
-                  <p class="milestone-desc" *ngIf="hito.descripcion">{{ hito.descripcion }}</p>
-
-                  <!-- Edición inline de hito -->
-                  <div *ngIf="editandoHitoId === hito.id" class="milestone-form-box">
-                    <label style="font-size: 12px; font-weight: 700; color: #334155;">Título <input class="form-control" [(ngModel)]="hitoBorrador.titulo" minlength="2"></label>
-                    <label style="font-size: 12px; font-weight: 700; color: #334155; margin-top: 8px;">Descripción <textarea class="form-control" [(ngModel)]="hitoBorrador.descripcion"></textarea></label>
-                    <div class="form-row" style="margin-top: 8px;">
-                      <label style="font-size: 12px; font-weight: 700; color: #334155;">Estado
-                        <select class="form-control" [(ngModel)]="hitoBorrador.estado">
-                          <option value="PENDIENTE">Pendiente</option>
-                          <option value="EN_PROGRESO">En progreso</option>
-                          <option value="COMPLETADO">Completado</option>
-                          <option value="VENCIDO">Vencido</option>
-                        </select>
-                      </label>
-                      <label style="font-size: 12px; font-weight: 700; color: #334155;">Fecha objetivo <input class="form-control" type="date" [(ngModel)]="hitoBorrador.fechaObjetivo"></label>
-                    </div>
-                    <label style="display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; font-weight: 600;">
-                      <input type="checkbox" [(ngModel)]="hitoBorrador.visibleEnPortal"> Publicar en el portal del cliente
-                    </label>
-                    <div style="display: flex; gap: 8px; margin-top: 10px;">
-                      <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="guardarHito(hito)">Guardar</button>
-                      <button class="btn-secondary" type="button" (click)="editandoHitoId = null">Cancelar</button>
-                    </div>
-                  </div>
-
-                  <div class="milestone-actions" *ngIf="editandoHitoId !== hito.id">
-                    <button class="btn-secondary btn-action-pill" type="button" (click)="editarHito(hito)">Editar hito</button>
-                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmandoHitoId !== hito.id" (click)="confirmandoHitoId = hito.id">Eliminar</button>
-                    <ng-container *ngIf="confirmandoHitoId === hito.id">
-                      <button class="btn-action-pill btn-action-danger" type="button" [disabled]="guardandoHito" (click)="eliminarHito(hito)">Confirmar eliminación</button>
-                      <button class="btn-secondary btn-action-pill" type="button" (click)="confirmandoHitoId = null">Cancelar</button>
-                    </ng-container>
-                  </div>
+              <div class="pd-metric-item pd-metric-item-progress">
+                <div class="pd-progress-meta">
+                  <span class="pd-metric-label">Progreso tareas</span>
+                  <strong class="pd-metric-value">{{ progresoProyecto === null ? '0%' : (progresoProyecto + '%') }}</strong>
+                </div>
+                <div class="pd-progress-track">
+                  <div class="pd-progress-fill" [style.width.%]="progresoProyecto || 0"></div>
                 </div>
               </div>
-
-              <!-- Formulario para nuevo hito -->
-              <div class="milestone-form-box">
-                <h4>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  Agregar nuevo hito
-                </h4>
-                <div class="form-group" style="margin-bottom: 10px;">
-                  <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">Título del hito *</label>
-                  <input class="form-control" [(ngModel)]="nuevoHito.titulo" minlength="2" placeholder="Ej. Entrega de propuesta">
-                </div>
-                <div class="form-group" style="margin-bottom: 10px;">
-                  <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">Descripción</label>
-                  <textarea class="form-control" [(ngModel)]="nuevoHito.descripcion" rows="2" placeholder="Detalles de lo que se entregará..."></textarea>
-                </div>
-                <div class="form-row" style="margin-bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end;">
-                  <div>
-                    <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">Fecha objetivo</label>
-                    <input class="form-control" type="date" [(ngModel)]="nuevoHito.fechaObjetivo">
-                  </div>
-                  <div style="padding-bottom: 10px;">
-                    <label class="custom-checkbox-label">
-                      <input type="checkbox" [(ngModel)]="nuevoHito.visibleEnPortal"> Visible en portal del cliente
-                    </label>
-                  </div>
-                </div>
-                <div>
-                  <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="crearHito()">{{ guardandoHito ? 'Guardando…' : 'Crear hito' }}</button>
-                </div>
-              </div>
-              <p class="auth-error" *ngIf="errorHitos" role="alert">{{ errorHitos }}</p>
             </div>
           </div>
 
-          <!-- Columna Derecha: Archivos y Conversación -->
-          <div class="column-right">
-            <!-- Sección de Archivos (Issue #11) -->
-            <div class="detail-card-panel project-work-section">
-              <h3>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
+          <!-- Navegación por pestañas intuitivas -->
+          <nav class="pd-segmented-tabs" role="tablist" aria-label="Secciones del proyecto">
+            <button id="pd-tab-hitos" type="button" role="tab" class="pd-tab-btn" [class.active]="pestanaDetalle === 'hitos'" (click)="pestanaDetalle = 'hitos'" (keydown)="moverPestana($event)" [attr.tabindex]="pestanaDetalle === 'hitos' ? 0 : -1" aria-controls="pd-panel-hitos" [attr.aria-selected]="pestanaDetalle === 'hitos'">
+              <span class="pd-tab-label">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Hitos y Entregables
+              </span>
+              <span class="pd-tab-count">{{ hitosDetalle.length }}</span>
+            </button>
+
+            <button id="pd-tab-archivos" type="button" role="tab" class="pd-tab-btn" [class.active]="pestanaDetalle === 'archivos'" (click)="pestanaDetalle = 'archivos'" (keydown)="moverPestana($event)" [attr.tabindex]="pestanaDetalle === 'archivos' ? 0 : -1" aria-controls="pd-panel-archivos" [attr.aria-selected]="pestanaDetalle === 'archivos'">
+              <span class="pd-tab-label">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Archivos del Proyecto
-              </h3>
+              </span>
+              <span class="pd-tab-count">{{ archivosDetalle.length }}</span>
+            </button>
 
-              <p *ngIf="!archivosDetalle.length" class="text-muted" style="font-size: 13px; font-style: italic; margin-bottom: 12px;">Todavía no hay archivos cargados.</p>
+            <button id="pd-tab-bitacora" type="button" role="tab" class="pd-tab-btn" [class.active]="pestanaDetalle === 'bitacora'" (click)="pestanaDetalle = 'bitacora'" (keydown)="moverPestana($event)" [attr.tabindex]="pestanaDetalle === 'bitacora' ? 0 : -1" aria-controls="pd-panel-bitacora" [attr.aria-selected]="pestanaDetalle === 'bitacora'">
+              <span class="pd-tab-label">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Conversación y Bitácora
+              </span>
+              <span class="pd-tab-count">{{ comentariosDetalle.length }}</span>
+            </button>
+          </nav>
 
-              <ul class="project-files-list files-box-list" *ngIf="archivosDetalle.length">
-                <li *ngFor="let archivo of archivosDetalle">
-                  <div class="file-row-main">
-                    <strong>{{ archivo.nombre }}</strong>
-                    <span class="badge" [style.background]="archivo.visibilidad === 'CLIENTE' ? '#eff6ff' : '#f1f5f9'" [style.color]="archivo.visibilidad === 'CLIENTE' ? '#1d4ed8' : '#475569'" style="font-size: 11px; font-weight: 700;">
-                      {{ archivo.visibilidad === 'CLIENTE' ? 'Visible al cliente' : 'Solo equipo' }}
-                    </span>
-                  </div>
-                  <div class="file-row-meta">{{ archivo.tamanoBytes | number }} bytes</div>
-                  <div class="file-btn-group">
-                    <button class="btn-secondary btn-action-pill" type="button" [disabled]="!!descargandoArchivoId" (click)="descargarArchivo(archivo)">{{ descargandoArchivoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
-                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId !== archivo.id" (click)="confirmarEliminarArchivoId = archivo.id">Eliminar</button>
-                    <button class="btn-action-pill btn-action-danger" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" [disabled]="!!eliminandoArchivoId" (click)="eliminarArchivo(archivo)">Confirmar</button>
-                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" (click)="confirmarEliminarArchivoId = null">Cancelar</button>
-                  </div>
-                </li>
-              </ul>
-
-              <div class="file-upload-box">
-                <label for="proyecto-archivo" style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; display: block;">
-                  Seleccionar archivo (PDF, PNG, JPG, WebP, GIF, TXT; máx 8 MB)
-                </label>
-                <input id="proyecto-archivo" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt" (change)="elegirArchivo($event)" class="custom-file-upload-input" style="margin-bottom: 12px;">
-
-                <label for="archivo-visibilidad" style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; display: block;">
-                  Visibilidad del archivo
-                </label>
-                <select id="archivo-visibilidad" class="form-control" [(ngModel)]="visibilidadArchivo" style="margin-bottom: 12px;">
-                  <option value="INTERNA">Solo equipo (Privado)</option>
-                  <option value="CLIENTE">Compartir con cliente (Visible en portal)</option>
-                </select>
-
-                <progress *ngIf="subiendoArchivo" [value]="progresoArchivo" max="100" style="width: 100%; margin: 8px 0;" aria-label="Progreso de carga"></progress>
-
-                <div style="margin-top: 8px;">
-                  <button class="btn-primary" style="width: 100%; justify-content: center;" type="button" [disabled]="!archivoElegido || subiendoArchivo" (click)="subirArchivo()">{{ subiendoArchivo ? 'Subiendo…' : 'Subir archivo' }}</button>
-                </div>
+          <!-- ========================================== -->
+          <!-- PESTAÑA 1: HITOS Y ENTREGABLES -->
+          <!-- ========================================== -->
+          <div id="pd-panel-hitos" role="tabpanel" aria-labelledby="pd-tab-hitos" class="pd-tab-content" [hidden]="pestanaDetalle !== 'hitos'">
+            <div class="pd-tab-header">
+              <div>
+                <h3 class="pd-section-title">Hitos y Entregables</h3>
+                <p class="pd-section-subtitle">Define las etapas clave para seguimiento interno y visibilidad en el portal del cliente.</p>
               </div>
-              <p class="auth-error" *ngIf="errorArchivos" role="alert">{{ errorArchivos }}</p>
+              <button class="btn-primary pd-add-btn" type="button" (click)="mostrarFormularioHito = !mostrarFormularioHito">
+                <span>{{ mostrarFormularioHito ? '✕ Cancelar' : '+ Agregar hito' }}</span>
+              </button>
             </div>
 
-            <!-- Sección de Conversación -->
-            <div class="detail-card-panel comments-container">
-              <h3>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                Conversación y Bitácora
-              </h3>
-
-              <p *ngIf="!comentariosDetalle.length" class="text-muted" style="font-size: 13px; font-style: italic; margin-bottom: 12px;">Todavía no hay notas ni comentarios registrados.</p>
-
-              <ol class="comments-list" *ngIf="comentariosDetalle.length">
-                <li class="comment-card" *ngFor="let comentario of comentariosDetalle">
-                  <div class="comment-header">
-                    <span class="comment-author">{{ autor(comentario) }}</span>
-                    <time class="comment-time" [attr.datetime]="comentario.creadoEn">{{ comentario.creadoEn | date:'short' }}</time>
-                  </div>
-                  <p class="comment-content">{{ comentario.contenido }}</p>
-                </li>
-              </ol>
-
-              <div class="comment-composer">
-                <label for="crm-comentario" style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">Nuevo comentario o nota interna:</label>
-                <textarea id="crm-comentario" class="form-control" [(ngModel)]="comentarioNuevo" maxlength="2000" rows="3" placeholder="Escribe un comentario o nota interna..."></textarea>
-                <p class="auth-error" *ngIf="errorComentario" role="alert">{{ errorComentario }}</p>
-                <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
-                  <button class="btn-primary" type="button" [disabled]="enviandoComentario || !comentarioNuevo.trim()" (click)="enviarComentario()">{{ enviandoComentario ? 'Enviando…' : 'Enviar comentario' }}</button>
+            <!-- Formulario desplegable para nuevo hito -->
+            <div class="pd-form-card" *ngIf="mostrarFormularioHito || !hitosDetalle.length">
+              <div class="pd-form-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nuevo hito o entrega
+              </div>
+              <div class="pd-form-grid">
+                <div class="form-group pd-grid-full">
+                  <label class="pd-field-label">Título del hito *</label>
+                  <input class="form-control" [(ngModel)]="nuevoHito.titulo" minlength="2" placeholder="Ej. Aprobación de wireframes y diseño final">
                 </div>
+                <div class="form-group pd-grid-full">
+                  <label class="pd-field-label">Descripción</label>
+                  <textarea class="form-control" [(ngModel)]="nuevoHito.descripcion" rows="2" placeholder="Detalles de lo que se entregará o revisará con el cliente..."></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="pd-field-label">Fecha objetivo</label>
+                  <input class="form-control" type="date" [(ngModel)]="nuevoHito.fechaObjetivo">
+                </div>
+                <div class="form-group pd-checkbox-cell">
+                  <label class="custom-checkbox-label">
+                    <input type="checkbox" [(ngModel)]="nuevoHito.visibleEnPortal"> Visible en portal del cliente
+                  </label>
+                </div>
+              </div>
+              <div class="pd-form-actions">
+                <button class="btn-primary" type="button" [disabled]="guardandoHito || !nuevoHito.titulo.trim()" (click)="crearHito()">{{ guardandoHito ? 'Guardando…' : 'Crear hito' }}</button>
+                <button class="btn-secondary" type="button" *ngIf="hitosDetalle.length" (click)="mostrarFormularioHito = false">Cancelar</button>
+              </div>
+              <p class="auth-error" *ngIf="errorHitos" role="alert">{{ errorHitos }}</p>
+            </div>
+
+            <p *ngIf="!hitosDetalle.length && !mostrarFormularioHito" class="pd-empty-state">
+              Todavía no hay hitos registrados para este proyecto. Agrega el primero con el botón superior.
+            </p>
+
+            <!-- Lista de hitos -->
+            <div class="pd-items-list" *ngIf="hitosDetalle.length">
+              <div class="pd-item-card" *ngFor="let hito of hitosDetalle">
+                <div class="pd-item-header">
+                  <div class="pd-item-title-block">
+                    <h4 class="pd-item-title">{{ hito.titulo }}</h4>
+                    <div class="pd-item-tags">
+                      <span class="badge" [ngClass]="hito.estado === 'COMPLETADO' ? 'badge-status-completado' : (hito.estado === 'PENDIENTE' ? 'badge-status-pendiente' : 'badge-status-progreso')">
+                        {{ hito.estado }}
+                      </span>
+                      <span class="badge pd-visibility-badge">
+                        {{ hito.visibleEnPortal ? 'Visible en portal' : 'Solo CRM' }}
+                      </span>
+                    </div>
+                  </div>
+                  <time class="pd-item-date" *ngIf="hito.fechaObjetivo" [attr.datetime]="hito.fechaObjetivo">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    {{ hito.fechaObjetivo.slice(0, 10) }}
+                  </time>
+                </div>
+
+                <p class="pd-item-desc" *ngIf="hito.descripcion">{{ hito.descripcion }}</p>
+
+                <!-- Edición inline de hito -->
+                <div *ngIf="editandoHitoId === hito.id" class="pd-form-card pd-inline-edit-card">
+                  <div class="pd-form-grid">
+                    <div class="form-group pd-grid-full">
+                      <label class="pd-field-label">Título</label>
+                      <input class="form-control" [(ngModel)]="hitoBorrador.titulo" minlength="2">
+                    </div>
+                    <div class="form-group pd-grid-full">
+                      <label class="pd-field-label">Descripción</label>
+                      <textarea class="form-control" [(ngModel)]="hitoBorrador.descripcion"></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label class="pd-field-label">Estado</label>
+                      <select class="form-control" [(ngModel)]="hitoBorrador.estado">
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="EN_PROGRESO">En progreso</option>
+                        <option value="COMPLETADO">Completado</option>
+                        <option value="VENCIDO">Vencido</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="pd-field-label">Fecha objetivo</label>
+                      <input class="form-control" type="date" [(ngModel)]="hitoBorrador.fechaObjetivo">
+                    </div>
+                    <div class="form-group pd-grid-full">
+                      <label class="custom-checkbox-label">
+                        <input type="checkbox" [(ngModel)]="hitoBorrador.visibleEnPortal"> Publicar en el portal del cliente
+                      </label>
+                    </div>
+                  </div>
+                  <div class="pd-form-actions">
+                    <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="guardarHito(hito)">Guardar cambios</button>
+                    <button class="btn-secondary" type="button" (click)="editandoHitoId = null">Cancelar</button>
+                  </div>
+                </div>
+
+                <div class="pd-item-actions" *ngIf="editandoHitoId !== hito.id">
+                  <button class="btn-secondary btn-action-pill" type="button" (click)="editarHito(hito)">Editar hito</button>
+                  <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmandoHitoId !== hito.id" (click)="confirmandoHitoId = hito.id">Eliminar</button>
+                  <ng-container *ngIf="confirmandoHitoId === hito.id">
+                    <button class="btn-action-pill btn-action-danger" type="button" [disabled]="guardandoHito" (click)="eliminarHito(hito)">Confirmar eliminación</button>
+                    <button class="btn-secondary btn-action-pill" type="button" (click)="confirmandoHitoId = null">Cancelar</button>
+                  </ng-container>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- PESTAÑA 2: ARCHIVOS DEL PROYECTO -->
+          <!-- ========================================== -->
+          <div id="pd-panel-archivos" role="tabpanel" aria-labelledby="pd-tab-archivos" class="pd-tab-content project-work-section" [hidden]="pestanaDetalle !== 'archivos'">
+            <div class="pd-tab-header">
+              <div>
+                <h3 class="pd-section-title">Archivos del Proyecto</h3>
+                <p class="pd-section-subtitle">Documentos, especificaciones, comprobantes e imágenes vinculadas.</p>
+              </div>
+            </div>
+
+            <!-- Caja de carga moderna -->
+            <div class="pd-upload-card">
+              <div class="pd-upload-grid">
+                <div class="form-group pd-file-picker-group">
+                  <label for="proyecto-archivo" class="pd-field-label">
+                    Seleccionar archivo <small class="text-muted">(PDF, PNG, JPG, WebP, GIF, TXT; máx 8 MB)</small>
+                  </label>
+                  <input id="proyecto-archivo" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt" (change)="elegirArchivo($event)" class="custom-file-upload-input">
+                </div>
+
+                <div class="form-group pd-visibility-group">
+                  <label for="archivo-visibilidad" class="pd-field-label">Visibilidad</label>
+                  <select id="archivo-visibilidad" class="form-control" [(ngModel)]="visibilidadArchivo">
+                    <option value="INTERNA">Solo equipo (Privado)</option>
+                    <option value="CLIENTE">Compartir con cliente (Visible en portal)</option>
+                  </select>
+                </div>
+
+                <div class="pd-upload-btn-cell">
+                  <button class="btn-primary" type="button" [disabled]="!archivoElegido || subiendoArchivo" (click)="subirArchivo()">
+                    {{ subiendoArchivo ? 'Subiendo…' : 'Subir archivo' }}
+                  </button>
+                </div>
+              </div>
+
+              <progress *ngIf="subiendoArchivo" [value]="progresoArchivo" max="100" class="pd-upload-progress" aria-label="Progreso de carga"></progress>
+              <p class="auth-error" *ngIf="errorArchivos" role="alert" style="margin-top: 8px;">{{ errorArchivos }}</p>
+            </div>
+
+            <p *ngIf="!archivosDetalle.length" class="pd-empty-state">
+              Todavía no hay archivos cargados para este proyecto. Selecciona un archivo en la barra superior.
+            </p>
+
+            <!-- Lista de archivos -->
+            <ul class="project-files-list files-box-list pd-files-list" *ngIf="archivosDetalle.length">
+              <li *ngFor="let archivo of archivosDetalle" class="pd-file-item">
+                <div class="pd-file-info">
+                  <div class="pd-file-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                  </div>
+                  <div>
+                    <strong class="pd-file-name">{{ archivo.nombre }}</strong>
+                    <div class="pd-file-meta-row">
+                      <span>{{ archivo.tamanoBytes | number }} bytes</span>
+                      <span>•</span>
+                      <span class="badge" [style.background]="archivo.visibilidad === 'CLIENTE' ? '#eff6ff' : '#f1f5f9'" [style.color]="archivo.visibilidad === 'CLIENTE' ? '#1d4ed8' : '#475569'" style="font-size: 11px; font-weight: 700;">
+                        {{ archivo.visibilidad === 'CLIENTE' ? 'Visible al cliente' : 'Solo equipo' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pd-file-actions">
+                  <button class="btn-secondary btn-action-pill" type="button" [disabled]="!!descargandoArchivoId" (click)="descargarArchivo(archivo)">{{ descargandoArchivoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
+                  <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId !== archivo.id" (click)="confirmarEliminarArchivoId = archivo.id">Eliminar</button>
+                  <button class="btn-action-pill btn-action-danger" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" [disabled]="!!eliminandoArchivoId" (click)="eliminarArchivo(archivo)">Confirmar</button>
+                  <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" (click)="confirmarEliminarArchivoId = null">Cancelar</button>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- PESTAÑA 3: CONVERSACIÓN Y BITÁCORA -->
+          <!-- ========================================== -->
+          <div id="pd-panel-bitacora" role="tabpanel" aria-labelledby="pd-tab-bitacora" class="pd-tab-content comments-container" [hidden]="pestanaDetalle !== 'bitacora'">
+            <div class="pd-tab-header">
+              <div>
+                <h3 class="pd-section-title">Conversación y Bitácora</h3>
+                <p class="pd-section-subtitle">Historial de notas de trabajo, acuerdos y comunicación interna o con el cliente.</p>
+              </div>
+            </div>
+
+            <p *ngIf="!comentariosDetalle.length" class="pd-empty-state">
+              Todavía no hay notas ni comentarios registrados. Escribe la primera nota abajo.
+            </p>
+
+            <ol class="comments-list pd-comments-stream" *ngIf="comentariosDetalle.length">
+              <li class="comment-card pd-comment-bubble" *ngFor="let comentario of comentariosDetalle">
+                <div class="pd-comment-avatar">
+                  {{ autor(comentario).substring(0, 2).toUpperCase() }}
+                </div>
+                <div class="pd-comment-body">
+                  <div class="comment-header pd-comment-head">
+                    <span class="comment-author pd-author-name">{{ autor(comentario) }}</span>
+                    <time class="comment-time pd-comment-timestamp" [attr.datetime]="comentario.creadoEn">{{ comentario.creadoEn | date:'short' }}</time>
+                  </div>
+                  <p class="comment-content pd-comment-text">{{ comentario.contenido }}</p>
+                </div>
+              </li>
+            </ol>
+
+            <div class="comment-composer pd-composer-card">
+              <label for="crm-comentario" class="pd-field-label">Nuevo comentario o nota interna:</label>
+              <textarea id="crm-comentario" class="form-control pd-composer-textarea" [(ngModel)]="comentarioNuevo" maxlength="2000" rows="3" placeholder="Escribe un comentario o nota interna..."></textarea>
+              <p class="auth-error" *ngIf="errorComentario" role="alert" style="margin-top: 8px;">{{ errorComentario }}</p>
+              <div class="pd-composer-actions">
+                <button class="btn-primary" type="button" [disabled]="enviandoComentario || !comentarioNuevo.trim()" (click)="enviarComentario()">{{ enviandoComentario ? 'Enviando…' : 'Enviar comentario' }}</button>
               </div>
             </div>
           </div>

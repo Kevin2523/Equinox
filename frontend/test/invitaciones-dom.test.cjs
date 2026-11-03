@@ -41,11 +41,13 @@ const evaluate = async (expression, awaitPromise = false) => {
 };
 const visible = (selector) => `!!document.querySelector(${JSON.stringify(selector)})`;
 const waitDOM = (condition) => evaluate(`new Promise((resolve, reject) => {
-  const ok = () => { try { return !!(${condition}); } catch { return false; } };
-  if (ok()) { resolve(true); return; }
-  const observer = new MutationObserver(() => { if (ok()) { observer.disconnect(); clearTimeout(deadline); resolve(true); } });
-  const deadline = setTimeout(() => { observer.disconnect(); reject(new Error('DOM pendiente')); }, 2500);
-  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true });
+  const inicio = Date.now();
+  const comprobar = () => {
+    try { if (document.documentElement && (${condition})) { resolve(true); return; } } catch {}
+    if (Date.now() - inicio > 6000) { reject(new Error('DOM pendiente')); return; }
+    setTimeout(comprobar, 40);
+  };
+  comprobar();
 })`, true);
 const click = (selector) => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
 const fill = (selector, value) => evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);

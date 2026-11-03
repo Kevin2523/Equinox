@@ -15,85 +15,95 @@
     <div class="auth-success" role="status" *ngIf="state.exitoConfiguracion">{{ state.exitoConfiguracion }}</div>
     <div class="auth-notice" role="note" *ngIf="!state.puedeGestionarOrganizacion">Solo los usuarios con rol de PROPIETARIO pueden modificar la configuración del estudio.</div>
 
-    <div class="settings-layout">
+    <div class="settings-layout cfg-layout">
       <!-- Settings Form -->
-      <div class="settings-form-card">
-        <h3>Datos del estudio</h3>
-        <fieldset [disabled]="!state.puedeGestionarOrganizacion || state.guardandoConfiguracion">
-          <div class="form-group">
-            <label>Nombre del estudio</label>
-            <input class="form-control" [(ngModel)]="state.configuracion.nombreEstudio">
-          </div>
-          <div class="form-group">
-            <label>Nombre del freelancer</label>
-            <input class="form-control" [(ngModel)]="state.configuracion.nombreFreelancer">
-          </div>
-          <div class="form-row">
+      <div class="cfg-column">
+        <fieldset class="cfg-fieldset" [disabled]="!state.puedeGestionarOrganizacion || state.guardandoConfiguracion">
+          <div class="settings-form-card cfg-card">
+            <header class="cfg-card-head">
+              <span class="cfg-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg></span>
+              <div><h3>Datos del estudio</h3><p>Información de contacto y facturación.</p></div>
+            </header>
             <div class="form-group">
-              <label>Correo de contacto</label>
-              <input class="form-control" [(ngModel)]="state.configuracion.correo">
+              <label>Nombre del estudio</label>
+              <input class="form-control" [(ngModel)]="state.configuracion.nombreEstudio">
             </div>
             <div class="form-group">
-              <label>Teléfono (WhatsApp)</label>
-              <input class="form-control" [(ngModel)]="state.configuracion.telefono">
+              <label>Nombre del freelancer</label>
+              <input class="form-control" [(ngModel)]="state.configuracion.nombreFreelancer">
             </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>RUC / Cédula fiscal</label>
-              <input class="form-control" [(ngModel)]="state.configuracion.ruc">
-            </div>
-            <div class="form-group">
-              <label>Moneda principal</label>
-              <input class="form-control" [(ngModel)]="state.configuracion.moneda">
-            </div>
-          </div>
-
-          <h3 class="mt-4">Personalización visual del portal</h3>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Color primario de marca</label>
-              <div class="color-picker-wrapper">
-                <input type="color" [(ngModel)]="state.configuracion.colorPrimario">
-                <span>{{ state.configuracion.colorPrimario }}</span>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Correo de contacto</label>
+                <input class="form-control" [(ngModel)]="state.configuracion.correo">
+              </div>
+              <div class="form-group">
+                <label>Teléfono (WhatsApp)</label>
+                <input class="form-control" [(ngModel)]="state.configuracion.telefono">
               </div>
             </div>
-            <div class="form-group">
-              <label>Color secundario</label>
-              <div class="color-picker-wrapper">
-                <input type="color" [(ngModel)]="state.configuracion.colorSecundario">
-                <span>{{ state.configuracion.colorSecundario }}</span>
+            <div class="form-row">
+              <div class="form-group">
+                <label>RUC / Cédula fiscal</label>
+                <input class="form-control" [(ngModel)]="state.configuracion.ruc">
+              </div>
+              <div class="form-group">
+                <label>Moneda principal</label>
+                <input class="form-control" [(ngModel)]="state.configuracion.moneda">
               </div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label>Tipografía del portal</label>
-            <select class="form-control" [(ngModel)]="state.configuracion.tipografia">
-              <option value="DM Sans">DM Sans (Elegante y moderna)</option>
-              <option value="Manrope">Manrope (Geométrica)</option>
-              <option value="Inter">Inter (Técnica)</option>
-            </select>
+          <div class="settings-form-card cfg-card">
+            <header class="cfg-card-head">
+              <span class="cfg-icon cfg-icon-violet"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 1 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4a4.6 4.6 0 0 0 4.6-4.6C22 6 17.5 2 12 2z"/></svg></span>
+              <div><h3>Personalización visual del portal</h3><p>Colores, tipografía y mensaje de bienvenida.</p></div>
+            </header>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Color primario de marca</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" [(ngModel)]="state.configuracion.colorPrimario">
+                  <span>{{ state.configuracion.colorPrimario }}</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Color secundario</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" [(ngModel)]="state.configuracion.colorSecundario">
+                  <span>{{ state.configuracion.colorSecundario }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Tipografía del portal</label>
+              <select class="form-control" [(ngModel)]="state.configuracion.tipografia">
+                <option value="DM Sans">DM Sans (Elegante y moderna)</option>
+                <option value="Manrope">Manrope (Geométrica)</option>
+                <option value="Inter">Inter (Técnica)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Mensaje de bienvenida para clientes</label>
+              <textarea class="form-control" rows="3" placeholder="Ej. Hola, aquí podrás seguir el avance de tu proyecto." [(ngModel)]="state.configuracion.mensajeBienvenida"></textarea>
+            </div>
+            <div class="cfg-actions">
+              <button class="btn-primary" (click)="state.saveConfig()" [disabled]="!state.puedeGestionarOrganizacion || state.guardandoConfiguracion">
+                {{ state.guardandoConfiguracion ? 'Guardando…' : '✓ Guardar configuración' }}
+              </button>
+            </div>
           </div>
-
-          <div class="form-group">
-            <label>Mensaje de bienvenida para clientes</label>
-            <textarea class="form-control" [(ngModel)]="state.configuracion.mensajeBienvenida"></textarea>
-          </div>
-
-          <button class="btn-primary" (click)="state.saveConfig()" [disabled]="!state.puedeGestionarOrganizacion || state.guardandoConfiguracion">
-            {{ state.guardandoConfiguracion ? 'Guardando…' : '✓ Guardar configuración' }}
-          </button>
         </fieldset>
       </div>
 
       <!-- Real-Time Portal Preview -->
-      <div class="portal-preview-card">
+      <div class="portal-preview-card cfg-preview">
         <div class="preview-head">
-          <small>VISTA PREVIA EN VIVO</small>
+          <small><span class="cfg-live-dot"></span>VISTA PREVIA EN VIVO</small>
           <b>Portal del cliente de {{ state.configuracion.nombreEstudio || 'tu estudio' }}</b>
         </div>
         <div class="mockup-frame">
+          <div class="mockup-browser"><i></i><i></i><i></i></div>
           <div class="mockup-topbar" [style.background]="state.configuracion.colorSecundario">
             <div class="mockup-brand">
               <span class="mockup-dot" [style.background]="state.configuracion.colorPrimario"></span>
@@ -101,7 +111,7 @@
             </div>
             <small>Portal de Cliente</small>
           </div>
-          <div class="mockup-body">
+          <div class="mockup-body" [style.font-family]="state.configuracion.tipografia">
             <div class="mockup-welcome" [style.border-left-color]="state.configuracion.colorPrimario">
               <p>{{ state.configuracion.mensajeBienvenida || 'Bienvenido al portal de seguimiento de tu proyecto.' }}</p>
             </div>
@@ -115,8 +125,10 @@
               </div>
               <small>{{ state.selectedProject?.clienteNombre || (state.proyectos[0]?.clienteNombre || 'Cliente') }} · Portal en vivo</small>
             </div>
+            <button class="mockup-cta" type="button" tabindex="-1" aria-hidden="true" [style.background]="state.configuracion.colorPrimario">Ver entregables</button>
           </div>
         </div>
+        <p class="cfg-preview-note">Los cambios se reflejan al instante. Pulsa «Guardar» para aplicarlos a tus clientes.</p>
       </div>
     </div>
   </section>

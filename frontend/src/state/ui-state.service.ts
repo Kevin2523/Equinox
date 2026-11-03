@@ -728,10 +728,6 @@ export class UiStateService {
     this.searchOpen = true;
     this.searchError = '';
     void this.cargarTareasBusqueda();
-    setTimeout(() => {
-      const el = document.getElementById('globalSearchInput');
-      if (el) el.focus();
-    }, 50);
   }
 
   async cargarTareasBusqueda(): Promise<void> {
