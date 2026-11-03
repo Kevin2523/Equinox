@@ -7,7 +7,7 @@ const ts = require('typescript');
 const { of, firstValueFrom, NEVER, BehaviorSubject } = require('rxjs');
 
 global.window = { location: { hostname: 'localhost', origin: 'http://localhost:4200' } };
-const angular = { Component: () => (target) => target, Injectable: () => (target) => target, HostListener: () => () => {} };
+const angular = { Component: () => (target) => target, Directive: () => (target) => target, Injectable: () => (target) => target, HostListener: () => () => {} };
 const routeStubs = new Map([
   ['./pages/dashboard.component', 'DashboardComponent'], ['./pages/clientes.component', 'ClientesComponent'],
   ['./pages/proyectos.component', 'ProyectosComponent'], ['./pages/tareas.component', 'TareasComponent'],

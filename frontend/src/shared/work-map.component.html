@@ -1,76 +1,256 @@
-<section class="map-area" >
-    <!-- Map Header -->
-    <div class="map-head">
-      <div>
-        <p class="eyebrow">VISTA GENERAL</p>
+<section class="map-area work-command-center">
+  <div class="work-center-scroll">
+    <!-- Cabecera del Mapa de Trabajo -->
+    <header class="work-header">
+      <div class="work-header-titles">
+        <p class="eyebrow">VISTA GENERAL · HOJA DE RUTA E HITOS</p>
         <h1>Mapa de trabajo</h1>
-        <p><b>{{ totalActivos }}</b> proyectos activos conectados</p>
+        <p class="work-subtitle">
+          <b>{{ totalActivos }}</b> proyectos activos conectados · Recorre la línea de tiempo vertical de hitos de cada proyecto.
+        </p>
       </div>
 
-      <!-- Map Search Bar -->
-      <label class="map-search">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input [(ngModel)]="state.query" placeholder="Buscar clientes o proyectos...">
-      </label>
+      <div class="work-header-controls">
+        <label class="map-search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input [(ngModel)]="state.query" placeholder="Buscar clientes o proyectos...">
+        </label>
+      </div>
+    </header>
+
+    <!-- Estados de carga / error / vacío -->
+    <div class="map-api-state" *ngIf="cargando">Cargando mapa de proyectos…</div>
+    <div class="map-api-state map-api-state-error" *ngIf="error" role="alert">
+      {{ error }} <button type="button" (click)="cargar()">Reintentar</button>
     </div>
 
-    <!-- Connections follow the same data coordinates as their project nodes. -->
-    <svg class="connections" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <path *ngFor="let p of proyectosVisibles" class="main-line" [attr.d]="'M 50 50 Q 50 ' + p.y + ' ' + p.x + ' ' + p.y"/>
-    </svg>
-
-    <!-- Dynamic Relation Labels -->
-    <ng-container *ngIf="proyectosVisibles.length > 0">
-      <div class="relation-label collab">
-        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 8M20 8v6M17 11h6"/></svg>
-        Colaboración
+    <!-- Nodos de Proyectos Conectados en el Mapa -->
+    <div class="map-nodes-hub" *ngIf="!cargando && !error">
+      <div class="work-section-bar">
+        <div class="work-section-title">
+          <h2>Nodos de proyectos</h2>
+          <span class="work-count-pill">{{ proyectosVisibles.length }}</span>
+        </div>
+        <div class="work-filter-pills">
+          <button type="button" [class.active]="filtroEstado === 'TODOS'" (click)="filtroEstado = 'TODOS'">Todos</button>
+          <button type="button" [class.active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado = 'ACTIVO'">Activos</button>
+          <button type="button" [class.active]="filtroEstado === 'BORRADOR'" (click)="filtroEstado = 'BORRADOR'">Borrador</button>
+          <button type="button" [class.active]="filtroEstado === 'COMPLETADO'" (click)="filtroEstado = 'COMPLETADO'">Completados</button>
+        </div>
       </div>
-      <div class="relation-label opportunity">✦ Oportunidad</div>
-      <div class="relation-label synergy">↗ Sinergia</div>
-    </ng-container>
 
-    <!-- Project Nodes on the Map -->
-    <button
-      *ngFor="let p of proyectosVisibles"
-      class="project-node"
-      [style.--node-x]="p.x + '%'"
-      [style.--node-y]="p.y + '%'"
-      [class.selected]="api.proyectoSeleccionado?.id === p.id"
-      (click)="seleccionar(p)"
-      [attr.aria-label]="p.nombre + ' ' + p.estado"
-    >
-      <!-- Circular Visual Node Identity -->
-      <span class="node-visual" [ngClass]="p.visualClass"><i></i></span>
-      <strong>{{ p.nombre }}</strong>
-      <small>{{ p.clienteNombre }}</small>
+      <div class="map-api-state" *ngIf="proyectosVisibles.length === 0">
+        {{ state.query || filtroEstado !== 'TODOS' ? 'No hay proyectos que coincidan con el filtro actual.' : 'Todavía no hay proyectos. Crea uno para comenzar.' }}
+      </div>
 
-      <em *ngIf="api.proyectoSeleccionado?.id === p.id">● {{ p.estado }}</em>
+      <div class="map-nodes-track" *ngIf="proyectosVisibles.length > 0">
+        <button
+          type="button"
+          *ngFor="let p of proyectosVisibles; let i = index"
+          class="map-project-node"
+          [class.selected]="api.proyectoSeleccionado?.id === p.id"
+          (click)="seleccionar(p)"
+          [attr.aria-label]="p.nombre + ' ' + p.estado"
+        >
+          <span class="mpn-squircle" [ngClass]="p.visualClass">
+            {{ inicialesProyecto(p.nombre) }}
+            <i class="mpn-status-dot" [class.dot-active]="p.estado === 'ACTIVO' || p.estado === 'COMPLETADO'"></i>
+          </span>
+          <div class="mpn-meta">
+            <strong>{{ p.nombre }}</strong>
+            <small>{{ p.clienteNombre }}</small>
+            <span class="badge" [class.badge-completado]="p.estado === 'ACTIVO' || p.estado === 'COMPLETADO'" [class.badge-planificacion]="p.estado === 'BORRADOR' || p.estado === 'PAUSADO'">
+              ● {{ p.estado }}
+            </span>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Línea de Tiempo Vertical de Hitos del Proyecto Seleccionado -->
+    <section class="v-timeline-section" *ngIf="!cargando && !error && api.proyectoSeleccionado as proy">
+      <!-- Cabecera de la línea de tiempo -->
+      <div class="v-timeline-banner">
+        <div class="vtb-left">
+          <div class="vtb-eyebrow">
+            <span class="vtb-pulse"></span>
+            LÍNEA DE TIEMPO VERTICAL DE HITOS
+          </div>
+          <h2>{{ proy.nombre }}</h2>
+          <p>
+            Cliente: <b>{{ proy.cliente?.nombre || 'Cliente vinculado' }}</b>
+            <ng-container *ngIf="proy.cliente?.empresa"> · {{ proy.cliente?.empresa }}</ng-container>
+            <ng-container *ngIf="!cargandoHitos && !errorCargaHitos && hitosProyecto.length">
+              · {{ hitosCompletadosCount }} de {{ hitosProyecto.length }} hitos completados
+            </ng-container>
+          </p>
+        </div>
+
+        <div class="vtb-right">
+          <div class="vtb-progress-box" *ngIf="!cargandoHitos && !errorCargaHitos && hitosProyecto.length">
+            <div class="vtb-progress-top">
+              <span>Progreso de ruta</span>
+              <strong>{{ porcentajeHitos }}%</strong>
+            </div>
+            <div class="vtb-progress-bar">
+              <div class="vtb-progress-fill" [style.width.%]="porcentajeHitos"></div>
+            </div>
+          </div>
+
+          <div class="vtb-actions">
+            <button type="button" class="btn-timeline-add" (click)="mostrarFormularioHito = !mostrarFormularioHito">
+              <span>{{ mostrarFormularioHito ? '✕' : '＋' }}</span>
+              {{ mostrarFormularioHito ? 'Cerrar' : 'Nuevo hito' }}
+            </button>
+            <button type="button" class="btn-timeline-open" (click)="state.navigate('proyectos')">
+              Abrir en Proyectos ↗
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulario rápido inline para agregar un hito a la línea de tiempo -->
+      <div class="v-timeline-creator" *ngIf="mostrarFormularioHito">
+        <div class="vtc-head">
+          <strong>Agregar nuevo hito a la línea de tiempo</strong>
+          <small>Se guardará en el proyecto. Puedes elegir si se publica en el portal del cliente.</small>
+        </div>
+        <div class="vtc-grid">
+          <div class="form-group">
+            <label for="map-hito-titulo">Título del hito *</label>
+            <input id="map-hito-titulo" class="form-control" [(ngModel)]="nuevoHito.titulo" placeholder="Ej. Aprobación de diseño UI / Prototipo">
+          </div>
+          <div class="form-group">
+            <label for="map-hito-fecha">Fecha objetivo</label>
+            <input id="map-hito-fecha" type="date" class="form-control" [(ngModel)]="nuevoHito.fechaObjetivo">
+          </div>
+          <div class="form-group vtc-span-2">
+            <label for="map-hito-desc">Descripción del entregable</label>
+            <textarea id="map-hito-desc" class="form-control" rows="2" [(ngModel)]="nuevoHito.descripcion" placeholder="Describe qué incluye este hito o entregable..."></textarea>
+          </div>
+        </div>
+        <div class="vtc-foot">
+          <label class="vtc-check">
+            <input type="checkbox" [(ngModel)]="nuevoHito.visibleEnPortal">
+            <span>Publicar en el portal del cliente</span>
+          </label>
+          <div class="vtc-btns">
+            <button type="button" class="btn-secondary" (click)="mostrarFormularioHito = false">Cancelar</button>
+            <button type="button" class="btn-primary" [disabled]="guardandoHito" (click)="crearHitoEnMapa()">
+              {{ guardandoHito ? 'Guardando…' : 'Guardar hito en el mapa' }}
+            </button>
+          </div>
+        </div>
+        <p class="auth-error" *ngIf="errorHito" role="alert" style="margin-top: 8px;">{{ errorHito }}</p>
+      </div>
+
+      <div class="map-api-state" *ngIf="cargandoHitos" role="status">Consultando hitos del proyecto…</div>
+      <div class="map-api-state map-api-state-error v-timeline-error" *ngIf="!cargandoHitos && errorCargaHitos" role="alert">
+        {{ errorCargaHitos }} <button type="button" (click)="cargarHitosProyecto(proy.id)">Reintentar</button>
+      </div>
+      <div class="map-api-state v-timeline-empty" *ngIf="!cargandoHitos && !errorCargaHitos && hitosProyecto.length === 0">
+        <p>No hay hitos registrados para este proyecto.</p>
+        <button type="button" (click)="mostrarFormularioHito = true">Crear el primer hito</button>
+      </div>
+
+      <!-- Solo hitos devueltos por la API -->
+      <div class="v-timeline-track" *ngIf="!cargandoHitos && !errorCargaHitos && hitosProyecto.length">
+        <article
+          *ngFor="let hito of hitosProyecto; let idx = index"
+          class="v-timeline-item"
+          [class.is-completed]="hito.estado === 'COMPLETADO'"
+          [class.is-active]="hito.estado === 'EN_PROGRESO'"
+          [class.is-overdue]="hito.estado === 'VENCIDO'"
+        >
+          <div class="vti-rail">
+            <span
+              class="vti-marker"
+              [class.marker-completed]="hito.estado === 'COMPLETADO'"
+              [class.marker-active]="hito.estado === 'EN_PROGRESO'"
+              [class.marker-overdue]="hito.estado === 'VENCIDO'"
+              [class.marker-pending]="hito.estado === 'PENDIENTE'"
+            >
+              <svg *ngIf="hito.estado === 'COMPLETADO'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span *ngIf="hito.estado !== 'COMPLETADO'">{{ idx + 1 }}</span>
+            </span>
+            <i class="vti-line"></i>
+          </div>
+
+          <div class="vti-card">
+            <div class="vti-card-top">
+              <div class="vti-tags">
+                <span class="vti-step-tag">HITO {{ (idx + 1) < 10 ? ('0' + (idx + 1)) : (idx + 1) }}</span>
+                <span
+                  class="vti-status-pill"
+                  [class.status-done]="hito.estado === 'COMPLETADO'"
+                  [class.status-progress]="hito.estado === 'EN_PROGRESO'"
+                  [class.status-overdue]="hito.estado === 'VENCIDO'"
+                  [class.status-pending]="hito.estado === 'PENDIENTE'"
+                >
+                  ● {{ hito.estado === 'EN_PROGRESO' ? 'EN PROGRESO' : hito.estado }}
+                </span>
+                <span class="vti-portal-tag" [class.is-public]="hito.visibleEnPortal">
+                  {{ hito.visibleEnPortal ? 'Visible en portal' : 'Solo CRM' }}
+                </span>
+              </div>
+              <time class="vti-date">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                {{ hito.fechaObjetivo ? (hito.fechaObjetivo | date:'dd MMM yyyy') : 'Sin fecha límite' }}
+              </time>
+            </div>
+
+            <h3>{{ hito.titulo }}</h3>
+            <p *ngIf="hito.descripcion">{{ hito.descripcion }}</p>
+
+            <div class="vti-quick-actions">
+              <span class="vti-qa-label">Cambiar estado:</span>
+              <button
+                type="button"
+                [class.active]="hito.estado === 'PENDIENTE'"
+                [disabled]="actualizandoHitoId === hito.id"
+                (click)="cambiarEstadoHito(hito, 'PENDIENTE', $event)"
+              >Pendiente</button>
+              <button
+                type="button"
+                [class.active]="hito.estado === 'EN_PROGRESO'"
+                [disabled]="actualizandoHitoId === hito.id"
+                (click)="cambiarEstadoHito(hito, 'EN_PROGRESO', $event)"
+              >En progreso</button>
+              <button
+                type="button"
+                [class.active]="hito.estado === 'COMPLETADO'"
+                [disabled]="actualizandoHitoId === hito.id"
+                (click)="cambiarEstadoHito(hito, 'COMPLETADO', $event)"
+              >✓ Completado</button>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+  </div>
+
+  <!-- Floating Command Dock -->
+  <div class="command-dock">
+    <button class="create" id="createBtn" (click)="state.openQuickCreate()">
+      <span>＋</span>Crear
     </button>
-
-    <!-- Floating Command Dock -->
-    <div class="command-dock">
-      <button class="create" id="createBtn" (click)="state.openQuickCreate()">
-        <span>＋</span>Crear
-      </button>
-      <i></i>
-      <button id="dockSearch" (click)="state.openSearch()">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        Buscar...
-      </button>
-      <i></i>
-      <button title="Archivos del proyecto" [disabled]="!api.proyectoSeleccionado" (click)="state.switchTab('archivos')">
-        <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM15 3v5h5M8 13h8M8 17h6"/></svg>
-      </button>
-      <button title="Tareas pendientes" (click)="state.navigate('tareas')">
-        <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v8H3V4h13"/></svg>
-      </button>
-      <button title="Añadir colaborador no disponible" disabled class="btn-dock-disabled" aria-label="Añadir colaborador no disponible">
-        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
-      </button>
-      <i></i>
-      <button title="Más opciones" (click)="state.navigate('configuracion')">•••</button>
-    </div>
-    <div class="map-api-state" *ngIf="cargando">Cargando proyectos…</div>
-    <div class="map-api-state map-api-state-error" *ngIf="error" role="alert">{{ error }} <button type="button" (click)="cargar()">Reintentar</button></div>
-    <div class="map-api-state" *ngIf="!cargando && !error && proyectosVisibles.length === 0">{{ state.query ? 'No hay proyectos que coincidan con la búsqueda.' : 'Todavía no hay proyectos. Crea uno desde la sección Proyectos.' }}</div>
-  </section>
+    <i></i>
+    <button id="dockSearch" (click)="state.openSearch()">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      Buscar...
+    </button>
+    <i></i>
+    <button title="Archivos del proyecto" [disabled]="!api.proyectoSeleccionado" (click)="state.switchTab('archivos')">
+      <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM15 3v5h5M8 13h8M8 17h6"/></svg>
+    </button>
+    <button title="Tareas pendientes" (click)="state.navigate('tareas')">
+      <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v8H3V4h13"/></svg>
+    </button>
+    <button title="Añadir colaborador no disponible" disabled class="btn-dock-disabled" aria-label="Añadir colaborador no disponible">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
+    </button>
+    <i></i>
+    <button title="Más opciones" (click)="state.navigate('configuracion')">•••</button>
+  </div>
+</section>

@@ -1,7 +1,7 @@
 <main class="standard"><section class="collection">
   <div class="page-title"><div><p class="eyebrow">EQUINOX / TAREAS</p><h1>Tareas</h1>
     <p>Progreso por proyecto: tareas completadas entre tareas no canceladas. Sin tareas, el progreso queda sin definir.</p></div>
-    <button class="btn-primary" type="button" (click)="state.openQuickCreate('Tarea')" [disabled]="!state.proyectos.length"><span>＋</span> Nueva tarea</button>
+    <button class="btn-primary" type="button" (click)="state.openQuickCreate('Tarea')" [disabled]="!state.proyectos.length"><span>+</span> Nueva tarea</button>
   </div>
   <div class="filter-bar"><label class="search-input-pill"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
     <input [(ngModel)]="state.query" placeholder="Buscar tareas..." aria-label="Buscar tareas"></label>

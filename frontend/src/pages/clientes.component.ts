@@ -1,17 +1,24 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { ClienteApi, ClientesProyectosApiService, EstadoClienteApi } from '../services/clientes-proyectos-api.service';
 import { InvitacionCliente, RespuestaInvitacionEmitida, RolInvitacion } from '../models/invitacion.model';
 import { InvitacionesApiService } from '../services/invitaciones-api.service';
+import { DialogFocusDirective } from '../shared/dialog-focus.directive';
 
 @Component({
-  selector: 'app-clientes', standalone: true, imports: [CommonModule, FormsModule],
+  selector: 'app-clientes', standalone: true, imports: [CommonModule, FormsModule, DialogFocusDirective],
   templateUrl: './clientes.component.html', styleUrl: './clientes.component.css'
 })
 export class ClientesComponent implements OnInit, OnDestroy {
+  @HostListener('document:keydown.escape')
+  cerrarModalConEscape(): void {
+    if (this.clienteInvitaciones) this.cerrarInvitaciones();
+    else if (this.modalDetalle) this.cerrarDetalle();
+    else this.modalFormulario = false;
+  }
   clientes: ClienteApi[] = [];
   filtroEstado: 'TODOS' | EstadoClienteApi = 'TODOS';
   busqueda = '';
@@ -243,6 +250,18 @@ export class ClientesComponent implements OnInit, OnDestroy {
   async guardar(form: NgForm): Promise<void> {
     this.enviado = true;
     if (form.invalid || this.guardando) return;
+    const sitioIngresado = this.formulario.sitioWeb.trim();
+    let sitioWeb: string | null = null;
+    if (sitioIngresado) {
+      try {
+        const url = new URL(/^https?:\/\//i.test(sitioIngresado) ? sitioIngresado : `https://${sitioIngresado}`);
+        if (!['http:', 'https:'].includes(url.protocol) || !url.hostname.includes('.')) throw new Error('Sitio inválido');
+        sitioWeb = url.toString();
+      } catch {
+        this.errorGuardar = 'Escribe un sitio web válido (por ejemplo, www.ejemplo.com) o deja el campo vacío.';
+        return;
+      }
+    }
     this.guardando = true; this.errorGuardar = '';
     const datos = {
       nombre: this.formulario.nombre.trim(),
@@ -250,7 +269,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
       correo: this.formulario.correo.trim() || null,
       telefono: this.formulario.telefono.trim() || null,
       direccion: this.formulario.direccion.trim() || null,
-      sitioWeb: this.formulario.sitioWeb.trim() || null,
+      sitioWeb,
       notasInternas: this.formulario.notasInternas.trim() || null,
       estado: this.formulario.estado
     };

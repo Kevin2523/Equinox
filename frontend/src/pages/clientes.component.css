@@ -1,19 +1,575 @@
-.invitation-note { padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-soft); color: var(--muted); font-size: 13px; }
-.invitation-link { margin: 16px 0; }
-.invitation-link label { display: block; margin-bottom: 6px; font-weight: 600; }
-.invitation-link > div { display: flex; gap: 8px; }
-.invitation-link input { min-width: 0; flex: 1; }
-.invitation-list { list-style: none; padding: 0; margin: 12px 0; }
-.invitation-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-.invitation-list li > div:first-child { min-width: 0; display: grid; gap: 3px; overflow-wrap: anywhere; }
-.invitation-list li span, .invitation-list li small { color: var(--muted); font-size: 12px; }
-.invitation-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-.invitation-modal hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
-.invitation-modal h3 { font-size: 16px; }
-.invitation-modal > form .modal-actions { margin: 16px 0; flex-wrap: wrap; }
-.auth-success { color: var(--success, #26734d); }
-@media (max-width: 540px) {
-  .invitation-list li { align-items: flex-start; flex-direction: column; }
-  .invitation-actions { justify-content: flex-start; }
-  .invitation-link > div { align-items: stretch; flex-direction: column; }
+/* ==========================================================================
+   CLIENTES COMPONENT - MODALES Y ESTILOS
+   ========================================================================== */
+
+/* Ventana emergente estructurada para formulario de cliente */
+.modal-formulario-cliente {
+  width: min(680px, 94vw) !important;
+  max-height: min(90vh, 760px) !important;
+  padding: 0 !important;
+  display: block !important;
+  border-radius: 20px !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  background: #ffffff !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(15, 23, 42, 0.05) !important;
 }
+
+.modal-formulario-cliente .modal-header-hero {
+  position: relative;
+  background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 60%, #1e3a5f 100%);
+  color: #ffffff;
+  padding: 24px 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-formulario-cliente .modal-header-hero .hero-bg-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
+  pointer-events: none;
+}
+
+.modal-formulario-cliente .modal-header-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.modal-formulario-cliente .modal-form-body {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-formulario-cliente .modal-actions,
+.modal-formulario-cliente .modal-footer-bar {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 16px 28px !important;
+  background: #f8fafc !important;
+  border-top: 1px solid #e2e8f0 !important;
+  margin: 0 !important;
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 10 !important;
+}
+
+.modal-form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 18px;
+}
+
+.modal-form-grid-2col .col-span-2 {
+  grid-column: span 2;
+}
+
+.modal-form-grid-2col .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-form-grid-2col .form-group label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #334155;
+}
+
+.modal-form-grid-2col .form-group .form-control {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.modal-form-grid-2col .form-group .form-control:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+
+/* Ventana emergente estructurada para detalle de cliente */
+.modal-detalle-cliente {
+  width: min(720px, 94vw) !important;
+  max-height: calc(100vh - 48px) !important;
+  max-height: calc(100dvh - 48px) !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 20px !important;
+  overflow: hidden !important;
+  background: #ffffff !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Cabecera Hero con gradiente oscuro */
+.modal-detalle-cliente .modal-header-hero {
+  position: relative;
+  background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 60%, #1e3a5f 100%);
+  color: #ffffff;
+  padding: 24px 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-detalle-cliente .modal-header-hero .hero-bg-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
+  pointer-events: none;
+}
+
+.modal-detalle-cliente .modal-header-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.modal-hero-eyebrow-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.modal-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.modal-hero-close {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-hero-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.modal-hero-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.modal-hero-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.modal-hero-title-row h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff !important;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
+}
+
+.modal-hero-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 13px;
+  margin: 0;
+}
+
+.client-hero-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.client-avatar-large {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  flex-shrink: 0;
+}
+
+.btn-hero-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-hero-action:hover {
+  background: rgba(255, 255, 255, 0.24);
+  transform: translateY(-1px);
+}
+
+/* Cuerpo con scroll optimizado */
+.modal-detalle-cliente .modal-body-scroll {
+  padding: 24px 28px;
+
+  overscroll-behavior: contain;
+
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Barra de pie del modal */
+.modal-detalle-cliente .modal-footer-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 28px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  margin-top: auto;
+}
+
+/* Grilla de métricas clave / estadísticas */
+.stats-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.stat-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-box small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.stat-box b {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-all;
+}
+
+.stat-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.stat-link:hover {
+  text-decoration: underline;
+}
+
+/* Paneles informativos */
+.detail-card-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.detail-card-panel h3 {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+  margin: 0 0 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.client-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.client-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.info-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.info-value {
+  font-size: 13.5px;
+  color: #0f172a;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.external-link {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.external-link:hover {
+  text-decoration: underline;
+}
+
+/* Caja de notas internas */
+.notes-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #3b82f6;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  color: #334155;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* Tarjeta destacada de Portal del Cliente */
+.client-portal-card {
+  background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+  border: 1px solid #bfdbfe;
+}
+
+.portal-card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.portal-card-desc {
+  font-size: 12.5px;
+  color: #1e40af;
+  margin: 3px 0 0;
+  line-height: 1.4;
+}
+
+.btn-portal-action {
+  background: #2563eb;
+  color: #ffffff !important;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-portal-action:hover {
+  background: #1d4ed8;
+}
+
+/* Estilos de invitaciones */
+.invitation-note {
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 10px);
+  background: var(--surface-soft, #f8fafc);
+  color: var(--muted, #64748b);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.invitation-link {
+  margin: 16px 0;
+}
+
+.invitation-link label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.invitation-link > div {
+  display: flex;
+  gap: 8px;
+}
+
+.invitation-link input {
+  min-width: 0;
+  flex: 1;
+}
+
+.invitation-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.invitation-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line, #e2e8f0);
+}
+
+.invitation-list li > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  overflow-wrap: anywhere;
+}
+
+.invitation-list li span,
+.invitation-list li small {
+  color: var(--muted, #64748b);
+  font-size: 12px;
+}
+
+.invitation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.invitation-modal hr {
+  border: 0;
+  border-top: 1px solid var(--line, #e2e8f0);
+  margin: 20px 0;
+}
+
+.invitation-modal h3 {
+  font-size: 16px;
+}
+
+.invitation-modal > form .modal-actions {
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.auth-success {
+  color: var(--success, #26734d);
+}
+
+/* Responsividad */
+@media (max-width: 640px) {
+  .modal-form-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .modal-form-grid-2col .col-span-2 {
+    grid-column: span 1;
+  }
+  .modal-formulario-cliente .modal-form-body {
+    padding: 18px 16px;
+  }
+  .modal-formulario-cliente .modal-footer-bar {
+    padding: 12px 16px;
+  }
+  .stats-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .client-info-grid {
+    grid-template-columns: 1fr;
+  }
+  .client-hero-identity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .modal-hero-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .modal-detalle-cliente .modal-body-scroll {
+    padding: 18px 16px;
+  }
+  .modal-detalle-cliente .modal-footer-bar {
+    padding: 12px 16px;
+  }
+  .invitation-list li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .invitation-actions {
+    justify-content: flex-start;
+  }
+  .invitation-link > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* ===== Modal de invitaciones (estructura plana para conservar selectores) ===== */
+.quick-modal.invitation-modal { width: min(600px, 94vw) !important; padding: 0 0 4px !important; border-radius: 20px !important; overflow-x: hidden; background: #fff !important; box-shadow: 0 25px 50px -12px rgba(15,23,42,.28), 0 0 0 1px rgba(15,23,42,.05) !important; }
+.invitation-modal > *:not(.invite-hero) { margin-left: 28px; margin-right: 28px; }
+.invite-hero { position: relative; margin: 0 0 20px; padding: 22px 28px 24px; color: #fff; background: radial-gradient(rgba(255,255,255,.08) 1px, transparent 1px) 0 0/16px 16px, linear-gradient(135deg,#0d1b2a 0%,#1b263b 60%,#1e3a5f 100%); }
+.invite-hero-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.invite-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: #94a3b8; }
+.invite-hero h2 { margin: 0 0 4px; font-size: 22px; font-weight: 800; color: #fff !important; letter-spacing: -.02em; }
+.invite-sub { margin: 0; font-size: 13px; color: #cbd5e1; }
+.invite-hero .invite-close { position: static !important; width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.12) !important; border: 1px solid rgba(255,255,255,.2) !important; color: #fff !important; cursor: pointer; }
+.invite-hero .invite-close:hover { background: rgba(255,255,255,.25) !important; }
+.invitation-modal .invitation-note { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 12px 14px 12px 40px; position: relative; border-radius: 12px; }
+.invitation-modal .invitation-note::before { content: 'i'; position: absolute; left: 12px; top: 12px; width: 18px; height: 18px; border-radius: 50%; background: #2563eb; color: #fff; font: 700 12px/18px var(--font-sans, sans-serif); text-align: center; }
+.invitation-modal .form-group label { font-size: 12px; font-weight: 700; letter-spacing: .03em; color: #475569; }
+.invitation-modal h3 { margin-top: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #475569; }
+.invitation-modal hr { border-top-color: #e2e8f0; margin-top: 8px; margin-bottom: 18px; }
+.invitation-list li { padding: 12px 14px; margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
+.invitation-list li strong { font-size: 14px; color: #0f172a; }
+.invitation-list .inv-role { display: block; }
+.inv-status { font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; background: #e2e8f0; color: #475569; }
+.inv-status[data-estado='ACEPTADA'] { background: #dcfce7; color: #15803d; }
+.inv-status[data-estado='PENDIENTE'] { background: #fef3c7; color: #b45309; }
+.inv-status[data-estado='REVOCADA'], .inv-status[data-estado='EXPIRADA'] { background: #fee2e2; color: #b91c1c; }
+.invitation-modal > .modal-actions:last-child { margin-top: 16px; margin-bottom: 20px; padding-top: 14px; border-top: 1px solid #e2e8f0; }
+@media (max-width: 540px) { .invitation-modal > *:not(.invite-hero) { margin-left: 16px; margin-right: 16px; } .invite-hero { padding: 18px 16px 20px; } }

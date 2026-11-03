@@ -6,10 +6,15 @@
   width: 100%;
 }
 
+:host main.standard {
+  padding: 24px clamp(16px, 3vw, 40px) 56px;
+}
+
 .portal-experience-wrapper {
-  max-width: 1140px;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 16px 20px 48px;
+  padding: 16px 0 48px;
   display: flex;
   flex-direction: column;
   gap: 20px;

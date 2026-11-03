@@ -117,3 +117,51 @@ test('editar actualiza el proyecto seleccionado del inspector con los valores de
 
   assert.deepEqual(api.proyectoSeleccionado, { ...actualizado, cliente: clienteB });
 });
+
+test('crear proyecto exige elegir cliente, sin asignar automáticamente el primero', async () => {
+  const component = new ProyectosComponent({ clientes: [], proyectos: [] }, { snapshot: { queryParamMap: { get: () => null } } });
+  component.clientes = [{ id: 'cliente-a', nombre: 'Cliente A' }];
+  component.nuevo();
+  assert.equal(component.formulario.clienteId, '');
+});
+
+test('las pestañas del detalle cambian con flechas, inicio y fin', async () => {
+  const component = new ProyectosComponent({ clientes: [], proyectos: [] }, { snapshot: { queryParamMap: { get: () => null } } });
+  const enfocados = [];
+  const tabs = ['hitos', 'archivos', 'bitacora'].map(nombre => ({ focus: () => enfocados.push(nombre) }));
+  const event = key => ({ key, preventDefault() {}, currentTarget: { parentElement: { querySelectorAll: () => tabs } } });
+  component.moverPestana(event('ArrowRight'));
+  assert.equal(component.pestanaDetalle, 'archivos');
+  component.moverPestana(event('End'));
+  assert.equal(component.pestanaDetalle, 'bitacora');
+  component.moverPestana(event('ArrowRight'));
+  assert.equal(component.pestanaDetalle, 'hitos');
+  assert.deepEqual(enfocados, ['archivos', 'bitacora', 'hitos']);
+});
+
+test('la última selección de proyecto gana aunque la respuesta anterior llegue después', async () => {
+  const pendientes = new Map();
+  const api = new ClientesProyectosApiService({ get(url) {
+    return new rxjs.Observable(subscriber => { pendientes.set(url.split('/').at(-1), p => { subscriber.next(p); subscriber.complete(); }); });
+  } });
+  const anterior = api.seleccionarProyecto('a');
+  const reciente = api.seleccionarProyecto('b');
+  pendientes.get('b')(proyecto('b'));
+  await reciente;
+  pendientes.get('a')(proyecto('a'));
+  await anterior;
+  assert.equal(api.proyectoSeleccionado.id, 'b');
+});
+
+test('crear un hito no lo publica bajo otro proyecto seleccionado mientras responde la API', async () => {
+  let responder;
+  const api = { proyectoSeleccionado: proyecto('a') };
+  const trabajo = { crearHito: () => new Promise(resolve => { responder = resolve; }) };
+  const mapa = new WorkMapComponent({ query: '' }, api, trabajo);
+  mapa.nuevoHito.titulo = 'Hito de A';
+  const pendiente = mapa.crearHitoEnMapa();
+  api.proyectoSeleccionado = proyecto('b');
+  responder({ id: 'h-a', titulo: 'Hito de A', estado: 'PENDIENTE' });
+  await pendiente;
+  assert.deepEqual(mapa.hitosProyecto, []);
+});
