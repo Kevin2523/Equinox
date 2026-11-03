@@ -824,6 +824,44 @@ app-work-map .connections { inset: 0; width: 100%; height: 100%; }
   background: #17274d;
 }
 
+.command-dock button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.notif-empty {
+  padding: 16px;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+  margin: 0;
+}
+
+.auth-success {
+  color: #10b981;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.portal-empty-preview {
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.portal-empty-preview .empty-state-content h3 {
+  margin-bottom: 8px;
+}
+
+.portal-empty-preview .empty-state-content p {
+  color: #64748b;
+  max-width: 480px;
+  margin: 0 auto 20px auto;
+}
+
 .command-dock .create {
   background: linear-gradient(100deg, #3978ff, #3765ef);
   padding: 0 23px;

@@ -6,108 +6,114 @@
         <h1>Marca y Estudio</h1>
         <p>Personaliza la identidad visual que verán tus clientes en su portal.</p>
       </div>
-      <button class="btn-primary" (click)="state.saveConfig()">
-        Guardar cambios
+      <button class="btn-primary" (click)="state.saveConfig()" [disabled]="!state.puedeGestionarOrganizacion || state.guardandoConfiguracion">
+        {{ state.guardandoConfiguracion ? 'Guardando…' : 'Guardar cambios' }}
       </button>
     </div>
+
+    <div class="auth-error" role="alert" *ngIf="state.errorConfiguracion">{{ state.errorConfiguracion }}</div>
+    <div class="auth-success" role="status" *ngIf="state.exitoConfiguracion">{{ state.exitoConfiguracion }}</div>
+    <div class="auth-notice" role="note" *ngIf="!state.puedeGestionarOrganizacion">Solo los usuarios con rol de PROPIETARIO pueden modificar la configuración del estudio.</div>
 
     <div class="settings-layout">
       <!-- Settings Form -->
       <div class="settings-form-card">
         <h3>Datos del estudio</h3>
-        <div class="form-group">
-          <label>Nombre del estudio</label>
-          <input class="form-control" [(ngModel)]="state.configuracion.nombreEstudio">
-        </div>
-        <div class="form-group">
-          <label>Nombre del freelancer</label>
-          <input class="form-control" [(ngModel)]="state.configuracion.nombreFreelancer">
-        </div>
-        <div class="form-row">
+        <fieldset [disabled]="!state.puedeGestionarOrganizacion || state.guardandoConfiguracion">
           <div class="form-group">
-            <label>Correo de contacto</label>
-            <input class="form-control" [(ngModel)]="state.configuracion.correo">
+            <label>Nombre del estudio</label>
+            <input class="form-control" [(ngModel)]="state.configuracion.nombreEstudio">
           </div>
           <div class="form-group">
-            <label>Teléfono (WhatsApp)</label>
-            <input class="form-control" [(ngModel)]="state.configuracion.telefono">
+            <label>Nombre del freelancer</label>
+            <input class="form-control" [(ngModel)]="state.configuracion.nombreFreelancer">
           </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>RUC / Cédula fiscal</label>
-            <input class="form-control" [(ngModel)]="state.configuracion.ruc">
-          </div>
-          <div class="form-group">
-            <label>Moneda principal</label>
-            <input class="form-control" [(ngModel)]="state.configuracion.moneda">
-          </div>
-        </div>
-
-        <h3 class="mt-4">Personalización visual del portal</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Color primario de marca</label>
-            <div class="color-picker-wrapper">
-              <input type="color" [(ngModel)]="state.configuracion.colorPrimario">
-              <span>{{ state.configuracion.colorPrimario }}</span>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Correo de contacto</label>
+              <input class="form-control" [(ngModel)]="state.configuracion.correo">
+            </div>
+            <div class="form-group">
+              <label>Teléfono (WhatsApp)</label>
+              <input class="form-control" [(ngModel)]="state.configuracion.telefono">
             </div>
           </div>
-          <div class="form-group">
-            <label>Color secundario</label>
-            <div class="color-picker-wrapper">
-              <input type="color" [(ngModel)]="state.configuracion.colorSecundario">
-              <span>{{ state.configuracion.colorSecundario }}</span>
+          <div class="form-row">
+            <div class="form-group">
+              <label>RUC / Cédula fiscal</label>
+              <input class="form-control" [(ngModel)]="state.configuracion.ruc">
+            </div>
+            <div class="form-group">
+              <label>Moneda principal</label>
+              <input class="form-control" [(ngModel)]="state.configuracion.moneda">
             </div>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label>Tipografía del portal</label>
-          <select class="form-control" [(ngModel)]="state.configuracion.tipografia">
-            <option value="DM Sans">DM Sans (Elegante y moderna)</option>
-            <option value="Manrope">Manrope (Geométrica)</option>
-            <option value="Inter">Inter (Técnica)</option>
-          </select>
-        </div>
+          <h3 class="mt-4">Personalización visual del portal</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Color primario de marca</label>
+              <div class="color-picker-wrapper">
+                <input type="color" [(ngModel)]="state.configuracion.colorPrimario">
+                <span>{{ state.configuracion.colorPrimario }}</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Color secundario</label>
+              <div class="color-picker-wrapper">
+                <input type="color" [(ngModel)]="state.configuracion.colorSecundario">
+                <span>{{ state.configuracion.colorSecundario }}</span>
+              </div>
+            </div>
+          </div>
 
-        <div class="form-group">
-          <label>Mensaje de bienvenida para clientes</label>
-          <textarea class="form-control" [(ngModel)]="state.configuracion.mensajeBienvenida"></textarea>
-        </div>
+          <div class="form-group">
+            <label>Tipografía del portal</label>
+            <select class="form-control" [(ngModel)]="state.configuracion.tipografia">
+              <option value="DM Sans">DM Sans (Elegante y moderna)</option>
+              <option value="Manrope">Manrope (Geométrica)</option>
+              <option value="Inter">Inter (Técnica)</option>
+            </select>
+          </div>
 
-        <button class="btn-primary" (click)="state.saveConfig()">
-          ✓ Guardar configuración
-        </button>
+          <div class="form-group">
+            <label>Mensaje de bienvenida para clientes</label>
+            <textarea class="form-control" [(ngModel)]="state.configuracion.mensajeBienvenida"></textarea>
+          </div>
+
+          <button class="btn-primary" (click)="state.saveConfig()" [disabled]="!state.puedeGestionarOrganizacion || state.guardandoConfiguracion">
+            {{ state.guardandoConfiguracion ? 'Guardando…' : '✓ Guardar configuración' }}
+          </button>
+        </fieldset>
       </div>
 
       <!-- Real-Time Portal Preview -->
       <div class="portal-preview-card">
         <div class="preview-head">
           <small>VISTA PREVIA EN VIVO</small>
-          <b>Portal del cliente de {{ state.configuracion.nombreEstudio }}</b>
+          <b>Portal del cliente de {{ state.configuracion.nombreEstudio || 'tu estudio' }}</b>
         </div>
         <div class="mockup-frame">
           <div class="mockup-topbar" [style.background]="state.configuracion.colorSecundario">
             <div class="mockup-brand">
               <span class="mockup-dot" [style.background]="state.configuracion.colorPrimario"></span>
-              <strong [style.font-family]="state.configuracion.tipografia">{{ state.configuracion.nombreEstudio }}</strong>
+              <strong [style.font-family]="state.configuracion.tipografia">{{ state.configuracion.nombreEstudio || 'Tu Estudio' }}</strong>
             </div>
             <small>Portal de Cliente</small>
           </div>
           <div class="mockup-body">
             <div class="mockup-welcome" [style.border-left-color]="state.configuracion.colorPrimario">
-              <p>{{ state.configuracion.mensajeBienvenida }}</p>
+              <p>{{ state.configuracion.mensajeBienvenida || 'Bienvenido al portal de seguimiento de tu proyecto.' }}</p>
             </div>
             <div class="mockup-project">
               <div class="mockup-p-title">
-                <b>Café Unido</b>
-                <span class="badge badge-revision">En revisión</span>
+                <b>{{ state.selectedProject?.nombre || (state.proyectos[0]?.nombre || 'Tu Proyecto') }}</b>
+                <span class="badge badge-revision">{{ state.selectedProject?.estado || (state.proyectos[0]?.estado || 'ACTIVO') }}</span>
               </div>
               <div class="mockup-p-progress">
-                <div class="mockup-bar" [style.width]="'72%'" [style.background]="state.configuracion.colorPrimario"></div>
+                <div class="mockup-bar" [style.width]="'65%'" [style.background]="state.configuracion.colorPrimario"></div>
               </div>
-              <small>Avance: 72% · Próxima entrega: 15 abr 2026</small>
+              <small>{{ state.selectedProject?.clienteNombre || (state.proyectos[0]?.clienteNombre || 'Cliente') }} · Portal en vivo</small>
             </div>
           </div>
         </div>

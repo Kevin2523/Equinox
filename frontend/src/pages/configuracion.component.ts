@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UiStateService } from '../state/ui-state.service';
 
@@ -9,6 +9,12 @@ import { UiStateService } from '../state/ui-state.service';
   imports: [CommonModule, FormsModule],
   templateUrl: './configuracion.component.html'
 })
-export class ConfiguracionComponent {
+export class ConfiguracionComponent implements OnInit {
   constructor(public state: UiStateService) {}
+
+  ngOnInit(): void {
+    if (!this.state.configuracion?.nombreEstudio) {
+      void this.state.cargarOrganizacion();
+    }
+  }
 }

@@ -1,5 +1,6 @@
-<aside class="inspector" *ngIf="api.proyectos.length">
-  <ng-container *ngIf="api.proyectoSeleccionado as proyecto; else seleccionaProyecto">
+<aside class="inspector">
+  <ng-container *ngIf="api.proyectos.length; else sinProyectos">
+    <ng-container *ngIf="api.proyectoSeleccionado as proyecto; else seleccionaProyecto">
     <div class="inspector-panel">
 
       <!-- Hero Header -->
@@ -177,7 +178,20 @@
     </div>
   </ng-container>
 
-  <ng-template #seleccionaProyecto>
+    <ng-template #seleccionaProyecto>
+      <div class="empty-inspector">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <p>Selecciona un proyecto del mapa de trabajo para ver y gestionar su información detallada.</p>
+      </div>
+    </ng-template>
+  </ng-container>
+  <ng-template #sinProyectos>
     <div class="empty-inspector">
       <div class="empty-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -186,7 +200,9 @@
           <line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
       </div>
-      <p>Selecciona un proyecto del mapa de trabajo para ver y gestionar su información detallada.</p>
+      <h3>Comienza con un proyecto</h3>
+      <p>Todavía no tienes proyectos en tu organización. Agrega tu primer cliente y crea un proyecto para visualizarlo aquí.</p>
+      <button class="btn-primary-action" type="button" (click)="nuevoProyecto()">＋ Crear proyecto</button>
     </div>
   </ng-template>
 </aside>
