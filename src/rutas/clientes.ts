@@ -4,8 +4,10 @@ import { prisma } from "../prisma.js";
 import type { SolicitudAutenticada } from "../tipos.js";
 import { ErrorHttp } from "../utilidades/errores.js";
 import { registrarActividad } from "../utilidades/actividad.js";
+import { rutasInvitacionesClientes } from "./invitaciones-clientes.js";
 
 export const rutasClientes = Router();
+rutasClientes.use("/:clienteId/invitaciones", rutasInvitacionesClientes);
 const esquema = z.object({ nombre: z.string().min(2), empresa: z.string().optional().nullable(), correo: z.string().email().optional().nullable(), telefono: z.string().optional().nullable(), direccion: z.string().optional().nullable(), sitioWeb: z.string().url().optional().nullable(), notasInternas: z.string().optional().nullable(), estado: z.enum(["ACTIVO", "INACTIVO", "PROSPECTO", "ARCHIVADO"]).optional() });
 const id = z.string().uuid();
 const pertenece = async (clienteId: string, organizacionId: string) => { const cliente = await prisma.cliente.findFirst({ where: { id: clienteId, organizacionId } }); if (!cliente) throw new ErrorHttp(404, "Cliente no encontrado"); return cliente; };

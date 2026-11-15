@@ -4,7 +4,7 @@ export interface Cliente {
   empresa: string;
   correo: string;
   telefono: string;
-  estado: 'ACTIVO' | 'PROSPECTO' | 'INACTIVO';
+  estado: 'ACTIVO' | 'PROSPECTO' | 'INACTIVO' | 'ARCHIVADO';
   notas?: string;
   proyectosCount?: number;
   totalFacturado?: number;
@@ -16,7 +16,7 @@ export interface Tarea {
   proyectoId: string;
   proyectoNombre?: string;
   titulo: string;
-  estado: 'PENDIENTE' | 'EN_PROGRESO' | 'COMPLETADA';
+  estado: 'PENDIENTE' | 'EN_PROGRESO' | 'BLOQUEADA' | 'COMPLETADA' | 'CANCELADA';
   prioridad: 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
   fechaVencimiento: string;
   asignadoA?: string;
@@ -49,8 +49,10 @@ export interface Factura {
   proyectoId?: string;
   proyectoNombre?: string;
   monto: number;
+  moneda?: string;
+  visibleEnPortal?: boolean;
   montoPendiente: number;
-  estado: 'PENDIENTE' | 'PAGADA' | 'VENCIDA' | 'BORRADOR';
+  estado: 'PENDIENTE' | 'PAGADA' | 'VENCIDA' | 'BORRADOR' | 'ENVIADA' | 'CANCELADA';
   fechaEmision: string;
   fechaVencimiento: string;
   pagadaEn?: string;
@@ -75,7 +77,7 @@ export interface Proyecto {
   tipo: string;
   descripcion: string;
   progreso: number;
-  estado: 'En revisión' | 'En progreso' | 'Por aprobar' | 'Planificación' | 'Completado';
+  estado: 'En revisión' | 'En progreso' | 'Por aprobar' | 'Planificación' | 'Completado' | 'BORRADOR' | 'ACTIVO' | 'PAUSADO' | 'COMPLETADO' | 'CANCELADO';
   estadoBadgeClass: 'revision' | 'progreso' | 'aprobar' | 'planificacion' | 'completado';
   presupuesto: number;
   fechaEntrega: string;
