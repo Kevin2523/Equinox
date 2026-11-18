@@ -1705,3 +1705,24 @@
 .priority-alta { background: #fff7ed; color: #ea580c; }
 .priority-media { background: #f0fdf4; color: #16a34a; }
 .priority-baja { background: #f1f5f9; color: #64748b; }
+
+.project-work-section { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 18px; }
+.project-card-main .p-node-thumb { position: relative; overflow: hidden; }
+.project-card-main .p-node-thumb.visual-building::before { content: none; }
+.project-work-section h3 { margin: 0 0 12px; font-size: 17px; }
+.project-work-section h4 { margin: 0 0 10px; }
+.project-work-section ol { padding-left: 20px; }
+.project-work-section li { margin-bottom: 14px; }
+.project-work-section time, .project-work-item small { color: #64748b; font-size: 12px; }
+.project-work-section button { margin: 8px 8px 0 0; }
+.project-files-list { list-style: none; padding: 0; }
+.project-files-list li { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 10px 0; }
+.project-files-list li strong, .project-files-list li small { display: block; overflow-wrap: anywhere; }
+.project-files-list li small { color: var(--muted); margin-top: 4px; }
+.project-work-form progress { width: 100%; }
+.project-work-item { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 10px 0; }
+.project-work-item > strong, .project-work-item > small { display: block; }
+.project-work-form { display: grid; gap: 10px; margin: 12px 0; }
+.project-work-form label { display: grid; gap: 5px; }
+.project-work-form label:has(input[type='checkbox']) { display: flex; align-items: center; }
+.project-work-form textarea, .project-work-section textarea { width: 100%; }

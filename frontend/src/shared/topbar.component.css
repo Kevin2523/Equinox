@@ -9,6 +9,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 36px;
+  box-sizing: border-box;
+  max-width: 100%;
   background-color: #ffffff;
   border-bottom: 1px solid #e5e7eb;
   position: relative;
@@ -299,5 +301,25 @@
   }
   .mobile-toggle {
     display: block;
+  }
+}
+
+@media (max-width: 640px) {
+  .topnav {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .brand-divider {
+    display: none;
+  }
+  .nav-actions {
+    gap: 8px;
+    min-width: 0;
+  }
+  .topbar-search-pill {
+    padding: 0 10px;
+  }
+  .topbar-search-pill span {
+    display: none;
   }
 }

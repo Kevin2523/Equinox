@@ -330,10 +330,10 @@
      MODAL CREAR / EDITAR PROYECTO
      ========================================================================== -->
 <div class="overlay" *ngIf="modalFormulario" (click)="modalFormulario = false">
-  <section class="quick-modal" (click)="$event.stopPropagation()">
+  <section class="quick-modal" role="dialog" aria-modal="true" aria-labelledby="proyecto-modal-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
     <button class="close" type="button" (click)="modalFormulario = false" aria-label="Cerrar modal">×</button>
     <small class="modal-eyebrow">{{ editandoId ? 'EDITAR PROYECTO' : 'NUEVO PROYECTO' }}</small>
-    <h2>{{ editandoId ? 'Actualizar proyecto' : 'Crear proyecto' }}</h2>
+    <h2 id="proyecto-modal-title">{{ editandoId ? 'Actualizar proyecto' : 'Crear proyecto' }}</h2>
     <form #form="ngForm" (ngSubmit)="guardar(form)">
       <div class="form-group">
         <label for="proyecto-nombre">Nombre del proyecto *</label>
@@ -416,7 +416,7 @@
      MODAL DETALLE DE PROYECTO (VENTANA MODAL AMPLIA CON PESTAÑAS COMPLETAS)
      ========================================================================== -->
 <div class="overlay" *ngIf="modalDetalle" (click)="cerrarDetalle()">
-  <section class="quick-modal modal-detalle-amplio" (click)="$event.stopPropagation()">
+  <section class="quick-modal modal-detalle-amplio" role="dialog" aria-modal="true" aria-labelledby="proyecto-detail-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
     <ng-container *ngIf="proyectoDetalle as p">
       <!-- Cabecera Hero con Estética Equinox -->
       <header class="modal-header-hero">
@@ -434,7 +434,7 @@
 
           <div class="modal-hero-title-row">
             <div>
-              <h2>{{ p.nombre }}</h2>
+              <h2 id="proyecto-detail-title">{{ p.nombre }}</h2>
               <p class="modal-hero-subtitle">
                 <span>{{ clienteTexto(p) }}</span>
                 <span>•</span>
@@ -662,66 +662,69 @@
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
                   Archivos y Entregables ({{ archivosDetalle.length }})
                 </h3>
-                <button class="btn-secondary btn-sm" type="button" (click)="mostrarFormularioArchivo = !mostrarFormularioArchivo">
-                  {{ mostrarFormularioArchivo ? 'Cerrar formulario' : '+ Asociar archivo' }}
-                </button>
               </div>
 
-              <!-- Formulario de Asociación de Archivo -->
-              <div class="inline-add-box" *ngIf="mostrarFormularioArchivo">
-                <h4>Asociar archivo al proyecto</h4>
-                <div class="form-group">
-                  <label>Nombre del archivo *</label>
-                  <input class="form-control" [(ngModel)]="nuevoArchivo.nombre" placeholder="Ej. Portada de proyecto o Boceto final">
-                </div>
-                <div class="form-group">
-                  <label>URL del recurso / archivo *</label>
-                  <input class="form-control" [(ngModel)]="nuevoArchivo.url" placeholder="https://...">
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Tipo</label>
-                    <select class="form-control" [(ngModel)]="nuevoArchivo.tipo">
-                      <option value="IMAGEN">Imagen (Portada / Visual)</option>
-                      <option value="ENTREGABLE">Entregable</option>
-                      <option value="DOCUMENTO">Documento</option>
-                      <option value="ARCHIVO">Archivo general</option>
+              <!-- Caja de carga real -->
+              <div class="pd-upload-card">
+                <div class="pd-upload-grid">
+                  <div class="form-group pd-file-picker-group">
+                    <label for="proyecto-archivo" class="pd-field-label">
+                      Seleccionar archivo <small class="text-muted">(PDF, PNG, JPG, WebP, GIF, TXT; máx 8 MB)</small>
+                    </label>
+                    <input id="proyecto-archivo" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt" (change)="elegirArchivo($event)" class="custom-file-upload-input">
+                  </div>
+
+                  <div class="form-group pd-visibility-group">
+                    <label for="archivo-visibilidad" class="pd-field-label">Visibilidad</label>
+                    <select id="archivo-visibilidad" class="form-control" [(ngModel)]="visibilidadArchivo">
+                      <option value="INTERNA">Solo equipo (Privado)</option>
+                      <option value="CLIENTE">Compartir con cliente (Visible en portal)</option>
                     </select>
                   </div>
-                  <div class="form-group">
-                    <label>Visibilidad</label>
-                    <select class="form-control" [(ngModel)]="nuevoArchivo.visibilidad">
-                      <option value="INTERNA">Solo interna (CRM)</option>
-                      <option value="CLIENTE">Visible al cliente (Portal)</option>
-                    </select>
+
+                  <div class="pd-upload-btn-cell">
+                    <button class="btn-primary" type="button" [disabled]="!archivoElegido || subiendoArchivo" (click)="subirArchivo()">
+                      {{ subiendoArchivo ? 'Subiendo…' : 'Subir archivo' }}
+                    </button>
                   </div>
                 </div>
-                <p class="auth-error" *ngIf="errorArchivos">{{ errorArchivos }}</p>
-                <button class="btn-primary" type="button" (click)="agregarArchivo()" [disabled]="guardandoArchivo">
-                  {{ guardandoArchivo ? 'Guardando…' : 'Guardar archivo' }}
-                </button>
+
+                <progress *ngIf="subiendoArchivo" [value]="progresoArchivo" max="100" class="pd-upload-progress" aria-label="Progreso de carga"></progress>
+                <p class="auth-error" *ngIf="errorArchivos" role="alert" style="margin-top: 8px;">{{ errorArchivos }}</p>
               </div>
+
+              <p *ngIf="!archivosDetalle.length" class="text-empty-italic">No hay archivos ni entregables registrados en este proyecto.</p>
 
               <!-- Lista de Archivos -->
-              <div class="files-grid" *ngIf="archivosDetalle.length">
-                <div class="file-item-card" *ngFor="let a of archivosDetalle">
-                  <div class="file-icon-box">
-                    <svg *ngIf="a.tipo === 'IMAGEN'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                    <svg *ngIf="a.tipo !== 'IMAGEN'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                  </div>
-                  <div class="file-info-box">
-                    <strong>{{ a.nombre }}</strong>
-                    <div class="file-badges-row">
-                      <span class="badge badge-subtle">{{ a.tipo }}</span>
-                      <span class="badge badge-subtle">{{ a.visibilidad === 'CLIENTE' ? 'Portal' : 'Interno' }}</span>
+              <ul class="project-files-list files-box-list pd-files-list" *ngIf="archivosDetalle.length">
+                <li *ngFor="let archivo of archivosDetalle" class="pd-file-item">
+                  <div class="pd-file-info">
+                    <div class="pd-file-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
                     </div>
-                    <a [href]="a.url" target="_blank" rel="noopener noreferrer" class="file-link">Abrir recurso ↗</a>
+                    <div>
+                      <strong class="pd-file-name">{{ archivo.nombre }}</strong>
+                      <div class="pd-file-meta-row">
+                        <span>{{ archivo.tamanoBytes | number }} bytes</span>
+                        <span>•</span>
+                        <span class="badge" [style.background]="archivo.visibilidad === 'CLIENTE' ? '#eff6ff' : '#f1f5f9'" [style.color]="archivo.visibilidad === 'CLIENTE' ? '#1d4ed8' : '#475569'" style="font-size: 11px; font-weight: 700;">
+                          {{ archivo.visibilidad === 'CLIENTE' ? 'Visible al cliente' : 'Solo equipo' }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <button class="btn-task-del" type="button" (click)="eliminarArchivo(a.id)" title="Eliminar archivo">×</button>
-                </div>
-              </div>
 
-              <p *ngIf="!archivosDetalle.length && !mostrarFormularioArchivo" class="text-empty-italic">No hay archivos ni entregables registrados en este proyecto.</p>
+                  <div class="pd-file-actions">
+                    <button class="btn-secondary btn-action-pill" type="button" [disabled]="!!descargandoArchivoId" (click)="descargarArchivo(archivo)">{{ descargandoArchivoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
+                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId !== archivo.id" (click)="confirmarEliminarArchivoId = archivo.id">Eliminar</button>
+                    <button class="btn-action-pill btn-action-danger" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" [disabled]="!!eliminandoArchivoId" (click)="eliminarArchivo(archivo)">Confirmar</button>
+                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" (click)="confirmarEliminarArchivoId = null">Cancelar</button>
+                  </div>
+                </li>
+              </ul>
             </div>
           </div>
 

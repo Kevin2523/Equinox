@@ -244,8 +244,8 @@ async function ejecutar() {
       assert.equal(resLimpio.datos.proyectoId, null);
     });
 
-    // 4. Hallazgo 4: Rechazo de esquemas URL peligrosos en archivos y sitioWeb
-    await caso("H4: Rechazo de URLs javascript:, data:, file: en archivos y sitioWeb de clientes", async () => {
+    // 4. Hallazgo 4: Rechazo de esquemas URL peligrosos en sitioWeb y rechazo JSON en archivos multipart
+    await caso("H4: Rechazo de URLs javascript:, data:, file: en sitioWeb y JSON en archivos", async () => {
       for (const urlMala of [
         "javascript:alert(1)",
         "data:text/html,<script>alert(1)</script>",
@@ -259,7 +259,7 @@ async function ejecutar() {
           tamanoBytes: 100,
           visibilidad: "CLIENTE",
         });
-        assert.equal(resArch.status, 422, `Debe rechazar URL peligrosa en archivo: ${urlMala}`);
+        assert.equal(resArch.status, 415, `Debe rechazar envío JSON con URL en archivo multipart: ${urlMala}`);
 
         const resCli = await pedir("/api/clientes", tokenProp, "POST", {
           nombre: "Cliente URL Mala",
@@ -267,16 +267,6 @@ async function ejecutar() {
         });
         assert.equal(resCli.status, 422, `Debe rechazar URL peligrosa en sitioWeb: ${urlMala}`);
       }
-
-      const resArchOk = await pedir(`/api/proyectos/${proyectoA.id}/archivos`, tokenProp, "POST", {
-        nombre: "Entregable",
-        nombreOriginal: "entregable.pdf",
-        url: "https://cdn.example.test/entregable.pdf",
-        tipoMime: "application/pdf",
-        tamanoBytes: 1024,
-        visibilidad: "CLIENTE",
-      });
-      assert.equal(resArchOk.status, 201);
     });
 
     // 5. Hallazgo 5: Límites numéricos en monto, presupuesto y tamanoBytes
@@ -315,7 +305,7 @@ async function ejecutar() {
           tipoMime: "application/octet-stream",
           tamanoBytes: 3_000_000_000,
         })).status,
-        422
+        415
       );
     });
 
@@ -372,20 +362,30 @@ async function ejecutar() {
       });
       assert.equal(resIncoh.status, 422);
 
-      // Marcar PAGADA -> asigna pagadaEn
-      const resPag = await pedir(`/api/facturas/${facId}`, tokenProp, "PATCH", {
+      // Marcar PAGADA directamente sin pagos -> 422 (regla issue-12)
+      const resPagDirecta = await pedir(`/api/facturas/${facId}`, tokenProp, "PATCH", {
         estado: "PAGADA",
         pagadaEn: "2026-11-16T10:00:00.000Z",
       });
-      assert.equal(resPag.status, 200);
-      assert.ok(resPag.datos.pagadaEn);
+      assert.equal(resPagDirecta.status, 422);
 
-      // Revertir a ENVIADA -> limpia pagadaEn a null
+      // Pasar a ENVIADA -> limpia pagadaEn a null
       const resEnv = await pedir(`/api/facturas/${facId}`, tokenProp, "PATCH", {
         estado: "ENVIADA",
       });
       assert.equal(resEnv.status, 200);
       assert.equal(resEnv.datos.pagadaEn, null);
+
+      // Pagar mediante /pagos -> pasa a PAGADA y asigna pagadaEn
+      const resPago = await pedir(`/api/facturas/${facId}/pagos`, tokenProp, "POST", {
+        monto: 300,
+        metodo: "ACH",
+      });
+      assert.equal(resPago.status, 201);
+      const resVer = await pedir(`/api/facturas/${facId}`, tokenProp);
+      assert.equal(resVer.status, 200);
+      assert.equal(resVer.datos.estado, "PAGADA");
+      assert.ok(resVer.datos.pagadaEn);
     });
 
     // 8. Hallazgo 8: Restricciones TITULAR / COLABORADOR en Portal

@@ -90,10 +90,10 @@ test('completar una tarea refresca el progreso calculado desde la respuesta pers
     { token: 'fixture', sesion$: sesion.asObservable() });
   pagina.ngOnInit();
   await new Promise(setImmediate);
-  assert.equal(pagina.progreso('p'), 0);
+  assert.equal(progresoTareas(pagina.tareas), 0);
   await pagina.alternar(pagina.tareas[0]);
   await new Promise(setImmediate);
-  assert.equal(pagina.progreso('p'), 100);
+  assert.equal(progresoTareas(pagina.tareas), 100);
   pagina.ngOnDestroy();
 });
 

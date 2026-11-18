@@ -3,7 +3,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ClientesProyectosApiService, ProyectoApi } from '../services/clientes-proyectos-api.service';
+import { ClientesProyectosApiService, EstadoProyectoApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import { TrabajoApiService, TareaApi, HitoApi, progresoTareas } from '../services/trabajo-api.service';
 import { UiStateService } from '../state/ui-state.service';
 
@@ -26,6 +26,7 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
   hitos: HitoVisual[] = [];
   tareas: TareaApi[] = [];
   cargandoDetalles = false;
+  errorHitos = '';
   private detallesSeq = 0;
   private proyectoActivoId: string | null = null;
   private subProyecto?: Subscription;
@@ -151,17 +152,27 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
     const seq = ++this.detallesSeq;
     const proyectoId = p.id;
     this.cargandoDetalles = true;
+    this.errorHitos = '';
+    this.hitos = [];
     try {
-      const [hitosApi, tareasApi] = await Promise.all([
-        this.trabajoApi.listarHitos(proyectoId).catch(() => [] as HitoApi[]),
-        this.trabajoApi.listarTareas(proyectoId).catch(() => [] as TareaApi[])
+      const [hitosRes, tareasRes] = await Promise.allSettled([
+        this.trabajoApi.listarHitos(proyectoId),
+        this.trabajoApi.listarTareas(proyectoId)
       ]);
 
       if (seq !== this.detallesSeq || this.api.proyectoSeleccionado?.id !== proyectoId) {
         return;
       }
 
-      this.tareas = tareasApi;
+      this.tareas = tareasRes.status === 'fulfilled' ? tareasRes.value : [];
+
+      if (hitosRes.status === 'rejected') {
+        this.errorHitos = 'No se pudieron cargar los hitos del proyecto.';
+        this.hitos = [];
+        return;
+      }
+
+      const hitosApi = hitosRes.value;
 
       if (hitosApi.length > 0) {
         this.hitos = hitosApi.map((h, i) => {
@@ -201,6 +212,11 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
     }
   }
 
+  reintentarDetalles(): void {
+    const sel = this.api.proyectoSeleccionado;
+    if (sel) void this.cargarDetalles(sel);
+  }
+
   async toggleTarea(tarea: TareaApi): Promise<void> {
     const nuevoEstado = tarea.estado === 'COMPLETADA' ? 'PENDIENTE' : 'COMPLETADA';
     const estadoAnterior = tarea.estado;
@@ -217,6 +233,18 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
     }
   }
 
+  nuevoProyecto(): void {
+    void this.router.navigate(['/proyectos']);
+  }
+
+  editar(id: string): void {
+    void this.router.navigate(['/proyectos'], { queryParams: { editar: id } });
+  }
+
+  verEnProyectos(id: string): void {
+    void this.router.navigate(['/proyectos'], { queryParams: { proyecto: id } });
+  }
+
   abrirProyecto(id: string): void {
     void this.router.navigate(['/proyectos'], { queryParams: { proyecto: id } });
   }
@@ -225,5 +253,47 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
     if (clienteId) {
       void this.router.navigate(['/clientes'], { queryParams: { cliente: clienteId } });
     }
+  }
+
+  obtenerIniciales(nombre?: string | null): string {
+    if (!nombre) return 'P';
+    const partes = nombre.trim().split(/\s+/);
+    if (partes.length >= 2) {
+      return (partes[0][0] + partes[1][0]).toUpperCase();
+    }
+    return nombre.substring(0, 2).toUpperCase();
+  }
+
+  claseEstado(estado: EstadoProyectoApi): string {
+    return `status-${(estado || 'BORRADOR').toLowerCase()}`;
+  }
+
+  calcularPorcentajeTiempo(proyecto: ProyectoApi): number {
+    if (!proyecto.fechaInicio || !proyecto.fechaEntrega) return 0;
+    const inicio = new Date(proyecto.fechaInicio).getTime();
+    const fin = new Date(proyecto.fechaEntrega).getTime();
+    const hoy = Date.now();
+
+    if (fin <= inicio) return 100;
+    if (hoy <= inicio) return 0;
+    if (hoy >= fin) return 100;
+
+    const pct = Math.round(((hoy - inicio) / (fin - inicio)) * 100);
+    return Math.min(Math.max(pct, 0), 100);
+  }
+
+  diasRestantes(fechaEntrega?: string | null): string | null {
+    if (!fechaEntrega) return null;
+    const fin = new Date(fechaEntrega).getTime();
+    const hoy = Date.now();
+    const diffDias = Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24));
+
+    if (diffDias < 0) {
+      const diasVencido = Math.abs(diffDias);
+      return `Venció hace ${diasVencido} ${diasVencido === 1 ? 'día' : 'días'}`;
+    }
+    if (diffDias === 0) return 'Vence hoy';
+    if (diffDias === 1) return 'Vence mañana';
+    return `${diffDias} días restantes`;
   }
 }

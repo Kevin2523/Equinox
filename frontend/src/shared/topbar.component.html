@@ -57,6 +57,7 @@
           <span class="eyebrow" *ngIf="state.unreadNotifsCount > 0">{{ state.unreadNotifsCount }} nuevas</span>
         </div>
         <div class="notif-list">
+          <p class="notif-empty" *ngIf="state.notificaciones.length === 0">No tienes notificaciones pendientes.</p>
           <div class="notif-item" *ngFor="let n of state.notificaciones" [class.unread]="!n.leida">
             <b>{{ n.titulo }}</b>
             <p>{{ n.descripcion }}</p>
@@ -69,10 +70,29 @@
       </div>
     </div>
 
-    <!-- User Avatar Badge (Rounded Square Dark) -->
-    <button class="avatar-badge" (click)="state.navigate('configuracion')" aria-label="Perfil y configuración" title="Configuración">
-      <span>{{ obtenerIniciales() }}</span>
-    </button>
+    <!-- User Profile Button & Dropdown -->
+    <div class="profile-menu-wrap">
+      <button class="avatar-badge profile" type="button" (click)="toggleMenu($event)" [attr.aria-expanded]="menuAbierto" aria-haspopup="menu" aria-label="Menú de cuenta" title="Cuenta y configuración">
+        <span>{{ obtenerIniciales() }}</span>
+      </button>
+      <div class="profile-dropdown" role="menu" *ngIf="menuAbierto" (click)="$event.stopPropagation()">
+        <div class="profile-dropdown-head">
+          <span class="profile-dropdown-avatar">{{ obtenerIniciales() }}</span>
+          <div>
+            <strong>{{ auth.sesion?.usuario?.nombre }} {{ auth.sesion?.usuario?.apellido }}</strong>
+            <small>{{ auth.sesion?.usuario?.correo }}</small>
+          </div>
+        </div>
+        <button class="profile-item" role="menuitem" type="button" (click)="irAConfiguracion()">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          Mi perfil y configuración
+        </button>
+        <a class="profile-item profile-item-danger auth-logout" role="menuitem" routerLink="/cerrar-sesion" (click)="menuAbierto = false">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+          Cerrar sesión
+        </a>
+      </div>
+    </div>
 
     <!-- Mobile Menu Trigger -->
     <button class="mobile-toggle" (click)="state.mobileMenuOpen = !state.mobileMenuOpen" aria-label="Menú móvil">

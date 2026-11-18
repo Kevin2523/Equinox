@@ -1,10 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { FacturasApiService, FacturaApi, EstadoFacturaApi, CrearFacturaInput } from '../services/facturas-api.service';
-import { ClientesProyectosApiService, ClienteApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
+import {
+  FacturasApiService,
+  FacturaApi,
+  EstadoFacturaApi,
+  CrearFacturaInput
+} from '../services/facturas-api.service';
+import {
+  ClientesProyectosApiService,
+  ClienteApi,
+  ProyectoApi
+} from '../services/clientes-proyectos-api.service';
 import { AuthService } from '../auth/auth.service';
+import { DialogFocusDirective } from '../shared/dialog-focus.directive';
 
 interface PeriodoOpcion {
   clave: string; // 'TODOS' o 'YYYY-MM'
@@ -25,7 +35,7 @@ interface ResumenMonetario {
 @Component({
   selector: 'app-finanzas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DialogFocusDirective],
   templateUrl: './finanzas.component.html',
   styleUrl: './finanzas.component.css'
 })
@@ -36,10 +46,17 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   monedaOrg = 'PAB';
   nombreOrg = '';
 
+  // Configuración de visibilidad en portal del cliente
+  portalMostrarFinanzas: boolean | null = null;
+  cargandoPortalFinanzas = false;
+  errorPortalFinanzas: string | null = null;
+  errorVisibilidadFactura: string | null = null;
+  visibilidadFacturaEnCursoId: string | null = null;
+
   // Filtros y búsqueda
   busqueda = '';
   filtroEstado: 'TODAS' | 'PENDIENTES' | 'PAGADAS' = 'TODAS';
-  periodoSeleccionado: string = 'TODOS';
+  periodoSeleccionado = 'TODOS';
   menuPeriodoAbierto = false;
 
   // Clientes y proyectos para formularios
@@ -60,21 +77,24 @@ export class FinanzasComponent implements OnInit, OnDestroy {
     fechaEmision: string;
     fechaVencimiento: string;
     estado: EstadoFacturaApi;
+    visibleEnPortal: boolean;
     notas: string;
   } = this.obtenerFormFacturaVacio();
 
-  // Modal Registrar Pago
+  // Modal Registrar Pago (soporta pagos parciales, moneda y método explícitos)
   modalPagoAbierto = false;
   guardandoPago = false;
   errorModalPago: string | null = null;
   facturaSeleccionadaPago: FacturaApi | null = null;
   formPago: {
-    fechaPago: string;
+    monto: number | null;
+    moneda: string;
     metodo: string;
     referencia: string;
     notas: string;
   } = {
-    fechaPago: this.obtenerFechaHoyIso(),
+    monto: null,
+    moneda: 'PAB',
     metodo: 'TRANSFERENCIA',
     referencia: '',
     notas: ''
@@ -82,18 +102,46 @@ export class FinanzasComponent implements OnInit, OnDestroy {
 
   // Modal Detalle
   modalDetalleAbierto = false;
+  cargandoDetalle = false;
   facturaDetalle: FacturaApi | null = null;
 
   // Toast
   toastMensaje: string | null = null;
-  private toastTimer: any = null;
+  private toastTimer: ReturnType<typeof setTimeout> | null = null;
   private subs = new Subscription();
+  private sesionTokenAnterior: string | null | undefined = undefined;
 
   constructor(
     public facturasApi: FacturasApiService,
     public clientesApi: ClientesProyectosApiService,
     public auth: AuthService
   ) {}
+
+  @HostListener('document:keydown.escape')
+  cerrarModalConEscape(): void {
+    if (this.modalPagoAbierto && !this.guardandoPago) {
+      this.cerrarModalRegistrarPago();
+      return;
+    }
+    if (this.modalNuevaFacturaAbierto && !this.guardandoFactura) {
+      this.cerrarModalNuevaFactura();
+      return;
+    }
+    if (this.modalDetalleAbierto) {
+      this.cerrarDetalleFactura();
+      return;
+    }
+    if (this.menuPeriodoAbierto) {
+      this.menuPeriodoAbierto = false;
+    }
+  }
+
+  get puedeGestionarFacturas(): boolean {
+    return (
+      this.auth.sesion?.contexto?.tipoAcceso === 'ORGANIZACION' &&
+      this.auth.sesion?.contexto?.rolOrganizacion === 'PROPIETARIO'
+    );
+  }
 
   ngOnInit(): void {
     this.subs.add(
@@ -116,6 +164,22 @@ export class FinanzasComponent implements OnInit, OnDestroy {
         this.clientes = c;
       })
     );
+    this.subs.add(
+      this.auth.sesion$.subscribe((sesion) => {
+        const tokenActual = this.auth.token ?? null;
+        if (this.sesionTokenAnterior !== undefined && this.sesionTokenAnterior !== tokenActual) {
+          this.facturas = [];
+          this.portalMostrarFinanzas = null;
+          this.error = null;
+          this.errorPortalFinanzas = null;
+          this.errorVisibilidadFactura = null;
+          if (sesion && tokenActual) {
+            this.cargarDatos();
+          }
+        }
+        this.sesionTokenAnterior = tokenActual;
+      })
+    );
 
     this.cargarDatos();
   }
@@ -129,8 +193,9 @@ export class FinanzasComponent implements OnInit, OnDestroy {
     try {
       this.cargando = true;
       this.error = null;
+      this.cargandoPortalFinanzas = true;
+      this.errorPortalFinanzas = null;
 
-      // Cargar organización, facturas y clientes en paralelo
       const [org, facturas, clientes] = await Promise.all([
         this.facturasApi.obtenerOrganizacion().catch(() => null),
         this.facturasApi.listarFacturas(),
@@ -140,16 +205,87 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       if (org) {
         this.monedaOrg = org.moneda || 'PAB';
         this.nombreOrg = org.nombre || '';
+        if (typeof org.portalMostrarFinanzas === 'boolean') {
+          this.portalMostrarFinanzas = org.portalMostrarFinanzas;
+        }
       }
       this.facturas = facturas;
       this.clientes = clientes;
 
-      // Inicializar el periodo según las facturas disponibles o mes actual
       this.autoSeleccionarPeriodo();
     } catch (err: any) {
       this.error = err?.error?.error || 'No se pudieron cargar los datos de facturación';
     } finally {
       this.cargando = false;
+      this.cargandoPortalFinanzas = false;
+    }
+  }
+
+  async cargarConfiguracionPortalFinanzas(): Promise<void> {
+    if (this.cargandoPortalFinanzas) return;
+    try {
+      this.cargandoPortalFinanzas = true;
+      this.errorPortalFinanzas = null;
+      const res = await this.facturasApi.consultarPortalFinanzas();
+      this.portalMostrarFinanzas = res.portalMostrarFinanzas;
+    } catch (err: any) {
+      this.errorPortalFinanzas = err?.error?.error || 'No se pudo consultar la configuración del portal';
+    } finally {
+      this.cargandoPortalFinanzas = false;
+    }
+  }
+
+  async cambiarPortalFinanzas(): Promise<void> {
+    if (!this.puedeGestionarFacturas || this.portalMostrarFinanzas === null || this.cargandoPortalFinanzas) {
+      return;
+    }
+    try {
+      this.cargandoPortalFinanzas = true;
+      this.errorPortalFinanzas = null;
+      const res = await this.facturasApi.configurarPortalFinanzas(!this.portalMostrarFinanzas);
+      this.portalMostrarFinanzas = res.portalMostrarFinanzas;
+      this.mostrarToast(
+        res.portalMostrarFinanzas
+          ? 'Facturas habilitadas en el portal del cliente'
+          : 'Facturas ocultadas en el portal del cliente'
+      );
+    } catch (err: any) {
+      this.errorPortalFinanzas = err?.error?.error || 'No se pudo actualizar la configuración del portal';
+    } finally {
+      this.cargandoPortalFinanzas = false;
+    }
+  }
+
+  async cambiarVisibilidadFactura(factura: FacturaApi, event?: Event): Promise<void> {
+    if (event) event.stopPropagation();
+    if (!this.puedeGestionarFacturas || this.visibilidadFacturaEnCursoId || factura.estado === 'CANCELADA') {
+      return;
+    }
+
+    const emitir = factura.estado === 'BORRADOR';
+    const siguienteVisibilidad = emitir ? true : !factura.visibleEnPortal;
+
+    try {
+      this.visibilidadFacturaEnCursoId = factura.id;
+      this.errorVisibilidadFactura = null;
+      await this.facturasApi.actualizarFactura(factura.id, {
+        ...(emitir ? { estado: 'ENVIADA' } : {}),
+        visibleEnPortal: siguienteVisibilidad
+      });
+      this.mostrarToast(
+        emitir
+          ? `Factura ${factura.numero} emitida y compartida en portal`
+          : siguienteVisibilidad
+            ? `Factura ${factura.numero} compartida con el cliente`
+            : `Factura ${factura.numero} retirada del portal`
+      );
+      if (this.modalDetalleAbierto && this.facturaDetalle?.id === factura.id) {
+        this.facturaDetalle = this.facturas.find((f) => f.id === factura.id) || this.facturaDetalle;
+      }
+    } catch (err: any) {
+      this.errorVisibilidadFactura = err?.error?.error || 'No se pudo actualizar la visibilidad en el portal';
+    } finally {
+      this.visibilidadFacturaEnCursoId = null;
     }
   }
 
@@ -158,12 +294,10 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   get periodosDisponibles(): PeriodoOpcion[] {
     const periodosMap = new Map<string, { anio: number; mes: number }>();
 
-    // Agregar mes actual
     const ahora = new Date();
     const claveActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
     periodosMap.set(claveActual, { anio: ahora.getFullYear(), mes: ahora.getMonth() + 1 });
 
-    // Agregar meses provenientes de las facturas reales
     for (const f of this.facturas) {
       if (f.fechaEmision) {
         const fecha = new Date(f.fechaEmision);
@@ -174,9 +308,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       }
     }
 
-    const lista: PeriodoOpcion[] = [
-      { clave: 'TODOS', etiqueta: 'Todo el historial' }
-    ];
+    const lista: PeriodoOpcion[] = [{ clave: 'TODOS', etiqueta: 'Todo el historial' }];
 
     const sortedKeys = Array.from(periodosMap.entries()).sort((a, b) => {
       if (a[1].anio !== b[1].anio) return b[1].anio - a[1].anio;
@@ -208,7 +340,6 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   }
 
   private autoSeleccionarPeriodo(): void {
-    // Si hay facturas, buscar la más reciente o dejar en el mes actual si hay facturas en él
     const ahora = new Date();
     const claveActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
     const tieneEnMesActual = this.facturas.some((f) => {
@@ -244,14 +375,12 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   get facturasFiltradas(): FacturaApi[] {
     const q = this.busqueda.trim().toLowerCase();
     return this.facturasPeriodo.filter((f) => {
-      // Filtro de estado
       if (this.filtroEstado === 'PENDIENTES') {
         if (f.estado === 'PAGADA' || f.estado === 'CANCELADA') return false;
       } else if (this.filtroEstado === 'PAGADAS') {
         if (f.estado !== 'PAGADA') return false;
       }
 
-      // Filtro de búsqueda
       if (!q) return true;
       const numero = (f.numero || '').toLowerCase();
       const concepto = (f.concepto || '').toLowerCase();
@@ -269,7 +398,6 @@ export class FinanzasComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Conteos
   get conteoTodas(): number {
     return this.facturasPeriodo.length;
   }
@@ -282,7 +410,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
     return this.facturasPeriodo.filter((f) => f.estado === 'PAGADA').length;
   }
 
-  // --- Cálculo de Totales con Precisión Monetaria y Aislamiento de Monedas ---
+  // --- Cálculo de Totales con Precisión Monetaria (centavos) y Aislamiento de Monedas ---
 
   get resumenMonedas(): ResumenMonetario[] {
     const mapa = new Map<string, ResumenMonetario>();
@@ -306,12 +434,20 @@ export class FinanzasComponent implements OnInit, OnDestroy {
         entry.cobrado += montoCentavos;
         entry.conteoPagadas++;
       } else if (f.estado !== 'CANCELADA') {
-        entry.pendiente += montoCentavos;
+        const pendienteCentavos =
+          f.montoPendiente !== undefined
+            ? Math.round(Number(f.montoPendiente) * 100)
+            : montoCentavos;
+        const pagadoCentavos =
+          f.totalPagado !== undefined
+            ? Math.round(Number(f.totalPagado) * 100)
+            : Math.max(0, montoCentavos - pendienteCentavos);
+        entry.pendiente += pendienteCentavos;
+        entry.cobrado += pagadoCentavos;
         entry.conteoPendientes++;
       }
     }
 
-    // Si no hay facturas en el periodo, retornar al menos la moneda por defecto
     if (mapa.size === 0) {
       const mon = (this.monedaOrg || 'PAB').toUpperCase();
       mapa.set(mon, {
@@ -324,7 +460,6 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Convertir centavos a unidades monetarias exactas
     return Array.from(mapa.values()).map((r) => ({
       ...r,
       pendiente: r.pendiente / 100,
@@ -333,7 +468,6 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   }
 
   get resumenPrincipal(): ResumenMonetario {
-    // Si existe la moneda de la organización, usar esa; si no, la primera
     const orgMon = (this.monedaOrg || 'PAB').toUpperCase();
     const encontrada = this.resumenMonedas.find((r) => r.moneda === orgMon);
     return encontrada || this.resumenMonedas[0];
@@ -353,9 +487,9 @@ export class FinanzasComponent implements OnInit, OnDestroy {
     return m;
   }
 
-  formatearMonto(monto: number | string, moneda?: string): string {
+  formatearMonto(monto: number | string | undefined | null, moneda?: string): string {
     const num = Number(monto || 0);
-    const m = moneda || this.monedaOrg || 'PAB';
+    const m = (moneda || this.monedaOrg || 'PAB').toUpperCase();
     const simbolo = this.obtenerSimboloMoneda(m);
     const formateado = num.toLocaleString('es-PA', {
       minimumFractionDigits: 2,
@@ -395,11 +529,18 @@ export class FinanzasComponent implements OnInit, OnDestroy {
     return this.nombreOrg || 'Oficial';
   }
 
+  obtenerSaldoPendiente(factura: FacturaApi | null): number {
+    if (!factura) return 0;
+    if (factura.montoPendiente !== undefined && factura.montoPendiente !== null) {
+      return Number(factura.montoPendiente);
+    }
+    return Number(factura.monto || 0);
+  }
+
   // --- Modal Nueva Factura ---
 
   abrirModalNuevaFactura(): void {
     this.formFactura = this.obtenerFormFacturaVacio();
-    this.formFactura.numero = this.sugerirSiguienteNumero();
     this.formFactura.moneda = this.monedaOrg || 'PAB';
     if (this.clientes.length > 0) {
       this.formFactura.clienteId = this.clientes[0].id;
@@ -430,28 +571,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
     this.formFactura.fechaVencimiento = fecha.toISOString().split('T')[0];
   }
 
-  sugerirSiguienteNumero(): string {
-    const anio = new Date().getFullYear();
-    const prefijo = `INV-${anio}-`;
-    const numerosExistentes = this.facturas
-      .map((f) => f.numero)
-      .filter((n) => n && n.startsWith(prefijo))
-      .map((n) => {
-        const parte = n.replace(prefijo, '');
-        const num = parseInt(parte, 10);
-        return isNaN(num) ? 0 : num;
-      });
-
-    const max = numerosExistentes.length > 0 ? Math.max(...numerosExistentes) : 0;
-    const siguiente = (max + 1).toString().padStart(3, '0');
-    return `${prefijo}${siguiente}`;
-  }
-
   async guardarNuevaFactura(): Promise<void> {
-    if (!this.formFactura.numero.trim()) {
-      this.errorModalFactura = 'El número de factura es obligatorio';
-      return;
-    }
     if (!this.formFactura.clienteId) {
       this.errorModalFactura = 'Debe seleccionar un cliente';
       return;
@@ -469,14 +589,16 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       this.guardandoFactura = true;
       this.errorModalFactura = null;
 
+      const numeroLimpio = this.formFactura.numero.trim();
       const payload: CrearFacturaInput = {
-        numero: this.formFactura.numero.trim(),
+        ...(numeroLimpio ? { numero: numeroLimpio } : {}),
         clienteId: this.formFactura.clienteId,
         proyectoId: this.formFactura.proyectoId || null,
         concepto: this.formFactura.concepto.trim(),
         monto: Number(this.formFactura.monto),
         moneda: this.formFactura.moneda || this.monedaOrg || 'PAB',
         estado: this.formFactura.estado || 'ENVIADA',
+        visibleEnPortal: this.formFactura.visibleEnPortal,
         fechaEmision: this.formFactura.fechaEmision || this.obtenerFechaHoyIso(),
         fechaVencimiento: this.formFactura.fechaVencimiento || null,
         notas: this.formFactura.notas.trim() || null
@@ -503,6 +625,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       fechaEmision: this.obtenerFechaHoyIso(),
       fechaVencimiento: this.obtenerFechaVencimientoPredeterminada(15),
       estado: 'ENVIADA' as EstadoFacturaApi,
+      visibleEnPortal: false,
       notas: ''
     };
   }
@@ -511,9 +634,11 @@ export class FinanzasComponent implements OnInit, OnDestroy {
 
   abrirModalRegistrarPago(factura: FacturaApi, event?: Event): void {
     if (event) event.stopPropagation();
+    const saldo = this.obtenerSaldoPendiente(factura);
     this.facturaSeleccionadaPago = factura;
     this.formPago = {
-      fechaPago: this.obtenerFechaHoyIso(),
+      monto: saldo > 0 ? saldo : Number(factura.monto || 0),
+      moneda: (factura.moneda || this.monedaOrg || 'PAB').toUpperCase(),
       metodo: 'TRANSFERENCIA',
       referencia: '',
       notas: ''
@@ -531,28 +656,46 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   async confirmarRegistroPago(): Promise<void> {
     if (!this.facturaSeleccionadaPago) return;
 
+    const textoMonto = String(this.formPago.monto ?? '').trim();
+    const montoAbono = Number(textoMonto);
+    const saldoPendiente = this.obtenerSaldoPendiente(this.facturaSeleccionadaPago);
+    if (!Number.isFinite(montoAbono) || montoAbono <= 0) {
+      this.errorModalPago = 'El monto a abonar debe ser mayor a cero';
+      return;
+    }
+    if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(textoMonto)) {
+      this.errorModalPago = 'Introduce un monto positivo con máximo dos decimales.';
+      return;
+    }
+    if (Math.round(montoAbono * 100) > Math.round(saldoPendiente * 100)) {
+      this.errorModalPago = `El abono supera el saldo pendiente (${this.formatearMonto(saldoPendiente, this.formPago.moneda)})`;
+      return;
+    }
+
+    const facturaId = this.facturaSeleccionadaPago.id;
+    const facturaNumero = this.facturaSeleccionadaPago.numero;
+
     try {
       this.guardandoPago = true;
       this.errorModalPago = null;
 
-      const notaRegistro = this.formPago.referencia
-        ? `[Pago contable: Ref. ${this.formPago.referencia}] ${this.formPago.notas || ''}`.trim()
-        : this.formPago.notas || undefined;
-
-      const notasFinales = notaRegistro
-        ? (this.facturaSeleccionadaPago.notas ? `${this.facturaSeleccionadaPago.notas}\n${notaRegistro}` : notaRegistro)
-        : undefined;
-
-      await this.facturasApi.actualizarFactura(this.facturaSeleccionadaPago.id, {
-        estado: 'PAGADA',
-        pagadaEn: this.formPago.fechaPago || this.obtenerFechaHoyIso(),
-        ...(notasFinales ? { notas: notasFinales } : {})
+      const resultado = await this.facturasApi.registrarPago(facturaId, {
+        monto: montoAbono,
+        moneda: this.formPago.moneda,
+        metodo: this.formPago.metodo || 'TRANSFERENCIA',
+        referencia: this.formPago.referencia.trim() || null,
+        notas: this.formPago.notas.trim() || null
       });
 
-      this.mostrarToast(`Pago registrado para factura ${this.facturaSeleccionadaPago.numero}`);
+      this.mostrarToast(
+        resultado.saldoRestante <= 0
+          ? `Factura ${facturaNumero} liquidada con éxito`
+          : `Abono registrado en ${facturaNumero} · Saldo: ${this.formatearMonto(resultado.saldoRestante, this.formPago.moneda)}`
+      );
       this.cerrarModalRegistrarPago();
-      if (this.modalDetalleAbierto && this.facturaDetalle?.id === this.facturaSeleccionadaPago.id) {
-        this.facturaDetalle = this.facturas.find((f) => f.id === this.facturaSeleccionadaPago!.id) || null;
+
+      if (this.modalDetalleAbierto && this.facturaDetalle?.id === facturaId) {
+        this.cargarDetalleFactura(facturaId);
       }
     } catch (err: any) {
       this.errorModalPago = err?.error?.error || 'No se pudo registrar el pago';
@@ -566,11 +709,27 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   verDetalleFactura(factura: FacturaApi): void {
     this.facturaDetalle = factura;
     this.modalDetalleAbierto = true;
+    this.cargarDetalleFactura(factura.id);
+  }
+
+  private async cargarDetalleFactura(id: string): Promise<void> {
+    try {
+      this.cargandoDetalle = true;
+      const detalle = await this.facturasApi.consultarFactura(id);
+      if (this.modalDetalleAbierto && this.facturaDetalle?.id === id) {
+        this.facturaDetalle = detalle;
+      }
+    } catch {
+      // Mantiene los datos de lista si falla el refresco de detalle
+    } finally {
+      this.cargandoDetalle = false;
+    }
   }
 
   cerrarDetalleFactura(): void {
     this.modalDetalleAbierto = false;
     this.facturaDetalle = null;
+    this.cargandoDetalle = false;
   }
 
   async eliminarFactura(factura: FacturaApi): Promise<void> {
@@ -604,8 +763,10 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       'Proyecto',
       'Vencimiento',
       'Monto',
+      'Saldo Pendiente',
       'Moneda',
       'Estado',
+      'Visible en Portal',
       'Fecha Pagada',
       'Notas'
     ];
@@ -619,8 +780,10 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       `"${(f.proyecto?.nombre || '').replace(/"/g, '""')}"`,
       `"${f.fechaVencimiento || ''}"`,
       Number(f.monto || 0).toFixed(2),
+      this.obtenerSaldoPendiente(f).toFixed(2),
       `"${f.moneda || 'PAB'}"`,
       `"${f.estado || ''}"`,
+      `"${f.visibleEnPortal ? 'Sí' : 'No'}"`,
       `"${f.pagadaEn || ''}"`,
       `"${(f.notas || '').replace(/"/g, '""')}"`
     ]);
@@ -643,8 +806,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   // --- Utilidades Internas ---
 
   obtenerFechaHoyIso(): string {
-    const d = new Date();
-    return d.toISOString().split('T')[0];
+    return new Date().toISOString().split('T')[0];
   }
 
   obtenerFechaVencimientoPredeterminada(dias: number): string {

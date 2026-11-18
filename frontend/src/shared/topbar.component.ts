@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { UiStateService } from '../state/ui-state.service';
 import { AuthService } from '../auth/auth.service';
 import { OrganizacionService } from '../auth/organizacion.service';
@@ -8,11 +9,13 @@ import { OrganizacionService } from '../auth/organizacion.service';
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './topbar.component.html',
   styleUrls: ['./topbar.component.css']
 })
 export class TopbarComponent {
+  menuAbierto = false;
+
   constructor(
     public state: UiStateService,
     public auth: AuthService,
@@ -31,6 +34,10 @@ export class TopbarComponent {
     }
   }
 
+  get iniciales(): string {
+    return this.obtenerIniciales();
+  }
+
   obtenerIniciales(): string {
     const usuario = this.auth.sesion?.usuario;
     if (usuario?.nombre) {
@@ -42,5 +49,21 @@ export class TopbarComponent {
       return usuario.correo.substring(0, 2).toUpperCase();
     }
     return 'EQ';
+  }
+
+  toggleMenu(evento: Event): void {
+    evento.stopPropagation();
+    this.menuAbierto = !this.menuAbierto;
+  }
+
+  irAConfiguracion(): void {
+    this.menuAbierto = false;
+    this.state.navigate('configuracion');
+  }
+
+  @HostListener('document:click')
+  @HostListener('document:keydown.escape')
+  cerrarMenu(): void {
+    this.menuAbierto = false;
   }
 }

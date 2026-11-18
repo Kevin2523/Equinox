@@ -14,6 +14,7 @@ import {
 } from '../models/portal.model';
 import { PortalApiService } from '../services/portal-api.service';
 import { PortalHeroComponent } from '../shared/portal-hero.component';
+import { ArchivosApiService } from '../services/archivos-api.service';
 import {
   evaluarContrastePaleta,
   normalizarHex,
@@ -43,6 +44,8 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
   errorDetalle = '';
   errorFacturas = '';
   errorComentario = '';
+  errorDescarga = '';
+  descargandoId: string | null = null;
   comentario = '';
   logoFallido = false;
   esColaboradorSinAcceso = false;
@@ -81,7 +84,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
   private solicitudFotoOriginal = 0;
   private listenerTeclado = (evento: KeyboardEvent) => this.manejarTeclado(evento);
 
-  constructor(private api: PortalApiService, public auth: AuthService) {}
+  constructor(private api: PortalApiService, public auth: AuthService, private archivosApi: ArchivosApiService) {}
 
   get esFotografia(): boolean {
     return this.identidad?.estudio?.tipoFreelance?.toUpperCase() === 'FOTOGRAFIA';
@@ -215,6 +218,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
     this.proyecto = null;
     this.comentario = '';
     this.errorComentario = '';
+    this.errorDescarga = '';
     this.limpiarDetalle();
     this.cargandoDetalle = true;
     this.errorDetalle = '';
@@ -289,6 +293,15 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
     } finally {
       this.enviandoComentario = false;
     }
+  }
+
+  async descargarArchivo(archivo: ArchivoPortal): Promise<void> {
+    if (!this.proyectoId || this.descargandoId) return;
+    const proyectoId = this.proyectoId;
+    this.descargandoId = archivo.id; this.errorDescarga = '';
+    try { await this.archivosApi.guardarDescarga(proyectoId, archivo, true); }
+    catch { if (this.proyectoId === proyectoId) this.errorDescarga = 'No se pudo descargar el archivo. Reintenta.'; }
+    finally { this.descargandoId = null; }
   }
 
   get avanceHitos(): number | null {

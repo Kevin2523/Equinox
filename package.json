@@ -24,7 +24,11 @@
     "prueba:facturas": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-facturas.ts",
     "prueba:fotografia": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-fotografia.ts",
     "prueba:fotografia:e2e": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/validar-e2e-fotografia-completo.ts",
-    "prueba:recuperacion": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-recuperacion.ts"
+    "prueba:recuperacion": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-recuperacion.ts",
+    "prueba:archivos": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue11.ts",
+    "prueba:finanzas": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue12.ts",
+    "prueba:limpieza": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue13.ts",
+    "prueba:qa": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue14.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",

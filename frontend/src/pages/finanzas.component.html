@@ -1,6 +1,6 @@
 <div class="finanzas-page">
   <!-- Toast Notification -->
-  <div *ngIf="toastMensaje" class="finanzas-toast">
+  <div *ngIf="toastMensaje" class="finanzas-toast" role="status" aria-live="polite">
     <svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
     </svg>
@@ -11,7 +11,7 @@
   <header class="finanzas-header">
     <div class="header-titles">
       <h1 class="header-main-title">Facturación y pagos</h1>
-      <p class="header-subtitle">Cobros y cuentas por cobrar, en un solo lugar.</p>
+      <p class="header-subtitle">Cobros, cuentas por cobrar y flujo de caja con moneda explícita.</p>
     </div>
 
     <div class="header-actions">
@@ -50,7 +50,11 @@
       </div>
 
       <!-- Nueva Factura Button -->
-      <button type="button" class="btn-nueva-factura" (click)="abrirModalNuevaFactura()">
+      <button
+        *ngIf="puedeGestionarFacturas"
+        type="button"
+        class="btn-nueva-factura"
+        (click)="abrirModalNuevaFactura()">
         <svg class="icon-plus" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
         </svg>
@@ -60,12 +64,42 @@
   </header>
 
   <!-- Error Banner -->
-  <div *ngIf="error" class="finanzas-error-banner">
+  <div *ngIf="error" class="finanzas-error-banner" role="alert">
     <svg viewBox="0 0 20 20" fill="currentColor">
       <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
     </svg>
     <span>{{ error }}</span>
     <button type="button" class="btn-reintentar" (click)="cargarDatos()">Reintentar</button>
+  </div>
+
+  <!-- Portal Finance Settings -->
+  <section class="finance-portal-settings" aria-label="Facturas en el portal del cliente">
+    <div class="portal-settings-copy">
+      <strong>Facturas en el portal del cliente</strong>
+      <p *ngIf="cargandoPortalFinanzas && portalMostrarFinanzas === null">Consultando configuración…</p>
+      <p *ngIf="portalMostrarFinanzas === false">La organización tiene desactivada la consulta de facturas en el portal.</p>
+      <p *ngIf="portalMostrarFinanzas === true">El portal muestra solo las facturas compartidas con cada cliente; los borradores siguen privados.</p>
+      <p class="portal-settings-error" role="alert" *ngIf="errorPortalFinanzas">{{ errorPortalFinanzas }}</p>
+    </div>
+    <button
+      type="button"
+      class="btn-secondary"
+      *ngIf="portalMostrarFinanzas !== null && puedeGestionarFacturas"
+      (click)="cambiarPortalFinanzas()"
+      [disabled]="cargandoPortalFinanzas">
+      {{ portalMostrarFinanzas ? 'Desactivar en el portal' : 'Habilitar en el portal' }}
+    </button>
+    <button
+      type="button"
+      class="btn-secondary"
+      *ngIf="portalMostrarFinanzas === null && !cargandoPortalFinanzas"
+      (click)="cargarConfiguracionPortalFinanzas()">
+      Reintentar
+    </button>
+  </section>
+
+  <div *ngIf="errorVisibilidadFactura" class="finanzas-error-banner" role="alert">
+    <span>{{ errorVisibilidadFactura }}</span>
   </div>
 
   <!-- Hero Dark Metrics Card -->
@@ -83,10 +117,13 @@
     <div class="hero-divider"></div>
 
     <div class="hero-col hero-col-cobrado">
-      <span class="hero-label">COBRADO ESTE MES</span>
+      <span class="hero-label">COBRADO EN PERÍODO</span>
       <div class="hero-amount-secondary">
         {{ formatearMonto(resumenPrincipal.cobrado, resumenPrincipal.moneda) }}
       </div>
+      <span class="hero-subtext">
+        {{ resumenPrincipal.conteoPagadas }} {{ resumenPrincipal.conteoPagadas === 1 ? 'pagada' : 'pagadas' }}
+      </span>
     </div>
 
     <div class="hero-divider"></div>
@@ -205,7 +242,11 @@
           (click)="busqueda = ''; filtroEstado = 'TODAS'; periodoSeleccionado = 'TODOS'">
           Restablecer filtros
         </button>
-        <button type="button" class="btn-nueva-factura-inline" (click)="abrirModalNuevaFactura()">
+        <button
+          *ngIf="puedeGestionarFacturas"
+          type="button"
+          class="btn-nueva-factura-inline"
+          (click)="abrirModalNuevaFactura()">
           + Nueva factura
         </button>
       </div>
@@ -255,6 +296,11 @@
             <!-- MONTO -->
             <td class="td-monto">
               <span class="inv-monto-valor">{{ formatearMonto(inv.monto, inv.moneda) }}</span>
+              <span
+                *ngIf="inv.montoPendiente !== undefined && inv.montoPendiente < +inv.monto && inv.estado !== 'PAGADA'"
+                class="inv-saldo-sub">
+                Saldo: {{ formatearMonto(inv.montoPendiente, inv.moneda) }}
+              </span>
             </td>
 
             <!-- ESTADO -->
@@ -267,30 +313,51 @@
                   'badge-vencida': inv.estado === 'VENCIDA',
                   'badge-cancelada': inv.estado === 'CANCELADA'
                 }">
-                {{ inv.estado === 'PAGADA' ? 'Pagada' : (inv.estado === 'VENCIDA' ? 'Vencida' : (inv.estado === 'CANCELADA' ? 'Cancelada' : 'Pendiente')) }}
+                {{ inv.estado === 'PAGADA' ? 'Pagada' : (inv.estado === 'VENCIDA' ? 'Vencida' : (inv.estado === 'CANCELADA' ? 'Cancelada' : (inv.estado === 'BORRADOR' ? 'Borrador' : 'Pendiente'))) }}
+              </span>
+              <span class="inv-portal-estado">
+                {{ inv.estado === 'BORRADOR' ? 'Borrador privado' : inv.visibleEnPortal ? 'Compartida en portal' : 'No compartida' }}
               </span>
             </td>
 
             <!-- ACCIÓN -->
             <td class="td-accion" (click)="$event.stopPropagation()">
-              <ng-container *ngIf="inv.estado === 'PAGADA'">
-                <div class="estado-pagado-indicador">
-                  <svg class="icon-check-pagado" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                  </svg>
-                  <span>Pagado</span>
-                </div>
-              </ng-container>
+              <div class="accion-stack">
+                <ng-container *ngIf="inv.estado === 'PAGADA'">
+                  <div class="estado-pagado-indicador">
+                    <svg class="icon-check-pagado" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Pagado</span>
+                  </div>
+                </ng-container>
 
-              <ng-container *ngIf="inv.estado !== 'PAGADA'">
                 <button
+                  *ngIf="inv.estado !== 'PAGADA' && inv.estado !== 'CANCELADA' && puedeGestionarFacturas"
                   type="button"
                   class="btn-registrar-pago"
                   (click)="abrirModalRegistrarPago(inv, $event)"
-                  title="Registrar cobro contable en Equinox">
+                  title="Registrar abono o pago contable en Equinox">
                   Registrar pago
                 </button>
-              </ng-container>
+
+                <button
+                  *ngIf="puedeGestionarFacturas && inv.estado !== 'CANCELADA'"
+                  type="button"
+                  class="btn-portal-visibilidad"
+                  (click)="cambiarVisibilidadFactura(inv, $event)"
+                  [disabled]="!!visibilidadFacturaEnCursoId">
+                  {{
+                    visibilidadFacturaEnCursoId === inv.id
+                      ? 'Guardando…'
+                      : inv.estado === 'BORRADOR'
+                        ? 'Emitir y compartir'
+                        : inv.visibleEnPortal
+                          ? 'Dejar de compartir'
+                          : 'Compartir con cliente'
+                  }}
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -307,10 +374,17 @@
   <!-- MODAL: NUEVA FACTURA                                     -->
   <!-- ======================================================== -->
   <div *ngIf="modalNuevaFacturaAbierto" class="modal-backdrop" (click)="cerrarModalNuevaFactura()">
-    <div class="modal-dialog modal-dialog-factura" (click)="$event.stopPropagation()">
+    <div
+      class="modal-dialog modal-dialog-factura"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-nueva-factura-title"
+      tabindex="-1"
+      appDialogFocus
+      (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-header-titles">
-          <h2 class="modal-title">Nueva factura</h2>
+          <h2 id="modal-nueva-factura-title" class="modal-title">Nueva factura</h2>
           <p class="modal-subtitle">Crea un registro de factura para seguimiento y cobro contable.</p>
         </div>
         <button type="button" class="btn-close-modal" (click)="cerrarModalNuevaFactura()" aria-label="Cerrar">
@@ -319,23 +393,21 @@
       </div>
 
       <form (ngSubmit)="guardarNuevaFactura()" class="modal-form">
-        <!-- Error en modal -->
-        <div *ngIf="errorModalFactura" class="modal-error-alert">
+        <div *ngIf="errorModalFactura" class="modal-error-alert" role="alert">
           {{ errorModalFactura }}
         </div>
 
         <div class="form-grid-2">
-          <!-- Número de Factura -->
+          <!-- Número de Factura (opcional: secuencia automática en backend) -->
           <div class="form-group">
-            <label class="form-label" for="fac-numero">Número de factura *</label>
+            <label class="form-label" for="fac-numero">Número de factura (opcional)</label>
             <input
               id="fac-numero"
               type="text"
               class="form-input"
               [(ngModel)]="formFactura.numero"
               name="numero"
-              placeholder="ej. INV-2026-001"
-              required
+              placeholder="Automático (Secuencia) o INV-..."
             />
           </div>
 
@@ -453,6 +525,32 @@
           </div>
         </div>
 
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="fac-estado">Estado inicial</label>
+            <select
+              id="fac-estado"
+              class="form-select"
+              [(ngModel)]="formFactura.estado"
+              name="estado">
+              <option value="ENVIADA">Emitida (Pendiente)</option>
+              <option value="BORRADOR">Borrador privado</option>
+            </select>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                [(ngModel)]="formFactura.visibleEnPortal"
+                name="visibleEnPortal"
+                [disabled]="formFactura.estado === 'BORRADOR'"
+              />
+              <span>Visible en el portal del cliente</span>
+            </label>
+          </div>
+        </div>
+
         <!-- Notas internas -->
         <div class="form-group">
           <label class="form-label" for="fac-notas">Notas o condiciones (opcional)</label>
@@ -467,7 +565,7 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn-cancelar" (click)="cerrarModalNuevaFactura()">
+          <button type="button" class="btn-cancelar" (click)="cerrarModalNuevaFactura()" [disabled]="guardandoFactura">
             Cancelar
           </button>
           <button
@@ -482,13 +580,20 @@
   </div>
 
   <!-- ======================================================== -->
-  <!-- MODAL: REGISTRAR PAGO                                    -->
+  <!-- MODAL: REGISTRAR PAGO (Soporta abonos parciales)         -->
   <!-- ======================================================== -->
   <div *ngIf="modalPagoAbierto && facturaSeleccionadaPago" class="modal-backdrop" (click)="cerrarModalRegistrarPago()">
-    <div class="modal-dialog modal-dialog-pago" (click)="$event.stopPropagation()">
+    <div
+      class="modal-dialog modal-dialog-pago"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-pago-title"
+      tabindex="-1"
+      appDialogFocus
+      (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-header-titles">
-          <h2 class="modal-title">Registrar cobro contable</h2>
+          <h2 id="modal-pago-title" class="modal-title">Registrar cobro contable</h2>
           <p class="modal-subtitle">Factura {{ facturaSeleccionadaPago.numero }}</p>
         </div>
         <button type="button" class="btn-close-modal" (click)="cerrarModalRegistrarPago()" aria-label="Cerrar">
@@ -503,11 +608,16 @@
         </div>
         <div class="summary-item">
           <span class="summary-label">Cliente</span>
-          <span class="summary-value">{{ facturaSeleccionadaPago.cliente?.nombre }} {{ facturaSeleccionadaPago.cliente?.empresa ? '· ' + facturaSeleccionadaPago.cliente?.empresa : '' }}</span>
+          <span class="summary-value">
+            {{ facturaSeleccionadaPago.cliente?.nombre }}
+            {{ facturaSeleccionadaPago.cliente?.empresa ? '· ' + facturaSeleccionadaPago.cliente?.empresa : '' }}
+          </span>
         </div>
         <div class="summary-item-monto">
-          <span class="summary-label">Monto por cobrar</span>
-          <span class="summary-monto">{{ formatearMonto(facturaSeleccionadaPago.monto, facturaSeleccionadaPago.moneda) }}</span>
+          <span class="summary-label">Saldo pendiente</span>
+          <span class="summary-monto">
+            {{ formatearMonto(obtenerSaldoPendiente(facturaSeleccionadaPago), facturaSeleccionadaPago.moneda) }}
+          </span>
         </div>
       </div>
 
@@ -516,25 +626,60 @@
           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
         </svg>
         <p>
-          <strong>Registro contable interno:</strong> Esta acción asienta la factura como pagada en tu panel financiero de Equinox. No realiza transferencias ni cargos bancarios.
+          <strong>Registro contable interno:</strong> Registra abonos parciales o liquidación total en tu panel financiero de Equinox. No realiza transferencias ni cargos bancarios.
         </p>
       </div>
 
       <form (ngSubmit)="confirmarRegistroPago()" class="modal-form">
-        <div *ngIf="errorModalPago" class="modal-error-alert">
+        <div *ngIf="errorModalPago" class="modal-error-alert" role="alert">
           {{ errorModalPago }}
         </div>
 
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="pagoMonto">Monto a abonar *</label>
+            <input
+              id="pagoMonto"
+              type="number"
+              step="0.01"
+              min="0.01"
+              class="form-input"
+              [(ngModel)]="formPago.monto"
+              name="montoPago"
+              placeholder="0.00"
+              [disabled]="guardandoPago"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pagoMoneda">Moneda</label>
+            <input
+              id="pagoMoneda"
+              type="text"
+              class="form-input input-readonly"
+              [(ngModel)]="formPago.moneda"
+              name="monedaPago"
+              readonly
+            />
+          </div>
+        </div>
+
         <div class="form-group">
-          <label class="form-label" for="pago-fecha">Fecha del pago *</label>
-          <input
-            id="pago-fecha"
-            type="date"
-            class="form-input"
-            [(ngModel)]="formPago.fechaPago"
-            name="fechaPago"
-            required
-          />
+          <label class="form-label" for="pagoMetodo">Método de pago *</label>
+          <select
+            id="pagoMetodo"
+            class="form-select"
+            [(ngModel)]="formPago.metodo"
+            name="metodoPago"
+            [disabled]="guardandoPago"
+            required>
+            <option value="TRANSFERENCIA">Transferencia / ACH</option>
+            <option value="EFECTIVO">Efectivo</option>
+            <option value="TARJETA">Tarjeta de crédito / débito</option>
+            <option value="CHEQUE">Cheque</option>
+            <option value="OTRO">Otro</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -546,6 +691,7 @@
             [(ngModel)]="formPago.referencia"
             name="referencia"
             placeholder="ej. ACH-884920 / Yappy / Cheque"
+            [disabled]="guardandoPago"
           />
         </div>
 
@@ -558,18 +704,19 @@
             [(ngModel)]="formPago.notas"
             name="notas"
             placeholder="ej. Cobro verificado en estado de cuenta"
+            [disabled]="guardandoPago"
           />
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn-cancelar" (click)="cerrarModalRegistrarPago()">
+          <button type="button" class="btn-cancelar" (click)="cerrarModalRegistrarPago()" [disabled]="guardandoPago">
             Cancelar
           </button>
           <button
             type="submit"
             class="btn-confirmar-pago"
             [disabled]="guardandoPago">
-            {{ guardandoPago ? 'Registrando...' : 'Confirmar registro de pago' }}
+            {{ guardandoPago ? 'Registrando...' : 'Confirmar pago' }}
           </button>
         </div>
       </form>
@@ -580,11 +727,18 @@
   <!-- MODAL: DETALLE DE FACTURA                                -->
   <!-- ======================================================== -->
   <div *ngIf="modalDetalleAbierto && facturaDetalle" class="modal-backdrop" (click)="cerrarDetalleFactura()">
-    <div class="modal-dialog modal-dialog-detalle" (click)="$event.stopPropagation()">
+    <div
+      class="modal-dialog modal-dialog-detalle"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-detalle-title"
+      tabindex="-1"
+      appDialogFocus
+      (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-header-titles">
           <div class="detalle-header-top">
-            <span class="detalle-numero">{{ facturaDetalle.numero }}</span>
+            <span id="modal-detalle-title" class="detalle-numero">{{ facturaDetalle.numero }}</span>
             <span
               class="badge-estado"
               [ngClass]="{
@@ -605,8 +759,14 @@
 
       <div class="detalle-body">
         <div class="detalle-monto-card">
-          <span class="monto-card-label">Monto total</span>
-          <span class="monto-card-val">{{ formatearMonto(facturaDetalle.monto, facturaDetalle.moneda) }}</span>
+          <div>
+            <span class="monto-card-label">Monto total</span>
+            <span class="monto-card-val">{{ formatearMonto(facturaDetalle.monto, facturaDetalle.moneda) }}</span>
+          </div>
+          <div *ngIf="facturaDetalle.estado !== 'PAGADA' && facturaDetalle.montoPendiente !== undefined" class="monto-card-saldo">
+            <span class="monto-card-label">Saldo pendiente</span>
+            <span class="monto-card-saldo-val">{{ formatearMonto(facturaDetalle.montoPendiente, facturaDetalle.moneda) }}</span>
+          </div>
         </div>
 
         <div class="detalle-info-grid">
@@ -641,16 +801,50 @@
             <p class="info-notas">{{ facturaDetalle.notas }}</p>
           </div>
         </div>
+
+        <!-- Pagos registrados -->
+        <div *ngIf="facturaDetalle.pagos?.length" class="detalle-seccion">
+          <h3 class="detalle-seccion-titulo">Pagos registrados</h3>
+          <div class="detalle-lista">
+            <div *ngFor="let pago of facturaDetalle.pagos" class="detalle-lista-item">
+              <div>
+                <strong>{{ formatearMonto(pago.monto, pago.moneda) }}</strong>
+                <span class="detalle-lista-meta"> · {{ pago.metodo || 'Pago' }}</span>
+                <span *ngIf="pago.referencia" class="detalle-lista-meta"> · Ref. {{ pago.referencia }}</span>
+              </div>
+              <span class="detalle-lista-fecha">{{ formatearFechaCorta(pago.creadoEn) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historial de estados -->
+        <div *ngIf="facturaDetalle.historial?.length" class="detalle-seccion">
+          <h3 class="detalle-seccion-titulo">Historial de cambios</h3>
+          <div class="detalle-lista">
+            <div *ngFor="let h of facturaDetalle.historial" class="detalle-lista-item">
+              <div>
+                <strong>{{ h.estadoAnterior ? h.estadoAnterior + ' → ' : '' }}{{ h.estadoNuevo }}</strong>
+                <span *ngIf="h.usuario" class="detalle-lista-meta"> · {{ h.usuario.nombre }}</span>
+                <span *ngIf="h.motivo" class="detalle-lista-meta"> · {{ h.motivo }}</span>
+              </div>
+              <span class="detalle-lista-fecha">{{ formatearFechaCorta(h.creadoEn) }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="modal-footer detalle-footer">
-        <button type="button" class="btn-eliminar-factura" (click)="eliminarFactura(facturaDetalle)">
+        <button
+          *ngIf="puedeGestionarFacturas"
+          type="button"
+          class="btn-eliminar-factura"
+          (click)="eliminarFactura(facturaDetalle)">
           Eliminar
         </button>
 
         <div class="detalle-footer-right">
           <button
-            *ngIf="facturaDetalle.estado !== 'PAGADA'"
+            *ngIf="facturaDetalle.estado !== 'PAGADA' && facturaDetalle.estado !== 'CANCELADA' && puedeGestionarFacturas"
             type="button"
             class="btn-registrar-pago"
             (click)="abrirModalRegistrarPago(facturaDetalle)">

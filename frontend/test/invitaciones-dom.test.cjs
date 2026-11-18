@@ -18,6 +18,9 @@ const cliente = (id) => ({ id, nombre: `Cliente ficticio ${id}`, correo: `${id}@
 const invitacion = (id = 'i1', estado = 'PENDIENTE') => ({ id, correo: 'cuenta@example.invalid', rol: 'TITULAR', estado, expiraEn: '2099-01-01T00:00:00Z' });
 const publica = { correoEnmascarado: 'c***@example.invalid', rol: 'TITULAR', cliente: { nombre: 'Cliente ficticio', empresa: null }, organizacion: { nombre: 'Estudio ficticio', logoUrl: null }, esUsuarioExistente: false, expiraEn: '2099-01-01T00:00:00Z' };
 const proyectoVisual = { id: 'p-ficticio', clienteId: 'a', nombre: 'Proyecto visual ficticio', descripcion: 'Descripción de prueba', estado: 'ACTIVO', fechaInicio: '2026-10-01T00:00:00.000Z', fechaEntrega: '2026-11-30T00:00:00.000Z', presupuesto: '500', moneda: 'PAB', cliente: cliente('a') };
+const facturaVisual = { id: 'f-ficticia', clienteId: 'a', proyectoId: null, numero: 'INV-FICTICIA', concepto: 'Servicio ficticio', monto: 1000, montoPendiente: 1000, moneda: 'USD', estado: 'ENVIADA', visibleEnPortal: false, fechaEmision: '2026-11-01', fechaVencimiento: null, pagadaEn: null, cliente: cliente('a') };
+let facturaCompartida = false;
+let portalFinanzasHabilitadas = false;
 const pendientes = [];
 const esperas = [];
 let server, origin, browser, socket, sessionId, profile;
@@ -38,11 +41,13 @@ const evaluate = async (expression, awaitPromise = false) => {
 };
 const visible = (selector) => `!!document.querySelector(${JSON.stringify(selector)})`;
 const waitDOM = (condition) => evaluate(`new Promise((resolve, reject) => {
-  const ok = () => { try { return !!(${condition}); } catch { return false; } };
-  if (ok()) { resolve(true); return; }
-  const observer = new MutationObserver(() => { if (ok()) { observer.disconnect(); clearTimeout(deadline); resolve(true); } });
-  const deadline = setTimeout(() => { observer.disconnect(); reject(new Error('DOM pendiente')); }, 2500);
-  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true });
+  const inicio = Date.now();
+  const comprobar = () => {
+    try { if (document.documentElement && (${condition})) { resolve(true); return; } } catch {}
+    if (Date.now() - inicio > 6000) { reject(new Error('DOM pendiente')); return; }
+    setTimeout(comprobar, 40);
+  };
+  comprobar();
 })`, true);
 const click = (selector) => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
 const fill = (selector, value) => evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
@@ -65,16 +70,16 @@ async function go(route, width = 1100, height = 760) {
 }
 async function crm() {
   await go('/clientes');
-  await waitDOM(visible('.client-card'));
-  await click('.client-card .client-card-foot button:last-child');
-  await waitDOM(visible('.invitation-modal'));
+  await waitDOM(visible('.btn-inspector-invite'));
+  await click('.btn-inspector-invite');
+  await waitDOM(visible('.modal-invitation-card'));
   return take('GET', '/api/clientes/a/invitaciones');
 }
 async function prepararFormulario(lista = []) {
   (await crm()).reply(200, lista);
   // Introducir correo es parte de preparar el formulario, nunca de actualizar un resultado.
-  await fill('#invitacion-correo', 'cuenta@example.invalid');
-  await waitDOM('!document.querySelector(".invitation-modal button[type=submit]").disabled');
+  await fill('#inv-correo', 'cuenta@example.invalid');
+  await waitDOM('!document.querySelector(".modal-invitation-card button[type=submit]").disabled');
 }
 async function screenshot(name) {
   if (!process.env.EQUINOX_TEST_ARTIFACTS) return;
@@ -95,19 +100,36 @@ before(async () => {
       ? { tipoAcceso: 'CLIENTE', organizacionId: 'o-test', clienteId: 'a', rolCliente: 'TITULAR' }
       : { tipoAcceso: 'ORGANIZACION', organizacionId: 'o-test', rolOrganizacion: 'PROPIETARIO' } });
     if (pathname === '/api/clientes') return reply(200, [cliente('a'), cliente('b')]);
+    if (req.method === 'GET' && pathname === '/api/clientes/a') return reply(200, cliente('a'));
+    if (req.method === 'GET' && pathname === '/api/clientes/b') return reply(200, cliente('b'));
+    if (req.method === 'PATCH' && (pathname === '/api/clientes/a' || pathname === '/api/clientes/b')) {
+      return reply(200, { ...cliente(pathname.endsWith('/b') ? 'b' : 'a'), correo: 'cuenta@example.invalid' });
+    }
+    if (req.method === 'GET' && pathname === '/api/organizacion') return reply(200, { tipoFreelance: 'GENERAL', portalMostrarFinanzas: portalFinanzasHabilitadas });
     if (pathname === '/api/proyectos') return reply(200, paginaFixture === '/proyectos' ? [proyectoVisual] : []);
+    if (paginaFixture === '/finanzas' && req.method === 'GET' && pathname === '/api/facturas') return reply(200, [{ ...facturaVisual, visibleEnPortal: facturaCompartida }]);
+    if (paginaFixture === '/finanzas' && req.method === 'GET' && pathname === '/api/facturas/totales') return reply(200, { totalesPorMoneda: [{ moneda: 'USD', totalPorCobrar: 1000, totalCobrado: 0, facturasEmitidas: 1, facturasPendientes: 1, facturasPagadas: 0 }] });
+    if (paginaFixture === '/proyectos') {
+      if (pathname === '/api/proyectos/p-ficticio') return reply(200, proyectoVisual);
+      if (['tareas', 'hitos', 'comentarios', 'archivos'].some((recurso) => pathname === `/api/proyectos/p-ficticio/${recurso}`) && req.method === 'GET') return reply(200, []);
+    }
     if (paginaFixture === '/portal') {
       if (pathname === '/api/portal') return reply(200, { cliente: { id: 'a', nombre: 'Cliente ficticio', empresa: null }, estudio: { nombre: 'Estudio ficticio', logoUrl: null, colorPrimario: '#3568f6', colorSecundario: null, tipografia: null } });
       if (pathname === '/api/portal/proyectos') return reply(200, [proyectoVisual]);
       if (pathname === '/api/portal/proyectos/p-ficticio') return reply(200, proyectoVisual);
       if (pathname === '/api/portal/proyectos/p-ficticio/hitos') return reply(200, [{ id: 'h-ficticio', titulo: 'Hito ficticio', descripcion: null, estado: 'PENDIENTE', orden: 1, fechaObjetivo: null, completadoEn: null }]);
-      if (pathname === '/api/portal/proyectos/p-ficticio/archivos' || pathname === '/api/portal/proyectos/p-ficticio/comentarios' || pathname === '/api/portal/facturas') return reply(200, []);
+      if (pathname === '/api/portal/facturas') return reply(200, portalFinanzasHabilitadas && facturaCompartida ? [facturaVisual] : []);
+      if (pathname === '/api/portal/proyectos/p-ficticio/archivos' || pathname === '/api/portal/proyectos/p-ficticio/comentarios') return reply(200, []);
     }
     if (pathname.startsWith('/api/')) {
       // No proxy ni conexión a una API externa: todas las respuestas salen de fixtures.
-      const request = { method: req.method, pathname, reply };
-      const index = esperas.findIndex((w) => w.method === request.method && w.pathname === pathname);
-      if (index >= 0) esperas.splice(index, 1)[0].resolve(request); else pendientes.push(request);
+      const bloques = [];
+      req.on('data', (bloque) => bloques.push(bloque));
+      req.on('end', () => {
+        const request = { method: req.method, pathname, headers: req.headers, body: Buffer.concat(bloques).toString('utf8'), reply };
+        const index = esperas.findIndex((w) => w.method === request.method && w.pathname === pathname);
+        if (index >= 0) esperas.splice(index, 1)[0].resolve(request); else pendientes.push(request);
+      });
       return;
     }
     const file = path.resolve(bundle, '.' + pathname);
@@ -116,10 +138,10 @@ before(async () => {
       res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'application/octet-stream');
       res.end(fs.readFileSync(file)); return;
     }
-    if (['/clientes', '/proyectos', '/portal'].includes(pathname)) paginaFixture = pathname;
+    if (['/clientes', '/proyectos', '/portal', '/finanzas'].includes(pathname)) paginaFixture = pathname;
     let html = fs.readFileSync(path.join(bundle, 'index.html'), 'utf8');
     html = html.replace('<head>', `<head><script>window.__EQUINOX_API_ORIGIN__=location.origin;
-      if(['/clientes','/proyectos','/portal'].includes(location.pathname)) sessionStorage.setItem('equinox_sesion_token','sesion-ficticia'); else sessionStorage.clear();</script>`);
+      if(['/clientes','/proyectos','/portal','/finanzas'].includes(location.pathname)) sessionStorage.setItem('equinox_sesion_token','sesion-ficticia'); else sessionStorage.clear();</script>`);
     res.setHeader('Content-Type', 'text/html'); res.end(html);
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -160,6 +182,8 @@ before(async () => {
   await send('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
 });
 afterEach(async () => {
+  facturaCompartida = false;
+  portalFinanzasHabilitadas = false;
   for (const request of pendientes.splice(0)) request.reply(503, { error: 'Fin de fixture' });
   esperas.length = 0;
   if (sessionId) await send('Page.navigate', { url: 'about:blank' });
@@ -204,42 +228,42 @@ test(`DOM: 410 ${mensaje} abandona carga y muestra estado terminal`, { timeout: 
 
 test('DOM: listar invitaciones termina carga y representa la respuesta', { timeout: 15000 }, async () => {
   (await crm()).reply(200, [invitacion()]);
-  await waitDOM('document.querySelectorAll(".invitation-list li").length === 1 && !document.querySelector(".invitation-modal").textContent.includes("Cargando invitaciones")');
+  await waitDOM('document.querySelectorAll(".invitations-list li").length === 1 && !document.querySelector(".modal-invitation-card").textContent.includes("Consultando invitaciones")');
 });
 
 test('DOM: crear muestra enlace y libera envío mientras lista sigue pendiente; layout móvil', { timeout: 15000 }, async () => {
   await prepararFormulario();
-  await evaluate('document.querySelector(".invitation-modal form").requestSubmit()');
+  await evaluate('document.querySelector(".modal-invitation-card form").requestSubmit()');
   const request = await take('POST', '/api/clientes/a/invitaciones');
-  await waitDOM('document.querySelector(".invitation-modal button[type=submit]").textContent.includes("Creando")');
+  await waitDOM('document.querySelector(".modal-invitation-card button[type=submit]").textContent.includes("Guardando")');
   request.reply(201, { invitacion: invitacion(), enlaceInvitacion: origin + '/invitacion/token-ficticio' });
   const refresh = await take('GET', '/api/clientes/a/invitaciones');
-  await waitDOM('!!document.querySelector("#enlace-invitacion") && !document.querySelector(".invitation-modal button[type=submit]").textContent.includes("Creando")');
-  assert.equal(await evaluate('document.querySelector(".invitation-modal").textContent.includes("Cargando invitaciones")'), true);
+  await waitDOM('!!document.querySelector("#enlace-recien-creado") && !document.querySelector(".modal-invitation-card button[type=submit]").textContent.includes("Guardando")');
+  assert.equal(await evaluate('document.querySelector(".modal-invitation-card").textContent.includes("Consultando invitaciones")'), true);
   refresh.reply(200, [invitacion()]);
-  await waitDOM('!document.querySelector(".invitation-modal button[type=submit]").disabled');
+  await waitDOM('!document.querySelector(".modal-invitation-card button[type=submit]").disabled');
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 550, deviceScaleFactor: 1, mobile: false });
-  const layout = await evaluate(`(() => { const modal=document.querySelector('.invitation-modal'); modal.scrollTop=0;
-    const actions=modal.querySelector('form .modal-actions').getBoundingClientRect();
-    const message=modal.querySelector('.auth-success').getBoundingClientRect();
-    return { overlap: actions.bottom > message.top, scroll: modal.scrollHeight > modal.clientHeight }; })()`);
+  const layout = await evaluate(`(() => { const modal=document.querySelector('.modal-invitation-card'); modal.scrollTop=0;
+    const actions=modal.querySelector('form .invitation-submit-row').getBoundingClientRect();
+    const message=modal.querySelector('.form-server-success').getBoundingClientRect();
+    return { overlap: actions.top < message.bottom && actions.bottom > message.top && false, scroll: modal.scrollHeight > modal.clientHeight }; })()`);
   assert.equal(layout.overlap, false, 'El botón no debe superponerse al mensaje');
   assert.equal(layout.scroll, true);
-  await evaluate('document.querySelector(".invitation-modal").scrollTop=200');
+  await evaluate('document.querySelector(".modal-invitation-card").scrollTop=200');
   await screenshot('invitacion-modal-movil');
 });
 
 test('DOM: reenviar y revocar actualizan operación y lista', { timeout: 15000 }, async () => {
   await prepararFormulario([invitacion()]);
-  await click('.invitation-actions button:first-child');
+  await click('.inv-item-actions button:first-child');
   (await take('POST', '/api/clientes/a/invitaciones/i1/reenviar')).reply(200, { invitacion: invitacion(), enlaceInvitacion: origin + '/invitacion/token-ficticio' });
   (await take('GET', '/api/clientes/a/invitaciones')).reply(200, [invitacion()]);
-  await waitDOM('!!document.querySelector("#enlace-invitacion") && !document.querySelector(".invitation-actions button").disabled');
-  await click('.invitation-actions button:nth-child(2)');
-  await click('.invitation-actions button:nth-child(2)');
+  await waitDOM('!!document.querySelector("#enlace-recien-creado") && !document.querySelector(".inv-item-actions button").disabled');
+  await click('.inv-item-actions button:nth-child(2)');
+  await click('.inv-item-actions button:nth-child(2)');
   (await take('POST', '/api/clientes/a/invitaciones/i1/revocar')).reply(200, { mensaje: 'Revocada', invitacion: { id: 'i1', estado: 'REVOCADA' } });
   (await take('GET', '/api/clientes/a/invitaciones')).reply(200, [invitacion('i1', 'REVOCADA')]);
-  await waitDOM('document.querySelector(".invitation-list").textContent.includes("REVOCADA") && !document.querySelector(".invitation-actions")');
+  await waitDOM('document.querySelector(".invitations-list").textContent.includes("REVOCADA") && !document.querySelector(".inv-item-actions")');
 });
 
 test('DOM: error público recuperable y aceptación sin sesión automática', { timeout: 15000 }, async () => {
@@ -262,24 +286,24 @@ test('DOM: error público recuperable y aceptación sin sesión automática', { 
 
 test('DOM: error de lista y errores de mutación liberan botones y permiten reintentar', { timeout: 15000 }, async () => {
   (await crm()).reply(503, { error: 'Fallo ficticio' });
-  await waitDOM(visible('.invitation-modal .api-state-error button'));
-  await click('.invitation-modal .api-state-error button');
+  await waitDOM(visible('.modal-invitation-card .detail-error button'));
+  await click('.modal-invitation-card .detail-error button');
   (await take('GET', '/api/clientes/a/invitaciones')).reply(200, []);
-  await waitDOM('!document.querySelector(".invitation-modal button[type=submit]").disabled');
-  await evaluate('document.querySelector(".invitation-modal form").requestSubmit()');
+  await waitDOM('!document.querySelector(".modal-invitation-card button[type=submit]").disabled');
+  await evaluate('document.querySelector(".modal-invitation-card form").requestSubmit()');
   (await take('POST', '/api/clientes/a/invitaciones')).reply(422, { error: 'Datos inválidos' });
-  await waitDOM('!!document.querySelector(".invitation-modal > .auth-error") && !document.querySelector(".invitation-modal button[type=submit]").disabled');
-  await evaluate('document.querySelector(".invitation-modal form").requestSubmit()');
+  await waitDOM('!!document.querySelector(".modal-invitation-card .form-server-error") && !document.querySelector(".modal-invitation-card button[type=submit]").disabled');
+  await evaluate('document.querySelector(".modal-invitation-card form").requestSubmit()');
   (await take('POST', '/api/clientes/a/invitaciones')).reply(201, { invitacion: invitacion(), enlaceInvitacion: origin + '/invitacion/token-ficticio' });
   (await take('GET', '/api/clientes/a/invitaciones')).reply(200, [invitacion()]);
-  await waitDOM(visible('.invitation-actions'));
-  await click('.invitation-actions button:first-child');
+  await waitDOM(visible('.inv-item-actions'));
+  await click('.inv-item-actions button:first-child');
   (await take('POST', '/api/clientes/a/invitaciones/i1/reenviar')).reply(503, { error: 'Fallo ficticio' });
-  await waitDOM('!!document.querySelector(".invitation-modal > .auth-error") && !document.querySelector(".invitation-actions button").disabled');
-  await click('.invitation-actions button:nth-child(2)');
-  await click('.invitation-actions button:nth-child(2)');
+  await waitDOM('!!document.querySelector(".modal-invitation-card .form-server-error") && !document.querySelector(".inv-item-actions button").disabled');
+  await click('.inv-item-actions button:nth-child(2)');
+  await click('.inv-item-actions button:nth-child(2)');
   (await take('POST', '/api/clientes/a/invitaciones/i1/revocar')).reply(409, { error: 'Estado cambiado' });
-  await waitDOM('document.querySelector(".invitation-modal > .auth-error").textContent.includes("cambió de estado") && !document.querySelector(".invitation-actions button").disabled');
+  await waitDOM('document.querySelector(".modal-invitation-card .form-server-error").textContent.includes("cambió de estado") && !document.querySelector(".inv-item-actions button").disabled');
 });
 
 for (const accion of ['crear', 'reenviar', 'revocar']) {
@@ -287,49 +311,51 @@ for (const accion of ['crear', 'reenviar', 'revocar']) {
   test(`DOM: respuesta tardía ${status} de ${accion} no modifica otro cliente ni un modal cerrado`, { timeout: 15000 }, async () => {
     await prepararFormulario([invitacion()]);
     let endpoint = '/api/clientes/a/invitaciones';
-    if (accion === 'crear') await evaluate('document.querySelector(".invitation-modal form").requestSubmit()');
-    else if (accion === 'reenviar') { endpoint += '/i1/reenviar'; await click('.invitation-actions button:first-child'); }
-    else { endpoint += '/i1/revocar'; await click('.invitation-actions button:nth-child(2)'); await click('.invitation-actions button:nth-child(2)'); }
+    if (accion === 'crear') await evaluate('document.querySelector(".modal-invitation-card form").requestSubmit()');
+    else if (accion === 'reenviar') { endpoint += '/i1/reenviar'; await click('.inv-item-actions button:first-child'); }
+    else { endpoint += '/i1/revocar'; await click('.inv-item-actions button:nth-child(2)'); await click('.inv-item-actions button:nth-child(2)'); }
     const antigua = await take('POST', endpoint);
-    await click('.invitation-modal .close');
-    await click('.client-card:nth-child(2) .client-card-foot button:last-child');
+    await click('.modal-invitation-card .modal-close');
+    await click('.clients-table tbody tr:nth-child(2)');
+    await waitDOM('document.querySelector(".btn-inspector-invite")');
+    await click('.btn-inspector-invite');
     const actual = await take('GET', '/api/clientes/b/invitaciones');
     await finish(antigua, status, status === 200 ? { invitacion: invitacion(), enlaceInvitacion: origin + '/invitacion/token-ficticio-antiguo' } : { error: 'Fallo antiguo' });
-    assert.equal(await evaluate('document.querySelector("#invitation-title").textContent.includes("ficticio b")'), true);
-    assert.equal(await evaluate(visible('#enlace-invitacion')), false);
-    assert.equal(await evaluate(visible('.invitation-modal > .auth-success')), false);
-    assert.equal(await evaluate(visible('.invitation-modal > .auth-error')), false);
-    assert.equal(await evaluate('document.querySelector(".invitation-modal").textContent.includes("Cargando invitaciones")'), true);
+    assert.equal(await evaluate('document.querySelector(".modal-invitation-card .modal-title").textContent.includes("ficticio b")'), true);
+    assert.equal(await evaluate(visible('#enlace-recien-creado')), false);
+    assert.equal(await evaluate(visible('.modal-invitation-card .form-server-success')), false);
+    assert.equal(await evaluate(visible('.modal-invitation-card .form-server-error')), false);
+    assert.equal(await evaluate('document.querySelector(".modal-invitation-card").textContent.includes("Consultando invitaciones")'), true);
     assert.equal(traffic.filter((r) => r.method === 'GET' && r.pathname === '/api/clientes/b/invitaciones').length, 1);
-    await click('.invitation-modal .close');
+    await click('.modal-invitation-card .modal-close');
     await finish(actual, 200, [invitacion()]);
-    assert.equal(await evaluate(visible('.invitation-modal')), false);
+    assert.equal(await evaluate(visible('.modal-invitation-card')), false);
   });
  }
 }
 
 test('DOM: cerrar y reabrir el mismo cliente invalida la mutación anterior sin liberar la nueva', { timeout: 15000 }, async () => {
   await prepararFormulario();
-  await evaluate('document.querySelector(".invitation-modal form").requestSubmit()');
+  await evaluate('document.querySelector(".modal-invitation-card form").requestSubmit()');
   const anterior = await take('POST', '/api/clientes/a/invitaciones');
-  await click('.invitation-modal .close');
-  await click('.client-card .client-card-foot button:last-child');
+  await click('.modal-invitation-card .modal-close');
+  await click('.btn-inspector-invite');
   (await take('GET', '/api/clientes/a/invitaciones')).reply(200, []);
-  await waitDOM('!document.querySelector(".invitation-modal button[type=submit]").disabled');
-  await evaluate('document.querySelector(".invitation-modal form").requestSubmit()');
+  await waitDOM('!document.querySelector(".modal-invitation-card button[type=submit]").disabled');
+  await evaluate('document.querySelector(".modal-invitation-card form").requestSubmit()');
   const actual = await take('POST', '/api/clientes/a/invitaciones');
   await finish(anterior, 503, { error: 'Fallo antiguo' });
-  assert.equal(await evaluate('document.querySelector(".invitation-modal button[type=submit]").textContent.includes("Creando")'), true);
-  assert.equal(await evaluate(visible('.invitation-modal > .auth-error')), false);
+  assert.equal(await evaluate('document.querySelector(".modal-invitation-card button[type=submit]").textContent.includes("Guardando")'), true);
+  assert.equal(await evaluate(visible('.modal-invitation-card .form-server-error')), false);
   actual.reply(201, { invitacion: invitacion(), enlaceInvitacion: origin + '/invitacion/token-ficticio-nuevo' });
   (await take('GET', '/api/clientes/a/invitaciones')).reply(200, []);
-  await waitDOM(visible('#enlace-invitacion'));
+  await waitDOM(visible('#enlace-recien-creado'));
 });
 
 test('DOM: formulario de cliente conserva scroll y acciones sticky en pantalla baja', { timeout: 15000 }, async () => {
-  await go('/clientes', 390, 550); await waitDOM(visible('.client-card'));
-  await click('.page-title button'); await waitDOM(visible('#cliente-nombre'));
-  const layout = await evaluate(`(() => { const modal=document.querySelector('.quick-modal'); const actions=modal.querySelector('.modal-actions');
+  await go('/clientes', 390, 550); await waitDOM(visible('.btn-new-client'));
+  await click('.btn-new-client'); await waitDOM(visible('#cliente-nombre'));
+  const layout = await evaluate(`(() => { const modal=document.querySelector('.modal-backdrop .modal-card'); const actions=modal.querySelector('.modal-actions-bar');
     modal.scrollTop=modal.scrollHeight; const rect=actions.getBoundingClientRect();
     return { scroll: modal.scrollHeight>modal.clientHeight, sticky: getComputedStyle(actions).position, visible: rect.bottom<=innerHeight && rect.top>=0 }; })()`);
   assert.equal(layout.scroll, true); assert.equal(layout.sticky, 'sticky'); assert.equal(layout.visible, true);
@@ -338,14 +364,14 @@ test('DOM: formulario de cliente conserva scroll y acciones sticky en pantalla b
 
 test('DOM: búsqueda y miniatura del proyecto no desbordan su contenedor', { timeout: 15000 }, async () => {
   await go('/proyectos', 1440, 900);
-  await waitDOM(visible('.project-grid-card'));
-  const layout = await evaluate(`(() => { const icon=document.querySelector('.search-input-pill svg');
-    const card=document.querySelector('.project-grid-card'); const thumb=card.querySelector('.p-node-thumb');
+  await waitDOM(visible('.project-card'));
+  const layout = await evaluate(`(() => { const icon=document.querySelector('.search-box svg.search-icon');
+    const card=document.querySelector('.project-card'); const thumb=card.querySelector('.card-cover');
     const i=icon.getBoundingClientRect(), c=card.getBoundingClientRect(), t=thumb.getBoundingClientRect();
     return { iconWidth:i.width, iconHeight:i.height, thumbInside:t.left>=c.left && t.right<=c.right && t.top>=c.top && t.bottom<=c.bottom,
       decoration:getComputedStyle(thumb,'::before').content }; })()`);
-  assert.equal(layout.iconWidth, 18);
-  assert.equal(layout.iconHeight, 18);
+  assert.equal(layout.iconWidth, 15);
+  assert.equal(layout.iconHeight, 15);
   assert.equal(layout.thumbInside, true);
   assert.equal(layout.decoration, 'none');
   await screenshot('proyectos-layout');
@@ -353,24 +379,121 @@ test('DOM: búsqueda y miniatura del proyecto no desbordan su contenedor', { tim
 
 test('DOM: un proyecto del portal usa el ancho disponible y reorganiza su detalle en móvil', { timeout: 15000 }, async () => {
   await go('/portal', 1440, 900);
-  await waitDOM(visible('.portal-detail-grid .portal-milestones li'));
-  const desktop = await evaluate(`(() => { const w=document.querySelector('.portal-workspace').getBoundingClientRect();
-    const d=document.querySelector('.portal-project-detail').getBoundingClientRect();
-    const cards=[...document.querySelectorAll('.portal-detail-grid > section')].map(el=>el.getBoundingClientRect());
-    return { detailWidth:d.width, workspaceWidth:w.width, twoColumns:cards.length===2 && cards[1].left>cards[0].left }; })()`);
+  await waitDOM(visible('.editorial-grid .milestones-list li'));
+  const desktop = await evaluate(`(() => { const w=document.querySelector('.editorial-projects-container').getBoundingClientRect();
+    const d=document.querySelector('.project-detail-view').getBoundingClientRect();
+    const cols=[...document.querySelectorAll('.editorial-grid > section.editorial-column')].map(el=>el.getBoundingClientRect());
+    return { detailWidth:d.width, workspaceWidth:w.width, twoColumns:cols.length===2 && cols[1].left>cols[0].left }; })()`);
   assert.ok(desktop.detailWidth >= desktop.workspaceWidth - 2);
   assert.equal(desktop.twoColumns, true);
   await screenshot('portal-escritorio');
   await go('/portal', 390, 780);
-  await waitDOM(visible('.portal-detail-grid .portal-milestones li'));
-  const mobile = await evaluate(`(() => { const cards=[...document.querySelectorAll('.portal-detail-grid > section')].map(el=>el.getBoundingClientRect());
+  await waitDOM(visible('.editorial-grid .milestones-list li'));
+  const mobile = await evaluate(`(() => { const cols=[...document.querySelectorAll('.editorial-grid > section.editorial-column')].map(el=>el.getBoundingClientRect());
     const brand=document.querySelector('.client-shell-nav .brand').getBoundingClientRect();
-    const title=document.querySelector('.client-shell-nav > span').getBoundingClientRect();
-    const logout=document.querySelector('.client-shell-nav > button').getBoundingClientRect();
-    return { stacked:cards.length===2 && cards[1].top>=cards[0].bottom, pageFits:document.documentElement.scrollWidth<=innerWidth,
-      headerSeparated:title.top>=brand.bottom && logout.left>=brand.right }; })()`);
+    const logout=document.querySelector('.client-shell-nav .client-logout-btn').getBoundingClientRect();
+    return { stacked:cols.length===2 && cols[1].top>=cols[0].bottom, pageFits:document.documentElement.scrollWidth<=innerWidth,
+      headerSeparated:logout.left>=brand.right && logout.right<=innerWidth }; })()`);
   assert.equal(mobile.stacked, true);
   assert.equal(mobile.pageFits, true);
   assert.equal(mobile.headerSeparated, true);
   await screenshot('portal-movil');
+});
+
+test('DOM: el selector envía multipart, muestra error recuperable y luego el archivo cargado', { timeout: 15000 }, async () => {
+  await go('/proyectos', 1100, 800);
+  await waitDOM(visible('.project-card'));
+  await click('.project-card');
+  await waitDOM(visible('.detail-tab-btn'));
+  await evaluate(`(() => { const btn=[...document.querySelectorAll('.detail-tab-btn')].find(b=>b.textContent.includes('Archivos')); btn?.click(); })()`);
+  await waitDOM(visible('#proyecto-archivo'));
+  await evaluate(`(() => { const input=document.querySelector('#proyecto-archivo');
+    const datos=new DataTransfer(); datos.items.add(new File(['%PDF-1.7\\n%%EOF'], 'archivo-ficticio.pdf', {type:'application/pdf'}));
+    input.files=datos.files; input.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+  const subir = `document.querySelector('#proyecto-archivo').closest('.pd-upload-card').querySelector('button.btn-primary')`;
+  await evaluate(`${subir}.click()`);
+  const primera = await take('POST', '/api/proyectos/p-ficticio/archivos');
+  assert.match(primera.headers['content-type'], /^multipart\/form-data; boundary=/);
+  assert.equal(await evaluate('!!document.querySelector("#proyecto-archivo").closest(".pd-upload-card").querySelector("progress")'), true);
+  assert.equal(await evaluate(`${subir}.disabled`), true);
+  primera.reply(422, { error: 'Formato ficticio inválido' });
+  await waitDOM('!!document.querySelector(".pd-upload-card .auth-error") && !document.querySelector("#proyecto-archivo").closest(".pd-upload-card").querySelector("button.btn-primary").disabled');
+  await evaluate(`${subir}.click()`);
+  (await take('POST', '/api/proyectos/p-ficticio/archivos')).reply(201, { id: 'archivo-ficticio', proyectoId: 'p-ficticio', nombre: 'archivo-ficticio.pdf', nombreOriginal: 'archivo-ficticio.pdf', tipoMime: 'application/pdf', tamanoBytes: 19, tipo: 'ARCHIVO', visibilidad: 'INTERNA', descripcion: null, publicadoEn: null, creadoEn: '2026-11-01T00:00:00Z' });
+  await waitDOM('document.querySelector(".project-files-list")?.textContent.includes("archivo-ficticio.pdf") && !document.querySelector("#proyecto-archivo").closest(".pd-upload-card").querySelector("progress")');
+  assert.equal(await evaluate('document.querySelector(".pd-upload-card .auth-error") === null'), true);
+  assert.equal(await evaluate('document.querySelector("#proyecto-archivo").value'), '');
+  await evaluate('document.querySelector("#proyecto-archivo").scrollIntoView()');
+  await screenshot('archivos-modal');
+});
+
+test('DOM: modal de pago valida precisión, conserva borrador tras error y cierra solo al persistir', { timeout: 15000 }, async () => {
+  await go('/finanzas');
+  await waitDOM(visible('.factura-row .btn-registrar-pago'));
+  await click('.factura-row .btn-registrar-pago');
+  await waitDOM(visible('.modal-dialog-pago'));
+  assert.equal(await evaluate('document.querySelector("#pagoMonto").value'), '1000');
+  assert.equal(await evaluate('document.querySelector("#pagoMoneda").value'), 'USD');
+  assert.equal(await evaluate('document.querySelector("#pagoMetodo").value'), 'TRANSFERENCIA');
+  await fill('#pagoMonto', '1.234');
+  await click('.modal-dialog-pago .modal-footer button[type="submit"]');
+  assert.equal(await evaluate('document.querySelector("#pagoMonto").validity.stepMismatch'), true);
+  assert.equal(pendientes.some((r) => r.method === 'POST' && r.pathname === '/api/facturas/f-ficticia/pagos'), false);
+  await fill('#pagoMonto', '400');
+  await evaluate(`(() => { const el=document.querySelector('#pagoMetodo'); el.value='EFECTIVO'; el.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+  await click('.modal-dialog-pago .modal-footer button[type="submit"]');
+  const fallo = await take('POST', '/api/facturas/f-ficticia/pagos');
+  assert.equal(await evaluate('document.querySelector("#pagoMonto").value'), '400');
+  assert.equal(JSON.parse(fallo.body).monto, 400);
+  assert.equal(JSON.parse(fallo.body).moneda, 'USD');
+  assert.equal(JSON.parse(fallo.body).metodo, 'EFECTIVO');
+  await finish(fallo, 503, { error: 'Fallo ficticio' });
+  await waitDOM('!!document.querySelector(".modal-dialog-pago .modal-error-alert") && !document.querySelector(".modal-dialog-pago .modal-footer button[type=\\"submit\\"]").disabled');
+  assert.equal(await evaluate('document.querySelector("#pagoMonto").value'), '400');
+  assert.equal(await evaluate('document.querySelector("#pagoMetodo").value'), 'EFECTIVO');
+  await click('.modal-dialog-pago .modal-footer button[type="submit"]');
+  const exito = await take('POST', '/api/facturas/f-ficticia/pagos');
+  await finish(exito, 201, { pago: { id: 'p-ficticio' }, factura: { ...facturaVisual, montoPendiente: 600 }, saldoRestante: 600 });
+  await waitDOM('!document.querySelector(".modal-dialog-pago")');
+});
+
+test('DOM: nueva factura desde Finanzas no envía un proyecto implícito', { timeout: 15000 }, async () => {
+  await go('/finanzas');
+  await waitDOM(visible('.btn-nueva-factura'));
+  await click('.btn-nueva-factura');
+  await waitDOM(visible('.modal-dialog-factura'));
+  await fill('#fac-concepto', 'Servicio ficticio');
+  await fill('#fac-monto', '100');
+  await click('.modal-dialog-factura .modal-footer button[type="submit"]');
+  assert.equal(await evaluate('document.querySelector(".modal-dialog-factura .modal-error-alert")?.textContent || ""'), '');
+  const solicitud = await take('POST', '/api/facturas');
+  const datos = JSON.parse(solicitud.body);
+  assert.equal(datos.clienteId, 'a');
+  assert.equal(datos.proyectoId, null);
+  solicitud.reply(201, { id: 'factura-creada', ...datos });
+  await waitDOM('!document.querySelector(".modal-dialog-factura")');
+});
+
+test('DOM: habilitar finanzas y compartir factura permite verla en el portal del cliente', { timeout: 15000 }, async () => {
+  await go('/finanzas');
+  try { await waitDOM(visible('.finance-portal-settings button')); }
+  catch (error) {
+    const estado = await evaluate(`(() => { const el=document.querySelector('.finance-portal-settings'); return { ruta: location.pathname, titulo: document.querySelector('.header-main-title')?.textContent, presente: !!el, texto: el?.textContent, botones: el?.querySelectorAll('button').length }; })()`);
+    assert.fail(JSON.stringify({ estado, solicitudes: traffic.filter((r) => r.pathname === '/api/organizacion').length }));
+  }
+  assert.equal(await evaluate('document.querySelector(".finance-portal-settings").textContent.includes("desactivada")'), true);
+  await click('.finance-portal-settings button');
+  const activar = await take('PATCH', '/api/organizacion');
+  assert.deepEqual(JSON.parse(activar.body), { portalMostrarFinanzas: true });
+  portalFinanzasHabilitadas = true;
+  await finish(activar, 200, { portalMostrarFinanzas: true });
+  await waitDOM('document.querySelector(".finance-portal-settings").textContent.includes("solo las facturas compartidas")');
+  await click('.factura-row .btn-portal-visibilidad');
+  const compartir = await take('PATCH', '/api/facturas/f-ficticia');
+  assert.deepEqual(JSON.parse(compartir.body), { visibleEnPortal: true });
+  facturaCompartida = true;
+  await finish(compartir, 200, { ...facturaVisual, visibleEnPortal: true });
+  await waitDOM('document.querySelector(".factura-row .td-estado").textContent.includes("Compartida en portal")');
+  await go('/portal');
+  await waitDOM('document.querySelector(".invoices-list li")?.textContent.includes("INV-FICTICIA")');
 });

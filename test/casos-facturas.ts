@@ -89,8 +89,8 @@ async function ejecutar() {
     const proyectoAlfa = (await resProyectoAlfa.json()) as { id: string };
 
     // 3. Crear facturas en Organización Alfa
-    // INV-2026-001 (PAGADA - Anticipo 50%)
-    const resFac1 = await fetch(`${urlApi}/api/facturas`, {
+    // Verificar que crear directamente como PAGADA se rechaza con 422 (contrato issue-12)
+    const resFacPagadaDirecta = await fetch(`${urlApi}/api/facturas`, {
       method: "POST",
       headers: authHeaders(alfa.token),
       body: JSON.stringify({
@@ -105,10 +105,39 @@ async function ejecutar() {
         fechaVencimiento: "2026-03-30"
       })
     });
+    assert.equal(resFacPagadaDirecta.status, 422);
+
+    // INV-2026-001 (ENVIADA y luego PAGADA mediante pago real - Anticipo 50%)
+    const resFac1 = await fetch(`${urlApi}/api/facturas`, {
+      method: "POST",
+      headers: authHeaders(alfa.token),
+      body: JSON.stringify({
+        clienteId: clienteAlfa.id,
+        proyectoId: proyectoAlfa.id,
+        numero: "INV-2026-001",
+        concepto: "Anticipo 50% · Branding y web",
+        monto: 2250.0,
+        moneda: "PAB",
+        estado: "ENVIADA",
+        fechaEmision: "2026-03-15",
+        fechaVencimiento: "2026-03-30"
+      })
+    });
     assert.equal(resFac1.status, 201);
-    const fac1 = (await resFac1.json()) as { id: string; estado: string; pagadaEn: string; monto: any };
+    const fac1Creada = (await resFac1.json()) as { id: string; estado: string };
+    const resPagoFac1 = await fetch(`${urlApi}/api/facturas/${fac1Creada.id}/pagos`, {
+      method: "POST",
+      headers: authHeaders(alfa.token),
+      body: JSON.stringify({ monto: 2250.0, metodo: "ACH", referencia: "ANT-001" })
+    });
+    assert.equal(resPagoFac1.status, 201);
+    const resFac1Pagada = await fetch(`${urlApi}/api/facturas/${fac1Creada.id}`, {
+      headers: authHeaders(alfa.token)
+    });
+    assert.equal(resFac1Pagada.status, 200);
+    const fac1 = (await resFac1Pagada.json()) as { id: string; estado: string; pagadaEn: string; monto: any };
     assert.equal(fac1.estado, "PAGADA");
-    assert.ok(fac1.pagadaEn, "Debe tener fecha de pago al crearse pagada");
+    assert.ok(fac1.pagadaEn, "Debe tener fecha de pago al completarse los pagos");
 
     // INV-2026-002 (ENVIADA - Saldo final)
     const resFac2 = await fetch(`${urlApi}/api/facturas`, {
@@ -131,12 +160,17 @@ async function ejecutar() {
     assert.equal(fac2.estado, "ENVIADA");
     assert.equal(fac2.pagadaEn, null);
 
-    // 4. Registrar pago en fac2 ("Registrar pago contable")
+    // 4. Registrar pago en fac2 mediante /pagos y actualizar notas
+    const resPagoRealFac2 = await fetch(`${urlApi}/api/facturas/${fac2.id}/pagos`, {
+      method: "POST",
+      headers: authHeaders(alfa.token),
+      body: JSON.stringify({ monto: 2250.0, metodo: "ACH", referencia: "ACH-10293" })
+    });
+    assert.equal(resPagoRealFac2.status, 201);
     const resPagoFac2 = await fetch(`${urlApi}/api/facturas/${fac2.id}`, {
       method: "PATCH",
       headers: authHeaders(alfa.token),
       body: JSON.stringify({
-        estado: "PAGADA",
         pagadaEn: "2026-04-10T14:30:00.000Z",
         notas: "[Pago contable: Ref. ACH-10293] Verificado en cuenta"
       })

@@ -760,13 +760,21 @@
 }
 
 .btn-editorial-download {
+  font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   color: #1f2937;
+  background: transparent;
   padding: 5px 10px;
   border: 1px solid #d6d3cb;
   border-radius: 6px;
   text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-editorial-download:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .btn-editorial-download:hover {

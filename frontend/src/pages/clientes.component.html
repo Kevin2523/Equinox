@@ -555,11 +555,11 @@
      MODAL: CREAR / EDITAR CLIENTE
      ========================================================================== -->
 <div class="modal-backdrop" *ngIf="modalFormulario" (click)="modalFormulario = false">
-  <section class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+  <section class="modal-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="cliente-modal-title">
     <div class="modal-header">
       <div>
         <span class="modal-eyebrow">{{ editandoId ? 'EDITAR CLIENTE' : (esFotografia ? 'NUEVO CLIENTE · FOTOGRAFÍA' : 'NUEVO CLIENTE') }}</span>
-        <h2 class="modal-title">{{ editandoId ? 'Actualizar cliente' : (esFotografia ? 'Nuevo cliente' : 'Registrar cliente') }}</h2>
+        <h2 id="cliente-modal-title" class="modal-title">{{ editandoId ? 'Actualizar cliente' : (esFotografia ? 'Nuevo cliente' : 'Registrar cliente') }}</h2>
       </div>
       <button class="modal-close" type="button" (click)="modalFormulario = false" aria-label="Cerrar modal">×</button>
     </div>
@@ -594,7 +594,7 @@
       <div class="form-row" *ngIf="!esFotografia || editandoId">
         <div class="form-group flex-1">
           <label for="cliente-web">Sitio web</label>
-          <input id="cliente-web" class="form-input" type="url" name="sitioWeb" [(ngModel)]="formulario.sitioWeb" placeholder="https://ejemplo.com" />
+          <input id="cliente-web" class="form-input" type="text" name="sitioWeb" [(ngModel)]="formulario.sitioWeb" placeholder="https://ejemplo.com" />
         </div>
         <div class="form-group flex-1">
           <label for="cliente-estado">Estado del cliente</label>
@@ -643,7 +643,7 @@
      MODAL: VER FICHA (DETALLES COMPLETOS)
      ========================================================================== -->
 <div class="modal-backdrop" *ngIf="modalDetalle" (click)="cerrarDetalle()">
-  <section class="modal-card modal-detail-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+  <section class="modal-card modal-detail-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
     <div class="modal-header">
       <div>
         <span class="modal-eyebrow">FICHA DE CLIENTE</span>
@@ -736,7 +736,7 @@
      MODAL: GESTIÓN DE INVITACIONES AL PORTAL
      ========================================================================== -->
 <div class="modal-backdrop" *ngIf="clienteInvitaciones as cl" (click)="cerrarInvitaciones()">
-  <section class="modal-card modal-invitation-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+  <section class="modal-card modal-invitation-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
     <div class="modal-header">
       <div>
         <span class="modal-eyebrow">PORTAL DEL CLIENTE</span>

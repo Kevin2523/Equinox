@@ -41,6 +41,7 @@ function load(relativePath) {
 }
 
 const { AuthService } = load('auth/auth.service.ts');
+const { OrganizacionService } = load('auth/organizacion.service.ts');
 const { guardOrganizacion, guardCliente } = load('auth/auth.guards.ts');
 const { authInterceptor } = load('auth/auth.interceptor.ts');
 const { LoginComponent } = load('pages/login.component.ts');
@@ -56,8 +57,10 @@ function fixture(getResponse) {
     get: (url) => { calls.push({ method: 'GET', url }); return getResponse(); },
     post: (url, body) => { calls.push({ method: 'POST', url, body }); return of({ token: 'revocable' }); }
   };
+  const orgService = { cargarOrganizacion: async () => {}, limpiar: () => {}, tipoFreelance: null };
+  services = new Map([[OrganizacionService, orgService], [Router, router]]);
   const auth = new AuthService(http, router);
-  services = new Map([[AuthService, auth], [Router, router]]);
+  services.set(AuthService, auth);
   return { auth, router, http, calls };
 }
 

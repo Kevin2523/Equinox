@@ -8,29 +8,24 @@ import { obtenerBaseApi } from '../auth/api.config';
 import { AuthService } from '../auth/auth.service';
 import { ClienteApi, ClientesProyectosApiService, EstadoProyectoApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import { ComentarioApi, HitoApi, PrioridadTareaApi, TareaApi, TrabajoApiService, progresoTareas } from '../services/trabajo-api.service';
+import { ArchivoApi, ArchivosApiService } from '../services/archivos-api.service';
+import { DialogFocusDirective } from '../shared/dialog-focus.directive';
 import { UiStateService } from '../state/ui-state.service';
-
-interface ArchivoDetalleApi {
-  id: string;
-  nombre: string;
-  nombreOriginal: string;
-  url: string;
-  tipoMime: string;
-  tamanoBytes: number;
-  tipo: 'ARCHIVO' | 'ENTREGABLE' | 'IMAGEN' | 'DOCUMENTO';
-  visibilidad: 'INTERNA' | 'CLIENTE';
-  descripcion?: string | null;
-  creadoEn: string;
-}
 
 @Component({
   selector: 'app-proyectos',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DialogFocusDirective],
   templateUrl: './proyectos.component.html',
   styleUrl: './proyectos.component.css'
 })
 export class ProyectosComponent implements OnInit, OnDestroy {
+  @HostListener('document:keydown.escape')
+  cerrarModalConEscape(): void {
+    if (this.modalDetalle) this.cerrarDetalle();
+    else this.modalFormulario = false;
+  }
+  private archivoInput?: HTMLInputElement;
   clientes: ClienteApi[] = [];
   busqueda = '';
   filtroEstado: 'TODOS' | EstadoProyectoApi = 'TODOS';
@@ -44,12 +39,25 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
   modalFormulario = false;
   modalDetalle = false;
+  pestanaDetalle: 'resumen' | 'tareas' | 'hitos' | 'archivos' | 'bitacora' = 'resumen';
+
+  moverPestana(event: KeyboardEvent): void {
+    const orden: Array<typeof this.pestanaDetalle> = ['resumen', 'tareas', 'hitos', 'archivos', 'bitacora'];
+    const actual = orden.indexOf(this.pestanaDetalle);
+    const siguiente = event.key === 'ArrowRight' ? (actual + 1) % orden.length
+      : event.key === 'ArrowLeft' ? (actual + orden.length - 1) % orden.length
+      : event.key === 'Home' ? 0 : event.key === 'End' ? orden.length - 1 : -1;
+    if (siguiente < 0) return;
+    event.preventDefault();
+    this.pestanaDetalle = orden[siguiente];
+    (event.currentTarget as HTMLElement).parentElement?.querySelectorAll<HTMLElement>('[role="tab"]')[siguiente]?.focus();
+  }
+  mostrarFormularioHito = false;
   detalleCargando = false;
   detalleError = '';
   editandoId: string | null = null;
   proyectoDetalle: ProyectoApi | null = null;
   detalleId: string | null = null;
-  pestanaDetalle: 'resumen' | 'tareas' | 'hitos' | 'archivos' | 'bitacora' = 'resumen';
 
   menuAbiertoId: string | null = null;
   confirmandoEliminarId: string | null = null;
@@ -57,7 +65,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
   // Cache de tareas por proyecto para calcular progreso real
   tareasPorProyecto = new Map<string, TareaApi[]>();
-  archivosPorProyecto = new Map<string, ArchivoDetalleApi[]>();
+  archivosPorProyecto = new Map<string, (ArchivoApi & { url?: string })[]>();
 
   // Tareas del proyecto en detalle
   tareasDetalle: TareaApi[] = [];
@@ -75,11 +83,15 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   errorHitos = '';
 
   // Archivos del proyecto en detalle
-  archivosDetalle: ArchivoDetalleApi[] = [];
-  nuevoArchivo = { nombre: '', url: '', tipoMime: 'image/jpeg', tamanoBytes: 1024, tipo: 'IMAGEN' as ArchivoDetalleApi['tipo'], visibilidad: 'INTERNA' as ArchivoDetalleApi['visibilidad'] };
-  mostrarFormularioArchivo = false;
-  guardandoArchivo = false;
+  archivosDetalle: (ArchivoApi & { url?: string })[] = [];
+  archivoElegido: File | null = null;
+  visibilidadArchivo: ArchivoApi['visibilidad'] = 'INTERNA';
+  progresoArchivo = 0;
+  subiendoArchivo = false;
   errorArchivos = '';
+  descargandoArchivoId: string | null = null;
+  eliminandoArchivoId: string | null = null;
+  confirmarEliminarArchivoId: string | null = null;
 
   // Comentarios / Bitácora del proyecto en detalle
   comentariosDetalle: ComentarioApi[] = [];
@@ -90,6 +102,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   private solicitudDetalle = 0;
   private operacionHito = 0;
   private operacionComentario = 0;
+  private operacionArchivo = 0;
 
   formulario = this.formularioVacio();
 
@@ -99,9 +112,9 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     private trabajo: TrabajoApiService,
     private http: HttpClient,
     public auth: AuthService,
-    public uiState: UiStateService
+    public uiState: UiStateService,
+    private archivosApi?: ArchivosApiService
   ) {}
-
   ngOnInit(): void {
     void this.inicializar();
   }
@@ -314,7 +327,6 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   nuevo(): void {
     this.editandoId = null;
     this.formulario = this.formularioVacio();
-    this.formulario.clienteId = this.clientes[0]?.id || '';
     this.enviado = false;
     this.errorGuardar = '';
     this.modalFormulario = true;
@@ -338,11 +350,12 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     this.archivosDetalle = [];
     this.comentariosDetalle = [];
     try {
-      const [proyecto, tareas, hitos, comentarios] = await Promise.all([
+      const [proyecto, tareas, hitos, comentarios, archivos] = await Promise.all([
         this.api.consultarProyecto(id),
         this.trabajo.listarTareas(id),
         this.trabajo.listarHitos(id),
-        this.trabajo.listarComentarios(id)
+        this.trabajo.listarComentarios(id),
+        this.archivosApi?.listar(id) ?? Promise.resolve([])
       ]);
       if (solicitud !== this.solicitudDetalle || !this.modalDetalle) return;
       this.proyectoDetalle = proyecto;
@@ -350,13 +363,11 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.tareasPorProyecto.set(id, tareas);
       this.hitosDetalle = hitos;
       this.comentariosDetalle = comentarios;
-      if ((proyecto as any).archivos) {
-        this.archivosDetalle = (proyecto as any).archivos;
-        this.archivosPorProyecto.set(id, this.archivosDetalle);
-      }
+      this.archivosDetalle = archivos.length ? archivos : ((proyecto as any).archivos || []);
+      this.archivosPorProyecto.set(id, this.archivosDetalle);
     } catch {
       if (solicitud === this.solicitudDetalle && this.modalDetalle) {
-        this.detalleError = 'No se pudieron consultar todos los detalles del proyecto. Reintenta.';
+        this.detalleError = 'No se pudieron consultar tareas, hitos, archivos o comentarios. Reintenta.';
       }
     } finally {
       if (solicitud === this.solicitudDetalle) this.detalleCargando = false;
@@ -387,6 +398,15 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     this.errorTareas = '';
     this.errorArchivos = '';
     this.errorComentario = '';
+    ++this.operacionArchivo;
+    this.archivosDetalle = [];
+    this.archivoElegido = null;
+    this.archivoInput = undefined;
+    this.progresoArchivo = 0;
+    this.subiendoArchivo = false;
+    this.descargandoArchivoId = null;
+    this.eliminandoArchivoId = null;
+    this.confirmarEliminarArchivoId = null;
   }
 
   // === GESTIÓN DE ACCIONES Y MENÚ ===
@@ -484,6 +504,78 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     }
   }
 
+  // === GESTIÓN DE ARCHIVOS ===
+  elegirArchivo(evento: Event): void {
+    this.archivoInput = evento.target as HTMLInputElement;
+    this.archivoElegido = this.archivoInput.files?.[0] ?? null;
+    this.errorArchivos = '';
+    this.progresoArchivo = 0;
+  }
+
+  async subirArchivo(): Promise<void> {
+    const id = this.proyectoDetalle?.id;
+    if (!id || !this.archivoElegido || this.subiendoArchivo || !this.archivosApi) return;
+    if (this.archivoElegido.size > 8 * 1024 * 1024) {
+      this.errorArchivos = 'El archivo supera el máximo de 8 MB.';
+      return;
+    }
+    const generacion = ++this.operacionArchivo;
+    this.subiendoArchivo = true;
+    this.errorArchivos = '';
+    this.progresoArchivo = 0;
+    try {
+      const nuevo = await this.archivosApi.subir(id, this.archivoElegido, this.visibilidadArchivo, (valor) => {
+        if (generacion === this.operacionArchivo) this.progresoArchivo = valor;
+      });
+      if (generacion === this.operacionArchivo && this.proyectoDetalle?.id === id && this.modalDetalle) {
+        this.archivosDetalle = [nuevo, ...this.archivosDetalle];
+        this.archivosPorProyecto.set(id, this.archivosDetalle);
+        this.archivoElegido = null;
+        this.progresoArchivo = 100;
+        if (this.archivoInput) this.archivoInput.value = '';
+      }
+    } catch {
+      if (generacion === this.operacionArchivo) {
+        this.errorArchivos = 'No se pudo subir el archivo. Comprueba formato, tamaño y conexión; puedes reintentar.';
+      }
+    } finally {
+      if (generacion === this.operacionArchivo) this.subiendoArchivo = false;
+    }
+  }
+
+  async descargarArchivo(archivo: ArchivoApi): Promise<void> {
+    const id = this.proyectoDetalle?.id;
+    if (!id || !this.archivosApi || this.descargandoArchivoId) return;
+    this.descargandoArchivoId = archivo.id;
+    this.errorArchivos = '';
+    try {
+      await this.archivosApi.guardarDescarga(id, archivo);
+    } catch {
+      if (this.proyectoDetalle?.id === id) this.errorArchivos = 'No se pudo descargar el archivo. Reintenta.';
+    } finally {
+      this.descargandoArchivoId = null;
+    }
+  }
+
+  async eliminarArchivo(archivo: ArchivoApi): Promise<void> {
+    const id = this.proyectoDetalle?.id;
+    if (!id || !this.archivosApi || this.eliminandoArchivoId || this.confirmarEliminarArchivoId !== archivo.id) return;
+    this.eliminandoArchivoId = archivo.id;
+    this.errorArchivos = '';
+    try {
+      await this.archivosApi.eliminar(id, archivo.id);
+      if (this.proyectoDetalle?.id === id) {
+        this.archivosDetalle = this.archivosDetalle.filter((item) => item.id !== archivo.id);
+        this.archivosPorProyecto.set(id, this.archivosDetalle);
+      }
+    } catch {
+      if (this.proyectoDetalle?.id === id) this.errorArchivos = 'No se pudo eliminar el archivo. Reintenta.';
+    } finally {
+      this.eliminandoArchivoId = null;
+      this.confirmarEliminarArchivoId = null;
+    }
+  }
+
   // === GESTIÓN DE HITOS ===
   async crearHito(): Promise<void> {
     const id = this.proyectoDetalle?.id;
@@ -569,51 +661,6 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       if (generacion === this.operacionHito) this.errorHitos = 'No se pudo eliminar el hito. Reintenta.';
     } finally {
       if (generacion === this.operacionHito) this.guardandoHito = false;
-    }
-  }
-
-  // === GESTIÓN DE ARCHIVOS ===
-  async agregarArchivo(): Promise<void> {
-    const id = this.proyectoDetalle?.id;
-    if (!id || this.guardandoArchivo) return;
-    if (!this.nuevoArchivo.nombre.trim() || !this.nuevoArchivo.url.trim()) {
-      this.errorArchivos = 'El nombre y la URL del archivo son obligatorios.';
-      return;
-    }
-    this.guardandoArchivo = true;
-    this.errorArchivos = '';
-    try {
-      const archivo = await firstValueFrom(
-        this.http.post<ArchivoDetalleApi>(`${obtenerBaseApi()}/proyectos/${encodeURIComponent(id)}/archivos`, {
-          nombre: this.nuevoArchivo.nombre.trim(),
-          nombreOriginal: this.nuevoArchivo.nombre.trim(),
-          url: this.nuevoArchivo.url.trim(),
-          tipoMime: this.nuevoArchivo.tipoMime,
-          tamanoBytes: this.nuevoArchivo.tamanoBytes || 1024,
-          tipo: this.nuevoArchivo.tipo,
-          visibilidad: this.nuevoArchivo.visibilidad
-        })
-      );
-      this.archivosDetalle = [archivo, ...this.archivosDetalle];
-      this.archivosPorProyecto.set(id, this.archivosDetalle);
-      this.nuevoArchivo = { nombre: '', url: '', tipoMime: 'image/jpeg', tamanoBytes: 1024, tipo: 'IMAGEN', visibilidad: 'INTERNA' };
-      this.mostrarFormularioArchivo = false;
-    } catch {
-      this.errorArchivos = 'No se pudo registrar el archivo. Comprueba la URL e inténtalo de nuevo.';
-    } finally {
-      this.guardandoArchivo = false;
-    }
-  }
-
-  async eliminarArchivo(archivoId: string): Promise<void> {
-    const id = this.proyectoDetalle?.id;
-    if (!id) return;
-    try {
-      await firstValueFrom(this.http.delete(`${obtenerBaseApi()}/proyectos/${encodeURIComponent(id)}/archivos/${encodeURIComponent(archivoId)}`));
-      this.archivosDetalle = this.archivosDetalle.filter((a) => a.id !== archivoId);
-      this.archivosPorProyecto.set(id, this.archivosDetalle);
-    } catch {
-      this.errorArchivos = 'No se pudo eliminar el archivo.';
     }
   }
 

@@ -45,7 +45,14 @@
 
       <!-- Milestones Timeline (Hitos del proyecto) -->
       <div class="milestones-block">
-        <div class="milestones-list" *ngIf="hitos.length > 0">
+        <div class="empty-block-hint" role="status" *ngIf="cargandoDetalles">
+          <p>Cargando hitos...</p>
+        </div>
+        <div class="empty-block-hint milestones-error" role="alert" *ngIf="!cargandoDetalles && errorHitos">
+          <p>{{ errorHitos }}</p>
+          <button type="button" class="btn-retry-inline" (click)="reintentarDetalles()">Reintentar</button>
+        </div>
+        <div class="milestones-list" *ngIf="!cargandoDetalles && !errorHitos && hitos.length > 0">
           <div class="milestone-item" *ngFor="let h of hitos; let last = last">
             <!-- Step Number -->
             <span class="step-num">{{ h.numStr }}</span>
@@ -73,7 +80,7 @@
             </div>
           </div>
         </div>
-        <div class="empty-block-hint" *ngIf="!cargandoDetalles && hitos.length === 0">
+        <div class="empty-block-hint" *ngIf="!cargandoDetalles && !errorHitos && hitos.length === 0">
           <p>Sin hitos registrados para este proyecto.</p>
         </div>
       </div>

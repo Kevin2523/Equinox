@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
@@ -9,11 +9,12 @@ import { InvitacionesApiService } from '../services/invitaciones-api.service';
 import { UiStateService } from '../state/ui-state.service';
 import { SesionesFotograficasComponent } from './sesiones-fotograficas.component';
 import { FotografiaApiService, TipoFreelance } from '../services/fotografia-api.service';
+import { DialogFocusDirective } from '../shared/dialog-focus.directive';
 
 @Component({
   selector: 'app-clientes',
   standalone: true,
-  imports: [CommonModule, FormsModule, SesionesFotograficasComponent],
+  imports: [CommonModule, FormsModule, SesionesFotograficasComponent, DialogFocusDirective],
   templateUrl: './clientes.component.html',
   styleUrl: './clientes.component.css'
 })
@@ -27,6 +28,12 @@ export class ClientesComponent implements OnInit, OnDestroy {
     return this.tipoFreelance === 'FOTOGRAFIA';
   }
 
+  @HostListener('document:keydown.escape')
+  cerrarModalConEscape(): void {
+    if (this.clienteInvitaciones) this.cerrarInvitaciones();
+    else if (this.modalDetalle) this.cerrarDetalle();
+    else this.modalFormulario = false;
+  }
   clientes: ClienteApi[] = [];
   clienteSeleccionado: ClienteApi | null = null;
   clienteSeleccionadoDetalle: ClienteApi | null = null;
@@ -622,16 +629,28 @@ export class ClientesComponent implements OnInit, OnDestroy {
   async guardar(form: NgForm, crearSesion = false): Promise<void> {
     this.enviado = true;
     if (form.invalid || this.guardando) return;
+    const esAltaFotografia = this.esFotografia && !this.editandoId;
+    const sitioIngresado = esAltaFotografia ? '' : this.formulario.sitioWeb.trim();
+    let sitioWeb: string | null = null;
+    if (sitioIngresado) {
+      try {
+        const url = new URL(/^https?:\/\//i.test(sitioIngresado) ? sitioIngresado : `https://${sitioIngresado}`);
+        if (!['http:', 'https:'].includes(url.protocol) || !url.hostname.includes('.')) throw new Error('Sitio inválido');
+        sitioWeb = url.toString();
+      } catch {
+        this.errorGuardar = 'Escribe un sitio web válido (por ejemplo, www.ejemplo.com) o deja el campo vacío.';
+        return;
+      }
+    }
     this.guardando = true;
     this.errorGuardar = '';
-    const esAltaFotografia = this.esFotografia && !this.editandoId;
     const datos = {
       nombre: this.formulario.nombre.trim(),
       empresa: esAltaFotografia ? null : (this.formulario.empresa.trim() || null),
       correo: this.formulario.correo.trim() || null,
       telefono: this.formulario.telefono.trim() || null,
       direccion: esAltaFotografia ? null : (this.formulario.direccion.trim() || null),
-      sitioWeb: esAltaFotografia ? null : (this.formulario.sitioWeb.trim() || null),
+      sitioWeb: esAltaFotografia ? null : sitioWeb,
       notasInternas: esAltaFotografia ? null : (this.formulario.notasInternas.trim() || null),
       estado: esAltaFotografia ? 'ACTIVO' : this.formulario.estado
     };
