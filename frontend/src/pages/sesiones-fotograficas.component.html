@@ -1,0 +1,600 @@
+<div class="sesiones-container">
+  <!-- =========================================================================
+       VISTA 1: LISTA DE SESIONES DEL CLIENTE
+       ========================================================================= -->
+  <ng-container *ngIf="!sesionSeleccionada">
+    <!-- Header de la sección de sesiones -->
+    <header class="section-header">
+      <div class="header-titles">
+        <h3 class="section-title">Sesiones fotográficas</h3>
+        <p class="section-subtitle">
+          Administra las entregas, galerías y fotografías asociadas a este cliente.
+        </p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-primary-action" type="button" (click)="abrirCrearSesion()">
+          <span class="action-icon">+</span>
+          <span>Nueva sesión</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Estado: Cargando sesiones -->
+    <div class="state-panel" *ngIf="cargandoSesiones">
+      <div class="loading-spinner"></div>
+      <p>Cargando sesiones fotográficas...</p>
+    </div>
+
+    <!-- Estado: Error al cargar sesiones -->
+    <div class="state-panel state-error" *ngIf="!cargandoSesiones && errorSesiones" role="alert">
+      <p>{{ errorSesiones }}</p>
+      <button class="btn-retry" type="button" (click)="cargarSesiones()">Reintentar</button>
+    </div>
+
+    <!-- Estado: Cliente sin sesiones registradas -->
+    <div class="state-panel state-empty" *ngIf="!cargandoSesiones && !errorSesiones && sesiones.length === 0">
+      <div class="empty-icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </div>
+      <h4 class="empty-title">Sin sesiones fotográficas</h4>
+      <p class="empty-desc">
+        Este cliente todavía no tiene sesiones registradas. Crea una sesión fotográfica para cargar y entregar fotografías en alta calidad.
+      </p>
+      <button class="btn-primary-action" type="button" (click)="abrirCrearSesion()">
+        <span class="action-icon">+</span>
+        <span>Crear primera sesión</span>
+      </button>
+    </div>
+
+    <!-- Grid de sesiones del cliente -->
+    <div class="sesiones-grid" *ngIf="!cargandoSesiones && !errorSesiones && sesiones.length > 0">
+      <article
+        class="sesion-card"
+        *ngFor="let s of sesiones"
+        (click)="abrirSesion(s)"
+        tabindex="0"
+        (keydown.enter)="abrirSesion(s)"
+        role="button"
+        [attr.aria-label]="'Abrir sesión ' + s.nombre"
+      >
+        <div class="sesion-card-header">
+          <div class="sesion-title-group">
+            <h4 class="sesion-nombre">{{ s.nombre }}</h4>
+            <span class="sesion-fecha">{{ formatearFecha(s.fecha) }}</span>
+          </div>
+          <span
+            class="badge-estado"
+            [class.badge-publicada]="s.estado === 'PUBLICADA'"
+            [class.badge-borrador]="s.estado === 'BORRADOR'"
+          >
+            ● {{ s.estado === 'PUBLICADA' ? 'Publicada' : 'Borrador' }}
+          </span>
+        </div>
+
+        <p class="sesion-descripcion" *ngIf="s.descripcion">
+          {{ s.descripcion }}
+        </p>
+
+        <div class="sesion-card-meta">
+          <div class="meta-item">
+            <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+              <circle cx="9" cy="9" r="2"/>
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            </svg>
+            <span>{{ s.cantidadFotos ?? (s._count?.fotos || 0) }} fotografías</span>
+          </div>
+        </div>
+
+        <div class="sesion-card-actions" (click)="$event.stopPropagation()">
+          <button class="btn-card-open" type="button" (click)="abrirSesion(s)">
+            <span>Abrir sesión</span>
+            <span class="arrow-symbol">→</span>
+          </button>
+
+          <div class="secondary-actions-group">
+            <button
+              class="btn-card-toggle"
+              type="button"
+              (click)="solicitarCambioPublicacion(s, $event)"
+              [title]="s.estado === 'PUBLICADA' ? 'Despublicar sesión' : 'Publicar sesión para el cliente'"
+            >
+              {{ s.estado === 'PUBLICADA' ? 'Despublicar' : 'Publicar' }}
+            </button>
+            <button
+              class="btn-card-icon"
+              type="button"
+              (click)="abrirEditarSesion(s, $event)"
+              title="Editar sesión"
+              aria-label="Editar sesión"
+            >
+              ✎
+            </button>
+            <button
+              class="btn-card-icon btn-card-danger"
+              type="button"
+              (click)="solicitarEliminarSesion(s, $event)"
+              title="Eliminar sesión"
+              aria-label="Eliminar sesión"
+            >
+              🗑
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </ng-container>
+
+  <!-- =========================================================================
+       VISTA 2: DETALLE DE SESIÓN Y GALERÍA DE FOTOGRAFÍAS
+       ========================================================================= -->
+  <ng-container *ngIf="sesionSeleccionada as s">
+    <!-- Barra superior de navegación y acciones de sesión -->
+    <div class="session-detail-header">
+      <button class="btn-back" type="button" (click)="volverAListaSesiones()">
+        <span class="back-arrow">←</span>
+        <span>Volver a sesiones de {{ cliente?.nombre }}</span>
+      </button>
+
+      <div class="session-hero">
+        <div class="hero-left">
+          <div class="hero-title-row">
+            <h2 class="session-headline">{{ s.nombre }}</h2>
+            <span
+              class="badge-estado"
+              [class.badge-publicada]="s.estado === 'PUBLICADA'"
+              [class.badge-borrador]="s.estado === 'BORRADOR'"
+            >
+              ● {{ s.estado === 'PUBLICADA' ? 'Publicada en portal' : 'Borrador privado' }}
+            </span>
+          </div>
+          <div class="hero-subline">
+            <span class="subline-date">{{ formatearFecha(s.fecha) }}</span>
+            <span class="subline-separator">·</span>
+            <span class="subline-count">{{ totalFotos }} {{ totalFotos === 1 ? 'fotografía' : 'fotografías' }}</span>
+            <span class="subline-separator" *ngIf="s.descripcion">·</span>
+            <span class="subline-desc" *ngIf="s.descripcion">{{ s.descripcion }}</span>
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <button
+            class="btn-primary-action"
+            type="button"
+            (click)="dispararSelectorArchivos()"
+            [disabled]="subiendoFotos"
+          >
+            <span class="action-icon">↑</span>
+            <span>Cargar fotos</span>
+          </button>
+
+          <button
+            class="btn-secondary-action"
+            type="button"
+            (click)="solicitarCambioPublicacion(s)"
+            [disabled]="subiendoFotos"
+          >
+            {{ s.estado === 'PUBLICADA' ? 'Despublicar sesión' : 'Publicar sesión' }}
+          </button>
+
+          <button
+            class="btn-secondary-action"
+            type="button"
+            (click)="abrirEditarSesion(s)"
+            [disabled]="subiendoFotos"
+          >
+            Editar datos
+          </button>
+
+          <button
+            class="btn-danger-action"
+            type="button"
+            (click)="solicitarEliminarSesion(s)"
+            [disabled]="subiendoFotos"
+            title="Eliminar sesión"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input invisible para selección múltiple de fotos -->
+    <input
+      #fileInput
+      type="file"
+      multiple
+      accept="image/*"
+      (change)="onArchivosSeleccionados($event)"
+      style="display: none"
+    />
+
+    <!-- Barra de progreso de subida por lote -->
+    <div class="upload-progress-card" *ngIf="subiendoFotos" role="status" aria-live="polite">
+      <div class="progress-info-row">
+        <div class="progress-label">
+          <div class="loading-spinner-small"></div>
+          <strong>Subiendo fotos por lote:</strong>
+          <span>Foto {{ progresoSubida.actual }} de {{ progresoSubida.total }} ({{ progresoSubida.porcentaje }}%)</span>
+        </div>
+        <span class="progress-filename">{{ progresoSubida.nombreArchivo }}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-bar-fill" [style.width.%]="progresoSubida.porcentaje"></div>
+      </div>
+    </div>
+
+    <!-- Notificación de error en subida -->
+    <div class="alert-banner alert-warning" *ngIf="errorSubida" role="alert">
+      <span>{{ errorSubida }}</span>
+      <button class="btn-alert-close" type="button" (click)="errorSubida = ''">✕</button>
+    </div>
+
+    <!-- Área de contenido de fotos con Drag & Drop -->
+    <section
+      class="photos-workspace"
+      (dragover)="onDragOver($event)"
+      (drop)="onDrop($event)"
+      aria-label="Galería de fotografías de la sesión"
+    >
+      <!-- Estado: Cargando fotos -->
+      <div class="state-panel" *ngIf="cargandoFotos">
+        <div class="loading-spinner"></div>
+        <p>Cargando fotografías de la sesión...</p>
+      </div>
+
+      <!-- Estado: Error al cargar fotos -->
+      <div class="state-panel state-error" *ngIf="!cargandoFotos && errorFotos" role="alert">
+        <p>{{ errorFotos }}</p>
+        <button class="btn-retry" type="button" (click)="cargarFotos(s.id)">Reintentar</button>
+      </div>
+
+      <!-- Estado: Sesión vacía -->
+      <div class="state-panel state-empty dropzone-empty" *ngIf="!cargandoFotos && !errorFotos && fotos.length === 0">
+        <div class="empty-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <h4 class="empty-title">Sesión vacía</h4>
+        <p class="empty-desc">
+          Arrastra fotografías aquí o haz clic en el botón para cargar cualquier cantidad de fotos por lote.
+        </p>
+        <button class="btn-primary-action" type="button" (click)="dispararSelectorArchivos()">
+          <span class="action-icon">↑</span>
+          <span>Seleccionar fotografías</span>
+        </button>
+      </div>
+
+      <!-- Cuadrícula de fotos cargadas -->
+      <div class="photos-grid" *ngIf="!cargandoFotos && !errorFotos && fotos.length > 0">
+        <article class="photo-card" *ngFor="let f of fotos; let i = index">
+          <!-- Contenedor de imagen / miniatura -->
+          <div class="photo-thumbnail-box" (click)="abrirFotoAmpliada(f)">
+            <img
+              *ngIf="urlsMiniaturas.get(f.id) as srcUrl"
+              [src]="srcUrl"
+              [alt]="f.nombreOriginal"
+              class="photo-img"
+              loading="lazy"
+            />
+            <div class="thumbnail-loading" *ngIf="!urlsMiniaturas.has(f.id)">
+              <div class="loading-spinner-small"></div>
+            </div>
+
+            <!-- Badge de Portada -->
+            <span class="cover-badge" *ngIf="esPortada(f)" title="Foto de portada de la sesión">
+              ★ Portada
+            </span>
+
+            <!-- Overlay de hover para ampliar -->
+            <div class="photo-hover-overlay">
+              <span class="zoom-icon">🔍</span>
+              <span>Ver en grande</span>
+            </div>
+          </div>
+
+          <!-- Pie de tarjeta con metadatos y acciones -->
+          <div class="photo-card-footer">
+            <div class="photo-details">
+              <span class="photo-filename" [title]="f.nombreOriginal">{{ f.nombreOriginal }}</span>
+              <span class="photo-size">{{ formatearTamano(f.tamanoBytes) }}</span>
+            </div>
+
+            <div class="photo-actions-toolbar">
+              <!-- Botón portada -->
+              <button
+                class="btn-photo-action"
+                type="button"
+                [class.active-cover]="esPortada(f)"
+                (click)="marcarComoPortada(f, $event)"
+                [title]="esPortada(f) ? 'Es la foto de portada' : 'Establecer como foto de portada'"
+              >
+                {{ esPortada(f) ? '★' : '☆ Portada' }}
+              </button>
+
+              <!-- Botones de orden -->
+              <div class="order-buttons-group">
+                <button
+                  class="btn-order-action"
+                  type="button"
+                  [disabled]="i === 0"
+                  (click)="cambiarOrdenFoto(f, -1, $event)"
+                  title="Mover antes"
+                  aria-label="Mover antes"
+                >
+                  ◀
+                </button>
+                <button
+                  class="btn-order-action"
+                  type="button"
+                  [disabled]="i === fotos.length - 1"
+                  (click)="cambiarOrdenFoto(f, 1, $event)"
+                  title="Mover después"
+                  aria-label="Mover después"
+                >
+                  ▶
+                </button>
+              </div>
+
+              <!-- Botón eliminar foto -->
+              <button
+                class="btn-photo-delete"
+                type="button"
+                (click)="solicitarEliminarFoto(f, $event)"
+                title="Eliminar fotografía"
+                aria-label="Eliminar fotografía"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Paginación de fotos si aplica -->
+      <div class="photos-pagination-footer" *ngIf="totalPaginasFotos > 1">
+        <span class="pagination-info">
+          Página {{ paginaFotos }} de {{ totalPaginasFotos }} ({{ totalFotos }} fotos en total)
+        </span>
+        <div class="pagination-buttons">
+          <button
+            class="btn-page-nav"
+            type="button"
+            [disabled]="paginaFotos === 1"
+            (click)="cambiarPaginaFotos(paginaFotos - 1)"
+          >
+            ← Anterior
+          </button>
+          <button
+            class="btn-page-nav"
+            type="button"
+            [disabled]="paginaFotos === totalPaginasFotos"
+            (click)="cambiarPaginaFotos(paginaFotos + 1)"
+          >
+            Siguiente →
+          </button>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+</div>
+
+<!-- =========================================================================
+     MODAL: CREAR / EDITAR SESIÓN
+     ========================================================================= -->
+<div class="modal-backdrop" *ngIf="modalSesion" (click)="cerrarModalSesion()">
+  <section class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <span class="modal-eyebrow">{{ editandoSesionId ? 'EDITAR SESIÓN' : 'NUEVA SESIÓN' }}</span>
+        <h3 class="modal-title">{{ editandoSesionId ? 'Actualizar sesión fotográfica' : 'Crear sesión fotográfica' }}</h3>
+      </div>
+      <button class="modal-close" type="button" (click)="cerrarModalSesion()" aria-label="Cerrar modal">×</button>
+    </div>
+
+    <form #formSesion="ngForm" (ngSubmit)="guardarSesion(formSesion)" class="modal-form">
+      <div class="form-group">
+        <label for="sesion-nombre">Nombre de la sesión *</label>
+        <input
+          id="sesion-nombre"
+          class="form-input"
+          name="nombre"
+          [(ngModel)]="formularioSesion.nombre"
+          required
+          minlength="2"
+          placeholder="Ej. Sesión en exteriores, Sesión retrato corporativo, etc."
+          autofocus
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="sesion-fecha">Fecha de realización (opcional)</label>
+        <input
+          id="sesion-fecha"
+          type="date"
+          class="form-input"
+          name="fecha"
+          [(ngModel)]="formularioSesion.fecha"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="sesion-descripcion">Descripción o notas (opcional)</label>
+        <textarea
+          id="sesion-descripcion"
+          class="form-input"
+          rows="3"
+          name="descripcion"
+          [(ngModel)]="formularioSesion.descripcion"
+          placeholder="Detalles sobre locación, estilismo o requerimientos de entrega..."
+        ></textarea>
+      </div>
+
+      <p class="form-server-error" *ngIf="errorGuardarSesion" role="alert">
+        {{ errorGuardarSesion }}
+      </p>
+
+      <div class="modal-actions-bar">
+        <button class="btn-modal-cancel" type="button" (click)="cerrarModalSesion()">Cancelar</button>
+        <button class="btn-modal-submit" type="submit" [disabled]="guardandoSesion || formSesion.invalid">
+          {{ guardandoSesion ? 'Guardando…' : (editandoSesionId ? 'Guardar cambios' : 'Crear sesión') }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- =========================================================================
+     MODAL: CONFIRMACIÓN DE PUBLICACIÓN / DESPUBLICACIÓN
+     ========================================================================= -->
+<div class="modal-backdrop" *ngIf="confirmacionPublicar.abierta" (click)="cerrarConfirmacionPublicar()">
+  <section class="modal-card modal-confirm-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <span class="modal-eyebrow">PORTAL DEL CLIENTE</span>
+        <h3 class="modal-title">
+          {{ confirmacionPublicar.nuevoEstado === 'PUBLICADA' ? '¿Publicar sesión fotográfica?' : '¿Despublicar sesión fotográfica?' }}
+        </h3>
+      </div>
+      <button class="modal-close" type="button" (click)="cerrarConfirmacionPublicar()" aria-label="Cerrar modal">×</button>
+    </div>
+
+    <div class="modal-body-text">
+      <p *ngIf="confirmacionPublicar.nuevoEstado === 'PUBLICADA'">
+        Al publicar <strong>{{ confirmacionPublicar.sesion?.nombre }}</strong>, tu cliente podrá visualizarla y descargar las fotografías directamente desde su portal de cliente.
+      </p>
+      <p *ngIf="confirmacionPublicar.nuevoEstado === 'BORRADOR'">
+        Al cambiar a borrador, <strong>{{ confirmacionPublicar.sesion?.nombre }}</strong> dejará de estar visible en el portal del cliente hasta que decidas publicarla nuevamente.
+      </p>
+    </div>
+
+    <div class="modal-actions-bar">
+      <button class="btn-modal-cancel" type="button" (click)="cerrarConfirmacionPublicar()">Cancelar</button>
+      <button
+        class="btn-modal-submit"
+        type="button"
+        [disabled]="confirmacionPublicar.procesando"
+        (click)="confirmarCambioPublicacion()"
+      >
+        {{ confirmacionPublicar.procesando ? 'Actualizando…' : (confirmacionPublicar.nuevoEstado === 'PUBLICADA' ? 'Publicar ahora' : 'Cambiar a borrador') }}
+      </button>
+    </div>
+  </section>
+</div>
+
+<!-- =========================================================================
+     MODAL: CONFIRMACIÓN DE ELIMINACIÓN DE SESIÓN
+     ========================================================================= -->
+<div class="modal-backdrop" *ngIf="confirmacionEliminarSesion.abierta" (click)="cerrarConfirmacionEliminarSesion()">
+  <section class="modal-card modal-confirm-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <span class="modal-eyebrow eyebrow-danger">ELIMINAR SESIÓN</span>
+        <h3 class="modal-title">¿Eliminar esta sesión permanentemente?</h3>
+      </div>
+      <button class="modal-close" type="button" (click)="cerrarConfirmacionEliminarSesion()" aria-label="Cerrar modal">×</button>
+    </div>
+
+    <div class="modal-body-text">
+      <p>
+        Estás a punto de eliminar la sesión <strong>{{ confirmacionEliminarSesion.sesion?.nombre }}</strong>. Esta acción eliminará permanentemente la sesión y todas sus fotografías asociadas.
+      </p>
+      <p class="form-server-error" *ngIf="confirmacionEliminarSesion.error" role="alert">
+        {{ confirmacionEliminarSesion.error }}
+      </p>
+    </div>
+
+    <div class="modal-actions-bar">
+      <button class="btn-modal-cancel" type="button" (click)="cerrarConfirmacionEliminarSesion()">Cancelar</button>
+      <button
+        class="btn-danger-submit"
+        type="button"
+        [disabled]="confirmacionEliminarSesion.procesando"
+        (click)="confirmarEliminarSesion()"
+      >
+        {{ confirmacionEliminarSesion.procesando ? 'Eliminando…' : 'Eliminar sesión' }}
+      </button>
+    </div>
+  </section>
+</div>
+
+<!-- =========================================================================
+     MODAL: CONFIRMACIÓN DE ELIMINACIÓN DE FOTO
+     ========================================================================= -->
+<div class="modal-backdrop" *ngIf="confirmacionEliminarFoto.abierta" (click)="cerrarConfirmacionEliminarFoto()">
+  <section class="modal-card modal-confirm-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <span class="modal-eyebrow eyebrow-danger">ELIMINAR FOTOGRAFÍA</span>
+        <h3 class="modal-title">¿Eliminar esta fotografía?</h3>
+      </div>
+      <button class="modal-close" type="button" (click)="cerrarConfirmacionEliminarFoto()" aria-label="Cerrar modal">×</button>
+    </div>
+
+    <div class="modal-body-text">
+      <p>
+        Se eliminará permanentemente la foto <strong>{{ confirmacionEliminarFoto.foto?.nombreOriginal }}</strong> de la sesión.
+      </p>
+      <p class="form-server-error" *ngIf="confirmacionEliminarFoto.error" role="alert">
+        {{ confirmacionEliminarFoto.error }}
+      </p>
+    </div>
+
+    <div class="modal-actions-bar">
+      <button class="btn-modal-cancel" type="button" (click)="cerrarConfirmacionEliminarFoto()">Cancelar</button>
+      <button
+        class="btn-danger-submit"
+        type="button"
+        [disabled]="confirmacionEliminarFoto.procesando"
+        (click)="confirmarEliminarFoto()"
+      >
+        {{ confirmacionEliminarFoto.procesando ? 'Eliminando…' : 'Eliminar foto' }}
+      </button>
+    </div>
+  </section>
+</div>
+
+<!-- =========================================================================
+     MODAL: VISOR DE FOTO EN TAMAÑO COMPLETO
+     ========================================================================= -->
+<div class="modal-backdrop lightbox-backdrop" *ngIf="fotoAmpliada as fa" (click)="cerrarFotoAmpliada()">
+  <div class="lightbox-content" (click)="$event.stopPropagation()">
+    <button class="lightbox-close-btn" type="button" (click)="cerrarFotoAmpliada()" aria-label="Cerrar visor">✕</button>
+
+    <div class="lightbox-img-wrapper">
+      <div class="lightbox-loading" *ngIf="cargandoFotoAmpliada">
+        <div class="loading-spinner"></div>
+      </div>
+      <img
+        *ngIf="urlFotoAmpliada"
+        [src]="urlFotoAmpliada"
+        [alt]="fa.nombreOriginal"
+        class="lightbox-img"
+      />
+    </div>
+
+    <div class="lightbox-footer">
+      <div class="lightbox-meta">
+        <span class="lightbox-title">{{ fa.nombreOriginal }}</span>
+        <span class="lightbox-sub">{{ formatearTamano(fa.tamanoBytes) }}</span>
+      </div>
+      <button
+        class="btn-card-toggle"
+        type="button"
+        (click)="marcarComoPortada(fa)"
+        *ngIf="!esPortada(fa)"
+      >
+        ☆ Establecer como portada
+      </button>
+      <span class="cover-badge" *ngIf="esPortada(fa)">
+        ★ Portada de la sesión
+      </span>
+    </div>
+  </div>
+</div>

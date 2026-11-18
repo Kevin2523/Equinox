@@ -1,0 +1,627 @@
+/* ==========================================================================
+   EQUINOX - REDISEÑO PANTALLA DE INICIO DE SESIÓN
+   Fiel a referencia: Composición de dos columnas, panel oscuro con anillos
+   metálicos 3D y panel derecho claro con formulario amplio y accesible.
+   ========================================================================== */
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-family: var(--font-body, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Contenedor principal de pantalla completa */
+.login-page {
+  display: flex;
+  min-height: 100vh;
+  background: #ffffff;
+  box-sizing: border-box;
+  padding: 16px;
+  position: relative;
+}
+
+/* ==========================================================================
+   PANEL IZQUIERDO: Hero azul marino oscuro con anillos 3D
+   ========================================================================== */
+.hero-panel {
+  flex: 0 0 48%;
+  max-width: 720px;
+  min-width: 440px;
+  background: linear-gradient(175deg, #091226 0%, #060b18 100%);
+  border-radius: 24px;
+  padding: 48px 48px 36px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  box-shadow: 0 20px 45px -10px rgba(5, 11, 24, 0.4);
+}
+
+.hero-header {
+  position: relative;
+  z-index: 3;
+}
+
+/* Marca en el hero */
+.hero-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.brand-mark {
+  width: 26px;
+  height: 26px;
+  position: relative;
+  display: inline-block;
+}
+
+.brand-mark::before,
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  top: 4px;
+}
+
+.brand-mark::before {
+  left: 0;
+  background: #2563eb;
+}
+
+.brand-mark::after {
+  left: 8px;
+  background: #f59e0b;
+  mix-blend-mode: screen;
+}
+
+.brand-text {
+  color: #ffffff;
+  font-family: var(--font-display, inherit);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+/* Títulos del hero */
+.hero-title {
+  color: #ffffff;
+  font-family: var(--font-display, inherit);
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 36px 0 16px;
+  letter-spacing: -0.03em;
+}
+
+.hero-subtitle {
+  color: #94a3b8;
+  font-size: 17px;
+  line-height: 1.5;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Ilustración central 3D: Anillos cruzados */
+.hero-graphic {
+  position: absolute;
+  left: -30px;
+  right: -30px;
+  bottom: 50px;
+  top: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.rings-svg {
+  width: 100%;
+  height: 100%;
+  max-width: 620px;
+  max-height: 520px;
+  overflow: visible;
+}
+
+/* Pie del hero */
+.hero-footer {
+  position: relative;
+  z-index: 3;
+}
+
+.hero-tag {
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   PANEL DERECHO: Formulario claro, amplio y accesible
+   ========================================================================== */
+.form-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 32px;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 440px;
+  margin: auto 0;
+}
+
+/* Símbolo de marca superior en columna derecha */
+.form-brand-icon {
+  margin-bottom: 24px;
+}
+
+.form-brand-icon .brand-mark {
+  transform: scale(1.15);
+  transform-origin: left center;
+}
+
+.form-brand-icon .brand-mark::after {
+  mix-blend-mode: multiply;
+}
+
+/* Encabezado del formulario */
+.form-header {
+  margin-bottom: 32px;
+}
+
+.form-title {
+  color: #0a1128;
+  font-family: var(--font-display, inherit);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 8px;
+  letter-spacing: -0.03em;
+}
+
+.form-subtitle {
+  color: #64748b;
+  font-size: 15.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Grupos y campos del formulario */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.form-input {
+  width: 100%;
+  height: 50px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 15px;
+  color: #0f172a;
+  background: #ffffff;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.form-input::placeholder {
+  color: #94a3b8;
+  font-size: 15px;
+}
+
+.form-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.form-input.input-error {
+  border-color: #dc2626;
+  background-color: #fffaf0;
+}
+
+/* Campo de contraseña con botón mostrar/ocultar */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.password-input-wrapper:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.password-input-wrapper.input-error {
+  border-color: #dc2626;
+  background-color: #fffaf0;
+}
+
+.password-input-wrapper .password-input {
+  border: none;
+  box-shadow: none;
+  height: 48px;
+  padding-right: 48px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.password-toggle-btn:hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+/* Fila de "¿Olvidaste tu contraseña?" */
+.forgot-password-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.forgot-link {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #1e3a8a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+
+.forgot-link:hover {
+  color: #2563eb;
+}
+
+.forgot-link:focus-visible {
+  outline: 2px solid #2563eb;
+  border-radius: 4px;
+}
+
+/* Mensajes de validación y alerta */
+.auth-validation {
+  display: block;
+  color: #dc2626;
+  font-size: 12.5px;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.auth-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 18px 0;
+}
+
+.auth-error-banner {
+  background-color: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin-bottom: 24px;
+}
+
+/* Botón principal "Entrar →" */
+.btn-submit {
+  width: 100%;
+  height: 52px;
+  background: #08132b;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  margin-top: 24px;
+  box-shadow: 0 4px 14px rgba(8, 19, 43, 0.2);
+  transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #111e3b;
+  box-shadow: 0 6px 20px rgba(8, 19, 43, 0.3);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.btn-submit:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.btn-submit:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.btn-arrow {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Enlace a creación de cuenta */
+.register-prompt {
+  text-align: center;
+  margin-top: 26px;
+  font-size: 14.5px;
+  color: #64748b;
+}
+
+.register-link {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 5px;
+}
+
+.register-link:hover {
+  text-decoration: underline;
+}
+
+.register-link:focus-visible {
+  outline: 2px solid #2563eb;
+  border-radius: 4px;
+}
+
+/* Selección de contexto múltiple */
+.context-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.context-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0a1128;
+  margin: 0;
+}
+
+.context-subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.context-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.context-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+}
+
+.context-option-card:hover {
+  border-color: #2563eb;
+  background-color: #f8faff;
+  transform: translateY(-1px);
+}
+
+.context-option-card:focus-visible {
+  outline: 2px solid #2563eb;
+}
+
+.context-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.context-desc {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.btn-back {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 0;
+  text-align: left;
+  align-self: flex-start;
+}
+
+.btn-back:hover {
+  text-decoration: underline;
+}
+
+/* Pie inferior de columna derecha */
+.form-footer-note {
+  position: absolute;
+  right: 32px;
+  bottom: 24px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (Tablets y Móviles)
+   En móvil conserva jerarquía y formulario, con panel visual condensado.
+   ========================================================================== */
+@media (max-width: 980px) {
+  .login-page {
+    flex-direction: column;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  .hero-panel {
+    flex: none;
+    max-width: 100%;
+    min-width: 0;
+    border-radius: 0 0 28px 28px;
+    padding: 36px 28px 30px;
+    box-shadow: 0 10px 30px rgba(5, 11, 24, 0.3);
+  }
+
+  .hero-title {
+    font-size: 32px;
+    margin: 22px 0 12px;
+  }
+
+  .hero-subtitle {
+    font-size: 15px;
+  }
+
+  .hero-graphic {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    height: 180px;
+    margin: 16px auto -10px;
+  }
+
+  .rings-svg {
+    max-height: 200px;
+  }
+
+  .hero-footer {
+    display: none;
+  }
+
+  .form-panel {
+    padding: 36px 24px 60px;
+  }
+
+  .form-brand-icon {
+    display: none; /* Ya se ve la marca en el hero condensado superior */
+  }
+
+  .form-container {
+    max-width: 440px;
+  }
+
+  .form-title {
+    font-size: 28px;
+  }
+
+  .form-footer-note {
+    position: static;
+    text-align: center;
+    margin-top: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-panel {
+    padding: 28px 20px 24px;
+    border-radius: 0 0 22px 22px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+    margin: 18px 0 10px;
+  }
+
+  .hero-subtitle {
+    font-size: 14.5px;
+  }
+
+  .hero-graphic {
+    height: 140px;
+  }
+
+  .form-panel {
+    padding: 28px 16px 48px;
+  }
+
+  .form-title {
+    font-size: 26px;
+  }
+
+  .form-input,
+  .password-input-wrapper {
+    height: 48px;
+  }
+
+  .btn-submit {
+    height: 50px;
+    font-size: 15.5px;
+  }
+}

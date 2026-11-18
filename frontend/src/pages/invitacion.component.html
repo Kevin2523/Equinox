@@ -1,30 +1,347 @@
-<main class="auth-layout invitation-page">
-  <section class="auth-card invitation-card" aria-labelledby="invitation-heading">
-    <div class="auth-brand"><span class="brand-mark"><i></i></span><strong>equinox</strong></div>
-    <p class="eyebrow">ACCESO AL PORTAL</p><h1 id="invitation-heading">Invitación de cliente</h1>
-    <p class="auth-intro" *ngIf="cargando" role="status">Consultando invitación…</p>
-    <div class="auth-error" role="alert" *ngIf="error && !invitacion">{{ error }} <button *ngIf="puedeReintentarConsulta" class="auth-text-link" type="button" (click)="cargar()" [disabled]="cargando">Reintentar</button></div>
-    <ng-container *ngIf="invitacion as invite">
-      <div class="invitation-brand" *ngIf="invite.organizacion.logoUrl"><img [src]="invite.organizacion.logoUrl" [alt]="'Marca de ' + invite.organizacion.nombre"></div>
-      <p class="auth-intro"><strong>{{ invite.organizacion.nombre }}</strong> te invita a colaborar con <strong>{{ invite.cliente.nombre }}</strong><span *ngIf="invite.cliente.empresa"> ({{ invite.cliente.empresa }})</span>.</p>
-      <dl class="invitation-summary"><div><dt>Correo de la invitación</dt><dd>{{ invite.correoEnmascarado }}</dd></div><div><dt>Acceso</dt><dd>{{ invite.rol === 'TITULAR' ? 'Titular' : 'Colaborador' }}</dd></div></dl>
-      <div *ngIf="aceptada" class="invitation-success" role="status"><h2>Invitación aceptada</h2><p>{{ mensajeExito }} Inicia sesión para entrar al portal; la invitación no inicia una sesión automáticamente.</p><a class="btn-primary auth-submit" routerLink="/inicio-sesion">Ir a iniciar sesión</a></div>
-      <form *ngIf="!aceptada" #form="ngForm" (ngSubmit)="aceptar(form)">
-        <ng-container *ngIf="!invite.esUsuarioExistente">
-          <p>Completa tus datos para crear tu cuenta.</p>
-          <div class="form-group"><label for="invite-nombre">Nombre *</label><input id="invite-nombre" class="form-control" name="nombre" [(ngModel)]="datos.nombre" required minlength="2" autocomplete="given-name"></div>
-          <div class="form-group"><label for="invite-apellido">Apellido (opcional)</label><input id="invite-apellido" class="form-control" name="apellido" [(ngModel)]="datos.apellido" autocomplete="family-name"></div>
-          <div class="form-group"><label for="invite-password">Contraseña (al menos 8 caracteres) *</label><input id="invite-password" class="form-control" type="password" name="contrasena" [(ngModel)]="datos.contrasena" required minlength="8" autocomplete="new-password"></div>
+<main class="invitation-page auth-layout">
+  <div class="invitation-layout">
+    <!-- Panel izquierdo: Azul marino oscuro con marca, titular 'Un espacio para colaborar.', anillos 3D y pie 'EQUINOX / PORTAL DE CLIENTES' -->
+    <aside class="hero-panel" aria-label="Presentación de Equinox">
+      <div class="hero-header">
+        <div class="hero-brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-text">equinox</span>
+        </div>
+        <h1 class="hero-title">Un espacio<br>para colaborar.</h1>
+        <p class="hero-subtitle" *ngIf="!esFotografia">Tu proyecto y tu equipo,<br>más cerca.</p>
+        <p class="hero-subtitle" *ngIf="esFotografia">Tus sesiones y fotografías,<br>más cerca.</p>
+      </div>
+
+      <!-- Ilustración de dos grandes anillos metálicos 3D azul y dorado -->
+      <div class="hero-graphic" aria-hidden="true">
+        <svg class="rings-svg" viewBox="0 0 600 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="invBgGlow" cx="50%" cy="65%" r="55%">
+              <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.45"/>
+              <stop offset="45%" stop-color="#172554" stop-opacity="0.2"/>
+              <stop offset="100%" stop-color="#091326" stop-opacity="0"/>
+            </radialGradient>
+
+            <filter id="invFloorShadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="22" />
+            </filter>
+            <filter id="invContactShadow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="10" />
+            </filter>
+
+            <linearGradient id="invBlueBackOuter" x1="100" y1="120" x2="480" y2="400" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#0a1d47"/>
+              <stop offset="25%" stop-color="#1e40af"/>
+              <stop offset="50%" stop-color="#2563eb"/>
+              <stop offset="75%" stop-color="#3b82f6"/>
+              <stop offset="100%" stop-color="#1d4ed8"/>
+            </linearGradient>
+
+            <linearGradient id="invBlueFrontOuter" x1="80" y1="260" x2="440" y2="480" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#60a5fa"/>
+              <stop offset="18%" stop-color="#38bdf8"/>
+              <stop offset="35%" stop-color="#2563eb"/>
+              <stop offset="70%" stop-color="#1d4ed8"/>
+              <stop offset="90%" stop-color="#172554"/>
+              <stop offset="100%" stop-color="#0b1736"/>
+            </linearGradient>
+
+            <linearGradient id="invBlueRimHighlight" x1="100" y1="240" x2="350" y2="460" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#e0f2fe" stop-opacity="0.95"/>
+              <stop offset="30%" stop-color="#7dd3fc" stop-opacity="0.7"/>
+              <stop offset="70%" stop-color="#38bdf8" stop-opacity="0"/>
+            </linearGradient>
+
+            <linearGradient id="invGoldOuter" x1="100" y1="280" x2="520" y2="420" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#451a03"/>
+              <stop offset="12%" stop-color="#78350f"/>
+              <stop offset="30%" stop-color="#b45309"/>
+              <stop offset="50%" stop-color="#d97706"/>
+              <stop offset="68%" stop-color="#f59e0b"/>
+              <stop offset="82%" stop-color="#fde047"/>
+              <stop offset="90%" stop-color="#eab308"/>
+              <stop offset="100%" stop-color="#78350f"/>
+            </linearGradient>
+
+            <linearGradient id="invGoldBevel" x1="160" y1="360" x2="480" y2="430" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#fffbeb" stop-opacity="0.95"/>
+              <stop offset="25%" stop-color="#fef08a" stop-opacity="0.8"/>
+              <stop offset="55%" stop-color="#f59e0b" stop-opacity="0.4"/>
+              <stop offset="85%" stop-color="#b45309" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Resplandor en el suelo del hero -->
+          <ellipse cx="290" cy="330" rx="260" ry="180" fill="url(#invBgGlow)" />
+
+          <!-- Sombra proyectada en el piso -->
+          <ellipse cx="300" cy="445" rx="220" ry="28" fill="#000000" opacity="0.75" filter="url(#invFloorShadow)" />
+          <ellipse cx="270" cy="435" rx="150" ry="16" fill="#000000" opacity="0.6" filter="url(#invContactShadow)" />
+
+          <!-- 1. Segmento posterior del anillo azul (pasa detrás del anillo dorado) -->
+          <g transform="rotate(-38 290 320)">
+            <path d="M 90 320 A 210 74 0 0 1 490 320" stroke="url(#invBlueBackOuter)" stroke-width="26" stroke-linecap="round"/>
+            <path d="M 102 320 A 198 64 0 0 1 478 320" stroke="#081432" stroke-width="3" opacity="0.6" fill="none"/>
+            <path d="M 110 318 A 190 62 0 0 1 470 318" stroke="#93c5fd" stroke-width="1.5" opacity="0.3" fill="none"/>
+          </g>
+
+          <!-- 2. Anillo dorado metálico completo (cruce tridimensional con el anillo azul) -->
+          <g transform="rotate(16 300 350)">
+            <ellipse cx="300" cy="355" rx="205" ry="76" stroke="#270e02" stroke-width="26" fill="none" opacity="0.5"/>
+            <ellipse cx="300" cy="350" rx="205" ry="75" stroke="url(#invGoldOuter)" stroke-width="24" fill="none"/>
+            <ellipse cx="300" cy="347" rx="212" ry="77" stroke="#fef9c3" stroke-width="1.2" opacity="0.7" fill="none"/>
+            <path d="M 115 352 A 200 72 0 0 0 485 352" stroke="url(#invGoldBevel)" stroke-width="3.5" fill="none"/>
+          </g>
+
+          <!-- 3. Segmento frontal del anillo azul (pasa al frente en el cruce inferior izquierdo) -->
+          <g transform="rotate(-38 290 320)">
+            <path d="M 490 320 A 210 74 0 0 1 90 320" stroke="url(#invBlueFrontOuter)" stroke-width="26" stroke-linecap="round"/>
+            <path d="M 475 322 A 208 72 0 0 1 95 322" stroke="url(#invBlueRimHighlight)" stroke-width="5" fill="none"/>
+            <path d="M 460 317 A 200 68 0 0 1 110 317" stroke="#e0f2fe" stroke-width="2" opacity="0.9" fill="none"/>
+            <path d="M 480 325 A 215 76 0 0 1 90 325" stroke="#1d4ed8" stroke-width="1" opacity="0.5" fill="none"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="hero-footer">
+        <span class="hero-tag">EQUINOX / PORTAL DE CLIENTES</span>
+      </div>
+    </aside>
+
+    <!-- Panel derecho: Fondo claro con 'Acceso al portal', formulario y estados -->
+    <section class="form-panel invitation-card" aria-labelledby="invitation-heading">
+      <div class="form-container">
+        <!-- Estado de carga inicial -->
+        <div class="invitation-loading" *ngIf="cargando" role="status">
+          <div class="loading-spinner" aria-hidden="true"></div>
+          <p class="auth-intro">Consultando invitación…</p>
+        </div>
+
+        <!-- Estado de error sin invitación (inválida, expirada, revocada, ya aceptada o red) -->
+        <div class="auth-card-state" role="alert" *ngIf="error && !invitacion && !cargando">
+          <div class="error-badge-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <h2 class="state-title">No se pudo acceder a la invitación</h2>
+          <div class="auth-error">
+            {{ error }}
+            <button
+              *ngIf="puedeReintentarConsulta"
+              class="auth-text-link retry-btn"
+              type="button"
+              (click)="cargar()"
+              [disabled]="cargando"
+            >
+              Reintentar
+            </button>
+          </div>
+          <a
+            class="auth-text-link invitation-login btn-secondary-link"
+            routerLink="/inicio-sesion"
+            *ngIf="error.includes('ya fue aceptada')"
+          >
+            Iniciar sesión
+          </a>
+        </div>
+
+        <!-- Contenido principal cuando la invitación fue cargada exitosamente -->
+        <ng-container *ngIf="invitacion as invite">
+          <!-- Cabecera de la invitación -->
+          <header class="form-header">
+            <span class="eyebrow-badge">ACCESO AL PORTAL</span>
+            <h1 id="invitation-heading" class="form-title">Te invitaron a colaborar</h1>
+            <p class="invitation-intro">
+              <strong>{{ invite.organizacion.nombre }}</strong> te invita al portal de <strong>{{ invite.cliente.nombre }}</strong><span *ngIf="invite.cliente.empresa"> ({{ invite.cliente.empresa }})</span>.
+            </p>
+          </header>
+
+          <!-- Tarjeta informativa con correo enmascarado y rol de acceso -->
+          <div class="invitation-summary-card">
+            <div class="summary-col">
+              <span class="summary-label">Correo de la invitación</span>
+              <div class="summary-value email-value">
+                <svg class="icon-lock" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                </svg>
+                <span class="masked-email">{{ invite.correoEnmascarado }}</span>
+              </div>
+            </div>
+            <div class="summary-divider" aria-hidden="true"></div>
+            <div class="summary-col">
+              <span class="summary-label">Tu acceso</span>
+              <div class="summary-value role-value">{{ rolLegible }}</div>
+            </div>
+          </div>
+
+          <!-- Estado de éxito al haber completado la aceptación -->
+          <div *ngIf="aceptada" class="invitation-success" role="status">
+            <div class="success-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2>¡Invitación aceptada!</h2>
+            <p>{{ mensajeExito || 'Tu cuenta ha sido vinculada correctamente.' }} Inicia sesión para entrar al portal; la invitación no inicia una sesión automáticamente.</p>
+            <a class="btn-submit auth-submit success-action" routerLink="/inicio-sesion">
+              <span>Ir a iniciar sesión</span>
+              <svg class="btn-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+              </svg>
+            </a>
+          </div>
+
+          <!-- Formulario de aceptación cuando aún no se ha aceptado -->
+          <form *ngIf="!aceptada" #form="ngForm" (ngSubmit)="aceptar(form)" class="invitation-form" novalidate>
+            <!-- Caso cuenta nueva -->
+            <ng-container *ngIf="!invite.esUsuarioExistente">
+              <p class="form-instructions">Completa tus datos para aceptar la invitación.</p>
+
+              <div class="form-row-duo">
+                <div class="form-group">
+                  <label for="invite-nombre" class="form-label">Nombre *</label>
+                  <input
+                    id="invite-nombre"
+                    class="form-input"
+                    [class.input-error]="nombreCtrl.invalid && (nombreCtrl.touched || enviada)"
+                    name="nombre"
+                    [(ngModel)]="datos.nombre"
+                    required
+                    minlength="2"
+                    autocomplete="given-name"
+                    placeholder="Tu nombre"
+                    #nombreCtrl="ngModel"
+                    [disabled]="enviando"
+                  >
+                  <small class="auth-validation" *ngIf="nombreCtrl.invalid && (nombreCtrl.touched || enviada)">
+                    Introduce al menos 2 caracteres.
+                  </small>
+                </div>
+
+                <div class="form-group">
+                  <label for="invite-apellido" class="form-label">Apellido (opcional)</label>
+                  <input
+                    id="invite-apellido"
+                    class="form-input"
+                    name="apellido"
+                    [(ngModel)]="datos.apellido"
+                    autocomplete="family-name"
+                    placeholder="Tu apellido"
+                    [disabled]="enviando"
+                  >
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="invite-password" class="form-label">Contraseña *</label>
+                <div class="password-input-wrapper" [class.input-error]="passCtrl.invalid && (passCtrl.touched || enviada)">
+                  <input
+                    id="invite-password"
+                    class="form-input password-input"
+                    [type]="mostrarContrasena ? 'text' : 'password'"
+                    name="contrasena"
+                    [(ngModel)]="datos.contrasena"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
+                    placeholder="Crea una contraseña"
+                    #passCtrl="ngModel"
+                    [disabled]="enviando"
+                  >
+                  <button
+                    type="button"
+                    class="password-toggle-btn"
+                    (click)="toggleMostrarContrasena()"
+                    [attr.aria-label]="mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                    [attr.aria-pressed]="mostrarContrasena"
+                    tabindex="0"
+                  >
+                    <svg *ngIf="!mostrarContrasena" class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg *ngIf="mostrarContrasena" class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  </button>
+                </div>
+                <p class="field-hint" *ngIf="!passCtrl.invalid || (!passCtrl.touched && !enviada)">Al menos 8 caracteres.</p>
+                <small class="auth-validation" *ngIf="passCtrl.invalid && (passCtrl.touched || enviada)">
+                  La contraseña debe tener al menos 8 caracteres.
+                </small>
+              </div>
+            </ng-container>
+
+            <!-- Caso cuenta existente -->
+            <ng-container *ngIf="invite.esUsuarioExistente">
+              <p class="form-instructions">Ya existe una cuenta para este correo. Confirma tu contraseña actual para vincular el portal.</p>
+
+              <div class="form-group">
+                <label for="invite-current-password" class="form-label">Contraseña actual *</label>
+                <div class="password-input-wrapper" [class.input-error]="currPassCtrl.invalid && (currPassCtrl.touched || enviada)">
+                  <input
+                    id="invite-current-password"
+                    class="form-input password-input"
+                    [type]="mostrarContrasena ? 'text' : 'password'"
+                    name="contrasena"
+                    [(ngModel)]="datos.contrasena"
+                    required
+                    autocomplete="current-password"
+                    placeholder="Tu contraseña actual"
+                    #currPassCtrl="ngModel"
+                    [disabled]="enviando"
+                  >
+                  <button
+                    type="button"
+                    class="password-toggle-btn"
+                    (click)="toggleMostrarContrasena()"
+                    [attr.aria-label]="mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                    [attr.aria-pressed]="mostrarContrasena"
+                    tabindex="0"
+                  >
+                    <svg *ngIf="!mostrarContrasena" class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg *ngIf="mostrarContrasena" class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  </button>
+                </div>
+                <small class="auth-validation" *ngIf="currPassCtrl.invalid && (currPassCtrl.touched || enviada)">
+                  Introduce tu contraseña actual.
+                </small>
+              </div>
+            </ng-container>
+
+            <!-- Mensajes de error general -->
+            <p class="auth-validation general-validation" *ngIf="enviada && form.invalid">
+              Revisa los campos requeridos antes de continuar.
+            </p>
+            <p class="auth-error" role="alert" *ngIf="error">
+              {{ error }}
+            </p>
+
+            <!-- Botón principal de aceptación -->
+            <button class="btn-submit auth-submit" type="submit" [disabled]="enviando">
+              <span>{{ enviando ? 'Aceptando…' : 'Aceptar invitación' }}</span>
+              <svg class="btn-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+              </svg>
+            </button>
+
+            <!-- Leyenda explicativa al pie -->
+            <p class="submit-note">
+              {{ invite.esUsuarioExistente ? 'Vincularás tu cuenta y accederás al portal.' : 'Crearás tu cuenta y accederás al portal.' }}
+            </p>
+          </form>
         </ng-container>
-        <ng-container *ngIf="invite.esUsuarioExistente">
-          <p>Ya existe una cuenta para este correo. Confirma tu contraseña actual para vincular el portal.</p>
-          <div class="form-group"><label for="invite-current-password">Contraseña actual *</label><input id="invite-current-password" class="form-control" type="password" name="contrasena" [(ngModel)]="datos.contrasena" required autocomplete="current-password"></div>
-        </ng-container>
-        <p class="auth-validation" *ngIf="enviada && form.invalid">Revisa los campos requeridos antes de continuar.</p>
-        <p class="auth-error" role="alert" *ngIf="error">{{ error }}</p>
-        <button class="btn-primary auth-submit" type="submit" [disabled]="enviando">{{ enviando ? 'Aceptando…' : 'Aceptar invitación' }}</button>
-      </form>
-    </ng-container>
-    <a class="auth-text-link invitation-login" routerLink="/inicio-sesion" *ngIf="!invitacion && error?.includes('ya fue aceptada')">Iniciar sesión</a>
-  </section>
+      </div>
+    </section>
+  </div>
 </main>

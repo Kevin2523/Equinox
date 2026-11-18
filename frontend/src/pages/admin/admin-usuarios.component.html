@@ -1,0 +1,253 @@
+<section class="admin-page" aria-labelledby="usuarios-titulo">
+  <div *ngIf="toast" class="admin-toast" role="status">{{ toast }}</div>
+
+  <header class="admin-page-header">
+    <div>
+      <h1 id="usuarios-titulo" class="admin-page-title">Usuarios y accesos</h1>
+      <p class="admin-page-subtitle">
+        Gestión de cuentas de plataforma, membresías de organización, accesos de cliente y revocación de sesiones activas.
+      </p>
+    </div>
+  </header>
+
+  <form class="admin-toolbar" (ngSubmit)="buscar()">
+    <input
+      type="search"
+      name="busqueda"
+      class="admin-search-input"
+      [(ngModel)]="busqueda"
+      placeholder="Buscar por nombre, apellido o correo..."
+      aria-label="Buscar usuarios" />
+
+    <select name="filtroRol" class="admin-select" [(ngModel)]="filtroRol" (change)="buscar()" aria-label="Filtrar por rol de plataforma">
+      <option value="">Todos los roles</option>
+      <option value="USUARIO">Usuario</option>
+      <option value="ADMIN_GLOBAL">Admin global</option>
+    </select>
+
+    <select name="filtroTipoAcceso" class="admin-select" [(ngModel)]="filtroTipoAcceso" (change)="buscar()" aria-label="Filtrar por tipo de acceso">
+      <option value="">Todos los accesos</option>
+      <option value="ORGANIZACION">Organización</option>
+      <option value="CLIENTE">Cliente</option>
+      <option value="ADMIN_GLOBAL">Admin global</option>
+    </select>
+
+    <button type="submit" class="admin-btn-sm primary">Buscar</button>
+    <button type="button" class="admin-btn-sm" (click)="limpiarFiltros()" *ngIf="busqueda || filtroRol || filtroTipoAcceso">
+      Limpiar
+    </button>
+  </form>
+
+  <div *ngIf="error" class="admin-error-banner" role="alert">
+    <span>{{ error }}</span>
+    <button type="button" class="admin-btn-sm" (click)="cargar()">Reintentar</button>
+  </div>
+
+  <div *ngIf="cargando" class="admin-card" aria-busy="true">
+    <div class="admin-skeleton-row" style="width: 45%; margin-bottom: 12px;"></div>
+    <div class="admin-skeleton-row" style="width: 90%; margin-bottom: 10px;"></div>
+    <div class="admin-skeleton-row" style="width: 70%;"></div>
+  </div>
+
+  <div *ngIf="!cargando && usuarios.length === 0 && !error" class="admin-state-box">
+    <h3>No se encontraron usuarios</h3>
+    <p>Prueba ajustando los filtros o el término de búsqueda.</p>
+    <button type="button" class="btn-secondary" (click)="limpiarFiltros()">Restablecer filtros</button>
+  </div>
+
+  <div *ngIf="!cargando && usuarios.length > 0" class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Rol plataforma</th>
+          <th>Membresías / Accesos</th>
+          <th>Sesiones activas</th>
+          <th>Último acceso</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of usuarios">
+          <td>
+            <span class="admin-cell-primary">{{ u.nombre }} {{ u.apellido || '' }}</span>
+            <span class="admin-cell-secondary">{{ u.correo }}</span>
+          </td>
+          <td>
+            <span class="admin-badge" [ngClass]="u.rolPlataforma === 'ADMIN_GLOBAL' ? 'admin-badge-purple' : 'admin-badge-neutral'">
+              {{ etiquetasRol[u.rolPlataforma] }}
+            </span>
+          </td>
+          <td>
+            <span class="admin-cell-primary">{{ u.membresias.length }} org(s)</span>
+            <span class="admin-cell-secondary">{{ u.accesosCliente.length }} acceso(s) cliente</span>
+          </td>
+          <td>
+            <span class="admin-badge" [ngClass]="u.sesionesActivasCount > 0 ? 'admin-badge-blue' : 'admin-badge-neutral'">
+              {{ u.sesionesActivasCount }} activa(s)
+            </span>
+          </td>
+          <td>{{ formatearFecha(u.ultimoAccesoEn) }}</td>
+          <td>
+            <div class="admin-row-actions">
+              <button type="button" class="admin-btn-sm" (click)="verDetalle(u.id)" [disabled]="cargandoDetalle">
+                Ver detalle
+              </button>
+              <button
+                type="button"
+                class="admin-btn-sm danger"
+                *ngIf="u.sesionesActivasCount > 0"
+                (click)="pedirRevocarTodas(u)">
+                Revocar sesiones
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="admin-pagination">
+      <span>Página {{ paginacion.pagina }} de {{ paginacion.totalPaginas || 1 }} · {{ paginacion.total }} usuarios</span>
+      <div class="admin-pagination-controls">
+        <button type="button" class="admin-btn-sm" (click)="cargar(paginacion.pagina - 1)" [disabled]="paginacion.pagina <= 1">
+          Anterior
+        </button>
+        <button type="button" class="admin-btn-sm" (click)="cargar(paginacion.pagina + 1)" [disabled]="paginacion.pagina >= paginacion.totalPaginas">
+          Siguiente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalle Usuario -->
+  <div class="admin-modal-backdrop" *ngIf="detalle" (click)="cerrarDetalle()">
+    <div class="admin-modal admin-modal-lg" role="dialog" aria-modal="true" aria-labelledby="usr-detalle-titulo" (click)="$event.stopPropagation()">
+      <div class="admin-modal-header">
+        <div>
+          <h2 id="usr-detalle-titulo" class="admin-modal-title">{{ detalle.nombre }} {{ detalle.apellido || '' }}</h2>
+          <span class="admin-cell-secondary">{{ detalle.correo }} · {{ etiquetasRol[detalle.rolPlataforma] }}</span>
+        </div>
+        <button type="button" class="admin-modal-close" (click)="cerrarDetalle()" aria-label="Cerrar detalle">✕</button>
+      </div>
+
+      <div class="admin-kv-grid">
+        <div class="admin-kv-item">
+          <small>Correo verificado</small>
+          <span>{{ detalle.correoVerificadoEn ? formatearFecha(detalle.correoVerificadoEn) : 'Pendiente' }}</span>
+        </div>
+        <div class="admin-kv-item">
+          <small>Último acceso</small>
+          <span>{{ formatearFecha(detalle.ultimoAccesoEn) }}</span>
+        </div>
+      </div>
+
+      <div class="admin-card-header" style="margin-top: 8px;">
+        <h3 class="admin-card-title">Sesiones activas ({{ detalle.sesionesActivas.length }})</h3>
+        <button
+          type="button"
+          class="admin-btn-sm danger"
+          *ngIf="detalle.sesionesActivas.length > 0"
+          (click)="pedirRevocarTodas(detalle)">
+          Revocar todas
+        </button>
+      </div>
+      <div *ngIf="detalle.sesionesActivas.length === 0" class="admin-state-box" style="padding: 18px; margin-bottom: 18px;">
+        <p style="margin: 0;">Sin sesiones activas en este momento.</p>
+      </div>
+      <div *ngIf="detalle.sesionesActivas.length > 0" class="admin-table-wrap" style="margin-bottom: 18px;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>MFA</th>
+              <th>Creada</th>
+              <th>Expira</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of detalle.sesionesActivas">
+              <td><span class="admin-badge admin-badge-blue">{{ s.tipoAcceso }}</span></td>
+              <td>{{ s.mfaVerificado ? 'Verificado' : 'No' }}</td>
+              <td>{{ formatearFecha(s.creadoEn) }}</td>
+              <td>{{ formatearFecha(s.expiraEn) }}</td>
+              <td>
+                <button type="button" class="admin-btn-sm danger" (click)="pedirRevocarSesion(detalle.id, s.id)">
+                  Revocar
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="admin-card-title" style="margin-bottom: 10px;">Accesos de cliente ({{ detalle.accesosCliente.length }})</h3>
+      <div *ngIf="detalle.accesosCliente.length === 0" class="admin-state-box" style="padding: 18px;">
+        <p style="margin: 0;">Este usuario no tiene accesos de cliente asociados.</p>
+      </div>
+      <div *ngIf="detalle.accesosCliente.length > 0" class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Organización</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of detalle.accesosCliente">
+              <td>{{ a.clienteNombre || a.clienteId }}</td>
+              <td>{{ a.organizacionNombre || a.organizacionId }}</td>
+              <td>{{ a.rol }}</td>
+              <td>
+                <span class="admin-badge" [ngClass]="a.activo ? 'admin-badge-green' : 'admin-badge-coral'">
+                  {{ a.activo ? 'Activo' : 'Desactivado' }}
+                </span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="admin-btn-sm"
+                  [ngClass]="a.activo ? 'danger' : 'primary'"
+                  (click)="pedirToggleAcceso(detalle.id, a)">
+                  {{ a.activo ? 'Desactivar' : 'Reactivar' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="admin-modal-footer">
+        <button type="button" class="btn-secondary" (click)="cerrarDetalle()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Confirmación -->
+  <div class="admin-modal-backdrop" *ngIf="confirmacion as c" (click)="confirmacion = null">
+    <div class="admin-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-usr-titulo" (click)="$event.stopPropagation()">
+      <div class="admin-modal-header">
+        <h2 id="confirm-usr-titulo" class="admin-modal-title">{{ c.titulo }}</h2>
+        <button type="button" class="admin-modal-close" (click)="confirmacion = null" aria-label="Cancelar">✕</button>
+      </div>
+      <p style="font-size: 13px; color: var(--ink-secondary); margin: 0 0 16px;">{{ c.descripcion }}</p>
+
+      <div *ngIf="errorAccion" class="admin-error-banner" role="alert">{{ errorAccion }}</div>
+
+      <div class="form-group">
+        <label for="usr-motivo">Motivo administrativo (auditoría)</label>
+        <input id="usr-motivo" name="motivo" class="form-control" [(ngModel)]="c.motivo" placeholder="Ej. Solicitud de soporte o incidente" />
+      </div>
+
+      <div class="admin-modal-footer">
+        <button type="button" class="btn-secondary" (click)="confirmacion = null" [disabled]="ejecutandoAccion">Cancelar</button>
+        <button type="button" class="btn-primary" (click)="ejecutarConfirmacion()" [disabled]="ejecutandoAccion">
+          {{ ejecutandoAccion ? 'Procesando...' : 'Confirmar acción' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

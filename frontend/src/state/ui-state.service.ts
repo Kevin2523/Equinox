@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs';
+import { filter, firstValueFrom } from 'rxjs';
 import { EquinoxService } from '../services/equinox.service';
 import { ClientesProyectosApiService, ClienteApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import { TrabajoApiService } from '../services/trabajo-api.service';
 import { AuthService } from '../auth/auth.service';
+import { obtenerBaseApi } from '../auth/api.config';
 import {
   Cliente,
   Proyecto,
@@ -64,7 +66,14 @@ export class UiStateService {
   selectedProject: Proyecto | null = null;
   toastMessage = '';
 
-  constructor(public equinox: EquinoxService, public clientesProyectosApi: ClientesProyectosApiService, private router: Router, public trabajo: TrabajoApiService, private auth: AuthService) {
+  constructor(
+    public equinox: EquinoxService,
+    public clientesProyectosApi: ClientesProyectosApiService,
+    private router: Router,
+    public trabajo: TrabajoApiService,
+    private auth: AuthService,
+    private http: HttpClient
+  ) {
     this.initialize();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       const segmento = event.urlAfterRedirects.split('?')[0].split('/')[1];
@@ -78,12 +87,70 @@ export class UiStateService {
   private initialize(): void {
     this.clientesProyectosApi.clientes$.subscribe((c) => (this.clientes = c.map((cliente) => this.adaptarCliente(cliente))));
     this.clientesProyectosApi.proyectos$.subscribe((p) => (this.proyectos = p.map((proyecto) => this.adaptarProyecto(proyecto))));
-    this.equinox.configuracion$.subscribe((cfg) => (this.configuracion = cfg));
-    this.equinox.notificaciones$.subscribe((n) => (this.notificaciones = n));
-    this.equinox.proyectoSeleccionado$.subscribe((sel) => {
-      if (sel) this.selectedProject = sel;
+    this.clientesProyectosApi.proyectoSeleccionado$.subscribe((sel) => {
+      this.selectedProject = sel ? this.adaptarProyecto(sel) : null;
     });
     this.equinox.toast$.subscribe((msg) => (this.toastMessage = msg));
+
+    this.auth.sesion$.subscribe((sesion) => {
+      if (sesion?.contexto.tipoAcceso === 'ORGANIZACION') {
+        void this.cargarDatosOrganizacion();
+      } else {
+        this.notificaciones = [];
+      }
+    });
+  }
+
+  async cargarDatosOrganizacion(): Promise<void> {
+    try {
+      const [org, panel] = await Promise.all([
+        firstValueFrom(this.http.get<any>(`${obtenerBaseApi()}/organizacion`)).catch(() => null),
+        firstValueFrom(this.http.get<any>(`${obtenerBaseApi()}/organizacion/panel`)).catch(() => null)
+      ]);
+
+      if (org) {
+        const usuario = this.auth.sesion?.usuario;
+        const nombreUsuario = usuario ? `${usuario.nombre} ${usuario.apellido || ''}`.trim() : org.nombre;
+        this.configuracion = {
+          nombreEstudio: org.nombre,
+          nombreFreelancer: nombreUsuario,
+          correo: org.correoContacto || usuario?.correo || '',
+          telefono: org.telefono || '',
+          ruc: org.ruc || '',
+          moneda: `B/. (${org.moneda || 'PAB'})`,
+          colorPrimario: org.colorPrimario || '#2563EB',
+          colorSecundario: org.colorSecundario || '#0F172A',
+          tipografia: org.tipografia || 'Inter',
+          mensajeBienvenida: org.descripcion || 'Bienvenido a tu portal de proyectos.'
+        };
+      }
+
+      if (panel?.actividadReciente && Array.isArray(panel.actividadReciente)) {
+        this.notificaciones = panel.actividadReciente.slice(0, 8).map((act: any) => ({
+          id: act.id,
+          titulo: act.accion === 'CREAR' ? 'Registro creado' : act.accion === 'COMPLETAR' ? 'Tarea completada' : 'Actividad',
+          descripcion: act.descripcion || `${act.entidad}: ${act.accion}`,
+          tiempo: this.formatearTiempoRelativo(new Date(act.creadoEn)),
+          leida: true
+        }));
+      } else {
+        this.notificaciones = [];
+      }
+    } catch {
+      this.notificaciones = [];
+    }
+  }
+
+  private formatearTiempoRelativo(fecha: Date): string {
+    if (!fecha || isNaN(fecha.getTime())) return '';
+    const diffMs = Date.now() - fecha.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Hace un momento';
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    const diffHoras = Math.floor(diffMins / 60);
+    if (diffHoras < 24) return `Hace ${diffHoras} h`;
+    const diffDias = Math.floor(diffHoras / 24);
+    return `Hace ${diffDias} d`;
   }
 
   get mapActive(): boolean {

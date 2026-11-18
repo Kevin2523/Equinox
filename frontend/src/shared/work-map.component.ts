@@ -1,55 +1,458 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { UiStateService } from '../state/ui-state.service';
 import { ClientesProyectosApiService, ProyectoApi } from '../services/clientes-proyectos-api.service';
+import { AuthService } from '../auth/auth.service';
+import { obtenerBaseApi } from '../auth/api.config';
+import { Router } from '@angular/router';
+
+export interface ProyectoVisual extends ProyectoApi {
+  indexStr: string;
+  tabNum: string;
+  variant: 'blue' | 'kraft' | 'cream' | 'lime';
+  previewStyle: 'editorial' | 'blueprint' | 'craft' | 'monochrome';
+  statusDisplay: string;
+  categoryDisplay: string;
+  initials: string;
+  formattedDate: string;
+  posX: number;
+  posY: number;
+  connX: number;
+  connY: number;
+  tiltDeg: number;
+  curvePath: string;
+}
 
 @Component({
   selector: 'app-work-map',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './work-map.component.html'
+  templateUrl: './work-map.component.html',
+  styleUrls: ['./work-map.component.css']
 })
-export class WorkMapComponent {
+export class WorkMapComponent implements OnInit, OnDestroy {
   cargando = false;
   error = '';
-  constructor(public state: UiStateService, public api: ClientesProyectosApiService) {}
 
-  ngOnInit(): void { void this.cargar(); }
+  // Canvas Pan & Zoom
+  zoomLevel = 80;
+  panX = 0;
+  panY = 0;
+  isDragging = false;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private dragMoved = false;
+  private lastDragEndTime = 0;
 
-  get proyectosMapa(): (ProyectoApi & { x: number; y: number; clienteNombre: string; visualClass: string })[] {
-    const proyectos = this.api.proyectos;
-    const total = proyectos.length;
-    return proyectos.map((proyecto, index) => {
-      const radio = total <= 1 ? 0 : Math.min(38, 10 + 28 * Math.sqrt((index + 0.5) / total));
-      const angulo = index * 2.399963229728653;
-      return { ...proyecto, x: Math.max(12, Math.min(88, 50 + Math.cos(angulo) * radio)), y: Math.max(16, Math.min(88, 48 + Math.sin(angulo) * radio)), clienteNombre: proyecto.cliente?.nombre || 'Cliente', visualClass: 'visual-building' };
-    });
+  // Caching / memoization to avoid re-rendering and identity churn on every change detection
+  private cachedProyectosVisuales: ProyectoVisual[] = [];
+  private lastProyectosRef: ProyectoApi[] | null = null;
+  private lastSeleccionadoId: string | null = null;
+  private lastStudioName = '';
+
+  // Studio and Hub identity
+  studioName = 'EQUINOX';
+  hubLine1 = 'MI';
+  hubLine2 = 'ESTUDIO';
+
+  stageWidth = 1000;
+  stageHeight = 760;
+  hubX = 500;
+  hubY = 390;
+
+  private readonly variantsOrder: Array<'cream' | 'lime' | 'kraft'> = ['cream', 'cream', 'lime', 'kraft'];
+  private readonly previewStylesOrder: Array<'editorial' | 'blueprint' | 'craft' | 'monochrome'> = [
+    'editorial',
+    'blueprint',
+    'craft',
+    'monochrome'
+  ];
+  private readonly tiltsOrder = [-0.8, 0.8, 1.1, -1.1, 0.5, -0.5];
+
+  constructor(
+    public state: UiStateService,
+    public api: ClientesProyectosApiService,
+    private http: HttpClient,
+    private router: Router,
+    private auth: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    void this.cargar();
+    void this.cargarDatosOrganizacion();
   }
 
-  get proyectosVisibles(): (ProyectoApi & { x: number; y: number; clienteNombre: string; visualClass: string })[] {
-    const query = this.state.query.trim().toLocaleLowerCase();
-    return this.proyectosMapa.filter((p) => !query || `${p.nombre} ${p.clienteNombre} ${p.cliente?.empresa || ''} ${p.descripcion || ''}`.toLocaleLowerCase().includes(query));
+  async cargarDatosOrganizacion(): Promise<void> {
+    try {
+      const org = await firstValueFrom(this.http.get<{ nombre?: string }>(`${obtenerBaseApi()}/organizacion`));
+      if (org?.nombre) {
+        this.studioName = org.nombre.toUpperCase();
+        const partes = org.nombre.trim().split(/\s+/);
+        if (partes.length >= 2) {
+          this.hubLine1 = partes[0].toUpperCase();
+          this.hubLine2 = partes.slice(1).join(' ').toUpperCase();
+        } else {
+          this.hubLine1 = org.nombre.toUpperCase();
+          this.hubLine2 = 'ESTUDIO';
+        }
+      } else {
+        this.derivarNombreDesdeSesion();
+      }
+    } catch {
+      this.derivarNombreDesdeSesion();
+    }
   }
 
-  get totalActivos(): number { return this.api.proyectos.filter((proyecto) => proyecto.estado === 'ACTIVO').length; }
+  private derivarNombreDesdeSesion(): void {
+    const usuario = this.auth?.sesion?.usuario;
+    if (usuario?.nombre) {
+      const nom = `${usuario.nombre} ${usuario.apellido || ''}`.trim().toUpperCase();
+      this.studioName = `${nom} · ESTUDIO`;
+      this.hubLine1 = usuario.nombre.toUpperCase();
+      this.hubLine2 = usuario.apellido ? usuario.apellido.toUpperCase() : 'ESTUDIO';
+    } else {
+      this.studioName = 'EQUINOX ESTUDIO';
+      this.hubLine1 = 'EQUINOX';
+      this.hubLine2 = 'ESTUDIO';
+    }
+  }
 
   async cargar(): Promise<void> {
-    this.cargando = true; this.error = '';
+    this.cargando = true;
+    this.error = '';
     try {
-      const [proyectos] = await Promise.all([this.api.listarProyectos(), this.api.listarClientes()]);
+      const [proyectos] = await Promise.all([
+        this.api.listarProyectos(),
+        this.api.listarClientes()
+      ]);
       const seleccionado = this.api.proyectoSeleccionado;
-      if (!seleccionado || !proyectos.some((proyecto) => proyecto.id === seleccionado.id)) {
+      const guardadoId = this.api.obtenerProyectoGuardadoId();
+      const idPreferido = seleccionado?.id || guardadoId;
+
+      if (idPreferido && proyectos.some((p) => p.id === idPreferido)) {
+        if (seleccionado?.id !== idPreferido) {
+          await this.api.seleccionarProyecto(idPreferido);
+        }
+      } else {
         this.api.limpiarProyectoSeleccionado();
-        if (proyectos.length) await this.api.seleccionarProyecto(proyectos[0].id);
+        if (proyectos.length) {
+          await this.api.seleccionarProyecto(proyectos[0].id);
+        }
       }
+    } catch {
+      this.error = 'No se pudo cargar el mapa de proyectos.';
+    } finally {
+      this.cargando = false;
     }
-    catch { this.error = 'No se pudo cargar el mapa de proyectos.'; }
-    finally { this.cargando = false; }
   }
 
-  async seleccionar(proyecto: ProyectoApi): Promise<void> {
-    try { await this.api.seleccionarProyecto(proyecto.id); }
-    catch { this.error = 'No se pudieron consultar los datos del proyecto.'; }
+  get totalActivos(): number {
+    return this.api.proyectos.filter((p) => p.estado === 'ACTIVO').length;
+  }
+
+  get totalProyectosVisibles(): number {
+    return this.proyectosVisuales.length;
+  }
+
+  obtenerEstadoLegible(estado?: string): string {
+    switch (estado) {
+      case 'ACTIVO': return 'En desarrollo';
+      case 'COMPLETADO': return 'Completado';
+      case 'PAUSADO': return 'En pausa';
+      case 'BORRADOR': return 'Borrador';
+      case 'CANCELADO': return 'Cancelado';
+      default: return estado ? estado.toLowerCase() : 'En desarrollo';
+    }
+  }
+
+  obtenerInicialesProyecto(nombre: string): string {
+    if (!nombre) return 'EQ';
+    const partes = nombre.trim().split(/\s+/);
+    if (partes.length >= 2) {
+      return (partes[0][0] + partes[1][0]).toUpperCase();
+    }
+    return nombre.substring(0, 2).toUpperCase();
+  }
+
+  formatearFechaCorta(d?: Date | null): string {
+    if (!d || isNaN(d.getTime())) return '';
+    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const dia = d.getUTCDate();
+    const mes = meses[d.getUTCMonth()];
+    return `${dia} ${mes}`;
+  }
+
+  private calcularPosicionYConector(idx: number, total: number): {
+    posX: number;
+    posY: number;
+    connX: number;
+    connY: number;
+    curvePath: string;
+  } {
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (total === 1) {
+      offsetX = 195;
+      offsetY = -95;
+    } else if (total === 2) {
+      if (idx === 0) {
+        offsetX = -195;
+        offsetY = 125;
+      } else {
+        offsetX = 195;
+        offsetY = -125;
+      }
+    } else if (idx < 6) {
+      const angulos = [-150, -30, 30, 150, -90, 90];
+      const rad = (angulos[idx] * Math.PI) / 180;
+      offsetX = Math.cos(rad) * 340;
+      offsetY = Math.sin(rad) * 240;
+    } else {
+      // Anillos exteriores para 7+ proyectos sin superposición
+      let restante = idx - 6;
+      let ring = 1;
+      let cap = 10;
+      while (restante >= cap) {
+        restante -= cap;
+        ring++;
+        cap = 6 + ring * 4;
+      }
+      const rx = 340 + ring * 380;
+      const ry = 240 + ring * 280;
+      const rad = (((restante + 0.5) / cap) * 2 * Math.PI) - Math.PI / 2;
+      offsetX = Math.cos(rad) * rx;
+      offsetY = Math.sin(rad) * ry;
+    }
+
+    const posX = Math.round(this.hubX + offsetX);
+    const posY = Math.round(this.hubY + offsetY);
+
+    const dx = posX - this.hubX;
+    const dy = posY - this.hubY;
+    const dist = Math.hypot(dx, dy) || 1;
+    const ux = dx / dist;
+    const uy = dy / dist;
+
+    // Borde del círculo central (radio 48px)
+    const startX = this.hubX + ux * 48;
+    const startY = this.hubY + uy * 48;
+
+    // Intersección exacta con el borde de la tarjeta (260x195 -> semi-ejes 130, 97.5)
+    const tx = Math.abs(ux) > 1e-4 ? 130 / Math.abs(ux) : Infinity;
+    const ty = Math.abs(uy) > 1e-4 ? 97.5 / Math.abs(uy) : Infinity;
+    const t = Math.min(tx, ty);
+    const connX = Math.round((posX - ux * t) * 10) / 10;
+    const connY = Math.round((posY - uy * t) * 10) / 10;
+
+    const span = Math.hypot(connX - startX, connY - startY);
+    const perp = Math.min(20, span * 0.14) * (idx % 2 === 0 ? 1 : -1);
+    const c1x = startX + (connX - startX) * 0.35 - uy * perp;
+    const c1y = startY + (connY - startY) * 0.35 + ux * perp;
+    const c2x = startX + (connX - startX) * 0.72 + uy * perp * 0.45;
+    const c2y = startY + (connY - startY) * 0.72 - ux * perp * 0.45;
+
+    const curvePath = `M ${startX.toFixed(1)} ${startY.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${connX} ${connY}`;
+    return { posX, posY, connX, connY, curvePath };
+  }
+
+  get proyectosVisuales(): ProyectoVisual[] {
+    const proyectos = this.api.proyectos;
+    const seleccionadoId = this.api.proyectoSeleccionado?.id ?? null;
+
+    if (
+      this.cachedProyectosVisuales.length === proyectos.length &&
+      this.lastProyectosRef === proyectos &&
+      this.lastSeleccionadoId === seleccionadoId &&
+      this.lastStudioName === this.studioName
+    ) {
+      return this.cachedProyectosVisuales;
+    }
+
+    this.lastProyectosRef = proyectos;
+    this.lastSeleccionadoId = seleccionadoId;
+    this.lastStudioName = this.studioName;
+
+    const total = proyectos.length;
+    if (total > 6) {
+      let maxRing = 1;
+      let rem = total - 6;
+      while (rem > 6 + maxRing * 4) {
+        rem -= 6 + maxRing * 4;
+        maxRing++;
+      }
+      const rxMax = 340 + maxRing * 380;
+      const ryMax = 240 + maxRing * 280;
+      this.stageWidth = Math.max(1000, Math.ceil((rxMax + 180) * 2));
+      this.stageHeight = Math.max(760, Math.ceil((ryMax + 150) * 2));
+    } else {
+      this.stageWidth = 1000;
+      this.stageHeight = 760;
+    }
+    this.hubX = Math.round(this.stageWidth / 2);
+    this.hubY = Math.round(this.stageHeight / 2) + 10;
+
+    this.cachedProyectosVisuales = proyectos.map((p, idx) => {
+      const tabNum = idx < 9 ? `0${idx + 1}` : `${idx + 1}`;
+      const isSelected = p.id === seleccionadoId;
+      const defaultVariant = this.variantsOrder[idx % this.variantsOrder.length];
+      const variant = isSelected ? 'blue' : defaultVariant;
+      const previewStyle = this.previewStylesOrder[idx % this.previewStylesOrder.length];
+      const tiltDeg = this.tiltsOrder[idx % this.tiltsOrder.length];
+
+      const statusDisplay = this.obtenerEstadoLegible(p.estado);
+
+      let categoryDisplay = '';
+      if (p.cliente?.empresa) {
+        categoryDisplay = p.cliente.empresa;
+      } else if (p.cliente?.nombre) {
+        categoryDisplay = p.cliente.nombre;
+      } else if (p.descripcion?.trim()) {
+        categoryDisplay = p.descripcion.trim();
+      } else {
+        categoryDisplay = 'Proyecto en curso';
+      }
+
+      if (p.fechaEntrega) {
+        const fechaCorta = this.formatearFechaCorta(new Date(p.fechaEntrega));
+        if (fechaCorta) {
+          categoryDisplay = `${categoryDisplay} · ${fechaCorta}`;
+        }
+      }
+
+      const initials = this.obtenerInicialesProyecto(p.nombre);
+      const formattedDate = p.fechaEntrega ? this.formatearFechaCorta(new Date(p.fechaEntrega)) : '';
+      const geom = this.calcularPosicionYConector(idx, total);
+
+      return {
+        ...p,
+        indexStr: tabNum,
+        tabNum,
+        variant,
+        previewStyle,
+        statusDisplay,
+        categoryDisplay,
+        initials,
+        formattedDate,
+        posX: geom.posX,
+        posY: geom.posY,
+        connX: geom.connX,
+        connY: geom.connY,
+        tiltDeg,
+        curvePath: geom.curvePath
+      };
+    });
+
+    return this.cachedProyectosVisuales;
+  }
+
+  trackByProyectoId(_index: number, item: ProyectoVisual): string {
+    return item.id;
+  }
+
+  async seleccionar(p: ProyectoVisual): Promise<void> {
+    if (Date.now() - this.lastDragEndTime < 180) {
+      return;
+    }
+    this.error = '';
+    try {
+      await this.api.seleccionarProyecto(p.id);
+    } catch {
+      this.error = 'No se pudieron consultar los datos del proyecto.';
+    }
+  }
+
+  zoomIn(): void {
+    this.zoomLevel = Math.min(130, this.zoomLevel + 10);
+  }
+
+  zoomOut(): void {
+    this.zoomLevel = Math.max(60, this.zoomLevel - 10);
+  }
+
+  resetZoom(): void {
+    this.zoomLevel = 80;
+    this.panX = 0;
+    this.panY = 0;
+  }
+
+  private onDocMouseMove = (e: MouseEvent): void => {
+    if (!this.isDragging) return;
+    const nextX = e.clientX - this.dragStartX;
+    const nextY = e.clientY - this.dragStartY;
+    if (Math.hypot(nextX - this.panX, nextY - this.panY) > 3) {
+      this.dragMoved = true;
+    }
+    this.panX = nextX;
+    this.panY = nextY;
+  };
+
+  private onDocMouseUp = (): void => {
+    if (this.isDragging) {
+      this.isDragging = false;
+      if (this.dragMoved) {
+        this.lastDragEndTime = Date.now();
+      }
+      this.dragMoved = false;
+      document.removeEventListener('mousemove', this.onDocMouseMove);
+      document.removeEventListener('mouseup', this.onDocMouseUp);
+    }
+  };
+
+  onMouseDown(e: MouseEvent): void {
+    const target = e.target as HTMLElement;
+    if (target.closest('.folder-node') || target.closest('.central-hub') || target.closest('.zoom-dock') || target.closest('.command-dock') || target.closest('.empty-map-node')) {
+      return;
+    }
+    this.isDragging = true;
+    this.dragMoved = false;
+    this.dragStartX = e.clientX - this.panX;
+    this.dragStartY = e.clientY - this.panY;
+    document.addEventListener('mousemove', this.onDocMouseMove);
+    document.addEventListener('mouseup', this.onDocMouseUp);
+  }
+
+  onTouchStart(e: TouchEvent): void {
+    const target = e.target as HTMLElement;
+    if (target.closest('.folder-node') || target.closest('.central-hub') || target.closest('.zoom-dock') || target.closest('.command-dock') || target.closest('.empty-map-node')) {
+      return;
+    }
+    if (e.touches && e.touches.length === 1) {
+      this.isDragging = true;
+      this.dragMoved = false;
+      this.dragStartX = e.touches[0].clientX - this.panX;
+      this.dragStartY = e.touches[0].clientY - this.panY;
+    }
+  }
+
+  onTouchMove(e: TouchEvent): void {
+    if (!this.isDragging || !e.touches || e.touches.length !== 1) return;
+    const nextX = e.touches[0].clientX - this.dragStartX;
+    const nextY = e.touches[0].clientY - this.dragStartY;
+    if (Math.hypot(nextX - this.panX, nextY - this.panY) > 3) {
+      this.dragMoved = true;
+    }
+    this.panX = nextX;
+    this.panY = nextY;
+  }
+
+  onTouchEnd(): void {
+    if (this.dragMoved) {
+      this.lastDragEndTime = Date.now();
+    }
+    this.isDragging = false;
+    this.dragMoved = false;
+  }
+
+  ngOnDestroy(): void {
+    document.removeEventListener('mousemove', this.onDocMouseMove);
+    document.removeEventListener('mouseup', this.onDocMouseUp);
+  }
+
+  abrirProyectos(): void {
+    void this.router.navigate(['/proyectos']);
   }
 }

@@ -21,7 +21,11 @@ export interface ClienteApi {
   creadoEn: string;
   actualizadoEn: string;
   _count?: { proyectos: number };
-  proyectos?: ProyectoApi[];
+  proyectos?: Array<ProyectoApi & { tareas?: Array<{ id: string; estado: string }> }>;
+  facturas?: any[];
+  accesosPortal?: any[];
+  invitacionesCliente?: Array<{ id: string; estado: string; expiraEn?: string }>;
+  accesosCliente?: Array<{ id: string; activo: boolean; rol?: string }>;
 }
 
 export interface ProyectoApi {
@@ -50,6 +54,8 @@ export type EditarProyectoApi = Partial<CrearProyectoApi>;
 @Injectable({ providedIn: 'root' })
 export class ClientesProyectosApiService {
   private generacionSesion = 0;
+  private seleccionSeq = 0;
+  private readonly STORAGE_SELECTED_PROJECT_KEY = 'equinox_hoy_proyecto_id';
   private readonly clientesSubject = new BehaviorSubject<ClienteApi[]>([]);
   private readonly proyectosSubject = new BehaviorSubject<ProyectoApi[]>([]);
   private readonly proyectoSeleccionadoSubject = new BehaviorSubject<ProyectoApi | null>(null);
@@ -64,6 +70,7 @@ export class ClientesProyectosApiService {
   constructor(private http: HttpClient, private auth?: AuthService) {
     this.auth?.sesion$.subscribe(() => {
       this.generacionSesion++;
+      this.seleccionSeq++;
       this.clientesSubject.next([]);
       this.proyectosSubject.next([]);
       this.proyectoSeleccionadoSubject.next(null);
@@ -113,14 +120,50 @@ export class ClientesProyectosApiService {
   }
 
   async seleccionarProyecto(id: string): Promise<ProyectoApi> {
+    const seq = ++this.seleccionSeq;
     const generacion = this.generacionSesion;
     const token = this.auth?.token;
+
+    try {
+      sessionStorage.setItem(this.STORAGE_SELECTED_PROJECT_KEY, id);
+    } catch {
+      // Ignorar si sessionStorage no está disponible
+    }
+
+    // Selección inmediata desde caché local para respuesta instantánea en mapa e inspector
+    const local = this.proyectos.find((p) => p.id === id);
+    if (local && this.proyectoSeleccionadoSubject.value?.id !== id) {
+      this.proyectoSeleccionadoSubject.next(local);
+    }
+
     const proyecto = await this.consultarProyecto(id);
-    if (generacion === this.generacionSesion && token === this.auth?.token) this.proyectoSeleccionadoSubject.next(proyecto);
+    if (
+      seq === this.seleccionSeq &&
+      generacion === this.generacionSesion &&
+      token === this.auth?.token
+    ) {
+      this.proyectoSeleccionadoSubject.next(proyecto);
+    }
     return proyecto;
   }
 
-  limpiarProyectoSeleccionado(): void { this.proyectoSeleccionadoSubject.next(null); }
+  obtenerProyectoGuardadoId(): string | null {
+    try {
+      return sessionStorage.getItem(this.STORAGE_SELECTED_PROJECT_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  limpiarProyectoSeleccionado(): void {
+    this.seleccionSeq++;
+    try {
+      sessionStorage.removeItem(this.STORAGE_SELECTED_PROJECT_KEY);
+    } catch {
+      // Ignorar si sessionStorage no está disponible
+    }
+    this.proyectoSeleccionadoSubject.next(null);
+  }
 
   async crearProyecto(datos: CrearProyectoApi): Promise<ProyectoApi> {
     const proyecto = await firstValueFrom(this.http.post<ProyectoApi>(`${obtenerBaseApi()}/proyectos`, datos));

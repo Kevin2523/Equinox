@@ -2,3 +2,14 @@ node_modules/
 dist/
 .angular/
 .env
+.env.*
+!.env.ejemplo
+almacenamiento_privado/
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.dump
+docs/AUDITORIA_*.md
+docs/REPORTE_AUDITORIA_SEGURIDAD.md
+docs/evidencias/

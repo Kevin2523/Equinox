@@ -1,0 +1,147 @@
+<section class="admin-page" aria-labelledby="auditoria-titulo">
+  <header class="admin-page-header">
+    <div>
+      <h1 id="auditoria-titulo" class="admin-page-title">Auditoría administrativa</h1>
+      <p class="admin-page-subtitle">
+        Registro inmutable de acciones sensibles ejecutadas en la plataforma por administradores globales.
+      </p>
+    </div>
+  </header>
+
+  <form class="admin-toolbar" (ngSubmit)="cargar(1)">
+    <input
+      type="search"
+      name="busqueda"
+      class="admin-search-input"
+      [(ngModel)]="busqueda"
+      placeholder="Buscar por acción, entidad, ID o correo de actor..."
+      aria-label="Buscar en auditoría" />
+
+    <input
+      type="text"
+      name="filtroAccion"
+      class="admin-select"
+      [(ngModel)]="filtroAccion"
+      placeholder="Acción exacta"
+      aria-label="Filtrar por acción" />
+
+    <input
+      type="text"
+      name="filtroEntidad"
+      class="admin-select"
+      [(ngModel)]="filtroEntidad"
+      placeholder="Entidad (ej. Organizacion)"
+      aria-label="Filtrar por entidad" />
+
+    <input type="date" name="filtroDesde" class="admin-select" [(ngModel)]="filtroDesde" aria-label="Desde fecha" />
+    <input type="date" name="filtroHasta" class="admin-select" [(ngModel)]="filtroHasta" aria-label="Hasta fecha" />
+
+    <button type="submit" class="admin-btn-sm primary">Filtrar</button>
+    <button
+      type="button"
+      class="admin-btn-sm"
+      (click)="limpiarFiltros()"
+      *ngIf="busqueda || filtroAccion || filtroEntidad || filtroDesde || filtroHasta">
+      Limpiar
+    </button>
+  </form>
+
+  <div *ngIf="error" class="admin-error-banner" role="alert">
+    <span>{{ error }}</span>
+    <button type="button" class="admin-btn-sm" (click)="cargar()">Reintentar</button>
+  </div>
+
+  <div *ngIf="cargando" class="admin-card" aria-busy="true">
+    <div class="admin-skeleton-row" style="width: 40%; margin-bottom: 12px;"></div>
+    <div class="admin-skeleton-row" style="width: 85%;"></div>
+  </div>
+
+  <div *ngIf="!cargando && eventos.length === 0 && !error" class="admin-state-box">
+    <h3>Sin eventos de auditoría</h3>
+    <p>No hay registros que coincidan con los filtros aplicados.</p>
+    <button type="button" class="btn-secondary" (click)="limpiarFiltros()">Restablecer filtros</button>
+  </div>
+
+  <div *ngIf="!cargando && eventos.length > 0" class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Acción</th>
+          <th>Entidad</th>
+          <th>Actor</th>
+          <th>IP</th>
+          <th>Detalle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let ev of eventos">
+          <td>{{ formatearFecha(ev.creadoEn) }}</td>
+          <td><span class="admin-badge admin-badge-blue">{{ ev.accion }}</span></td>
+          <td>
+            <span class="admin-cell-primary">{{ ev.entidad }}</span>
+            <span class="admin-cell-secondary" *ngIf="ev.entidadId">{{ ev.entidadId }}</span>
+          </td>
+          <td>{{ ev.actorCorreo || ev.actorUsuarioId || 'Sistema' }}</td>
+          <td>{{ ev.ip || '—' }}</td>
+          <td>
+            <button type="button" class="admin-btn-sm" (click)="seleccionado = ev">Ver detalle</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="admin-pagination">
+      <span>Página {{ paginacion.pagina }} de {{ paginacion.totalPaginas || 1 }} · {{ paginacion.total }} eventos</span>
+      <div class="admin-pagination-controls">
+        <button type="button" class="admin-btn-sm" (click)="cargar(paginacion.pagina - 1)" [disabled]="paginacion.pagina <= 1">
+          Anterior
+        </button>
+        <button type="button" class="admin-btn-sm" (click)="cargar(paginacion.pagina + 1)" [disabled]="paginacion.pagina >= paginacion.totalPaginas">
+          Siguiente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalle Evento -->
+  <div class="admin-modal-backdrop" *ngIf="seleccionado as ev" (click)="seleccionado = null">
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="aud-detalle-titulo" (click)="$event.stopPropagation()">
+      <div class="admin-modal-header">
+        <div>
+          <h2 id="aud-detalle-titulo" class="admin-modal-title">{{ ev.accion }}</h2>
+          <span class="admin-cell-secondary">{{ formatearFecha(ev.creadoEn) }} · {{ ev.id }}</span>
+        </div>
+        <button type="button" class="admin-modal-close" (click)="seleccionado = null" aria-label="Cerrar detalle">✕</button>
+      </div>
+
+      <div class="admin-kv-grid">
+        <div class="admin-kv-item">
+          <small>Actor</small>
+          <span>{{ ev.actorCorreo || ev.actorUsuarioId || 'Sistema' }}</span>
+        </div>
+        <div class="admin-kv-item">
+          <small>Entidad</small>
+          <span>{{ ev.entidad }} ({{ ev.entidadId || '—' }})</span>
+        </div>
+        <div class="admin-kv-item">
+          <small>Dirección IP</small>
+          <span>{{ ev.ip || '—' }}</span>
+        </div>
+        <div class="admin-kv-item">
+          <small>Agente de usuario</small>
+          <span>{{ ev.userAgent || '—' }}</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Metadatos</label>
+        <pre style="margin: 0; padding: 14px; background: #f8faff; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; overflow-x: auto;">{{ formatearMetadatos(ev.metadatos) }}</pre>
+      </div>
+
+      <div class="admin-modal-footer">
+        <button type="button" class="btn-secondary" (click)="seleccionado = null">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</section>

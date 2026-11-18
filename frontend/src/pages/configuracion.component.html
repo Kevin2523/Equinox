@@ -1,117 +1,501 @@
-<main class="standard">
-<section class="collection">
-    <div class="page-title">
-      <div>
-        <p class="eyebrow">EQUINOX / CONFIGURACIÓN</p>
-        <h1>Marca y Estudio</h1>
-        <p>Personaliza la identidad visual que verán tus clientes en su portal.</p>
+<main class="config-page">
+  <section class="config-shell">
+    <!-- CABECERA -->
+    <header class="config-header">
+      <div class="config-header-copy">
+        <h1>Marca y estudio</h1>
+        <p>Personaliza la identidad visual de tu portal del cliente.</p>
       </div>
-      <button class="btn-primary" (click)="state.saveConfig()">
-        Guardar cambios
-      </button>
-    </div>
-
-    <div class="settings-layout">
-      <!-- Settings Form -->
-      <div class="settings-form-card">
-        <h3>Datos del estudio</h3>
-        <div class="form-group">
-          <label>Nombre del estudio</label>
-          <input class="form-control" [(ngModel)]="state.configuracion.nombreEstudio">
-        </div>
-        <div class="form-group">
-          <label>Nombre del freelancer</label>
-          <input class="form-control" [(ngModel)]="state.configuracion.nombreFreelancer">
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Correo de contacto</label>
-            <input class="form-control" [(ngModel)]="state.configuracion.correo">
-          </div>
-          <div class="form-group">
-            <label>Teléfono (WhatsApp)</label>
-            <input class="form-control" [(ngModel)]="state.configuracion.telefono">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>RUC / Cédula fiscal</label>
-            <input class="form-control" [(ngModel)]="state.configuracion.ruc">
-          </div>
-          <div class="form-group">
-            <label>Moneda principal</label>
-            <input class="form-control" [(ngModel)]="state.configuracion.moneda">
-          </div>
-        </div>
-
-        <h3 class="mt-4">Personalización visual del portal</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Color primario de marca</label>
-            <div class="color-picker-wrapper">
-              <input type="color" [(ngModel)]="state.configuracion.colorPrimario">
-              <span>{{ state.configuracion.colorPrimario }}</span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Color secundario</label>
-            <div class="color-picker-wrapper">
-              <input type="color" [(ngModel)]="state.configuracion.colorSecundario">
-              <span>{{ state.configuracion.colorSecundario }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Tipografía del portal</label>
-          <select class="form-control" [(ngModel)]="state.configuracion.tipografia">
-            <option value="DM Sans">DM Sans (Elegante y moderna)</option>
-            <option value="Manrope">Manrope (Geométrica)</option>
-            <option value="Inter">Inter (Técnica)</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Mensaje de bienvenida para clientes</label>
-          <textarea class="form-control" [(ngModel)]="state.configuracion.mensajeBienvenida"></textarea>
-        </div>
-
-        <button class="btn-primary" (click)="state.saveConfig()">
-          ✓ Guardar configuración
+      <div class="config-header-actions">
+        <button
+          type="button"
+          class="btn-save-primary"
+          [disabled]="!esPropietario || guardando || cargandoOrg || !hayCambiosSinGuardar || !formularioValido"
+          (click)="guardarCambios()"
+        >
+          {{ guardando ? 'Guardando…' : 'Guardar cambios' }}
         </button>
       </div>
+    </header>
 
-      <!-- Real-Time Portal Preview -->
-      <div class="portal-preview-card">
-        <div class="preview-head">
-          <small>VISTA PREVIA EN VIVO</small>
-          <b>Portal del cliente de {{ state.configuracion.nombreEstudio }}</b>
-        </div>
-        <div class="mockup-frame">
-          <div class="mockup-topbar" [style.background]="state.configuracion.colorSecundario">
-            <div class="mockup-brand">
-              <span class="mockup-dot" [style.background]="state.configuracion.colorPrimario"></span>
-              <strong [style.font-family]="state.configuracion.tipografia">{{ state.configuracion.nombreEstudio }}</strong>
-            </div>
-            <small>Portal de Cliente</small>
-          </div>
-          <div class="mockup-body">
-            <div class="mockup-welcome" [style.border-left-color]="state.configuracion.colorPrimario">
-              <p>{{ state.configuracion.mensajeBienvenida }}</p>
-            </div>
-            <div class="mockup-project">
-              <div class="mockup-p-title">
-                <b>Café Unido</b>
-                <span class="badge badge-revision">En revisión</span>
+    <!-- AVISO DE SOLO LECTURA PARA COLABORADOR -->
+    <div
+      class="readonly-banner"
+      *ngIf="!cargandoOrg && !esPropietario"
+      role="status"
+    >
+      <span class="readonly-dot" aria-hidden="true"></span>
+      <span>Solo el propietario del estudio puede modificar los datos y la apariencia del portal.</span>
+    </div>
+
+    <!-- LAYOUT DE 3 COLUMNAS -->
+    <div class="config-grid">
+      <!-- NAVEGACIÓN LATERAL -->
+      <nav class="config-sidebar" aria-label="Secciones de configuración">
+        <button
+          type="button"
+          class="sidebar-item"
+          [class.active]="seccionActiva === 'estudio'"
+          [attr.aria-current]="seccionActiva === 'estudio' ? 'page' : null"
+          (click)="seleccionarSeccion('estudio')"
+        >
+          <span class="sidebar-item-copy">
+            <strong>Datos del estudio</strong>
+            <small>Datos fiscales y de contacto</small>
+          </span>
+          <span class="sidebar-chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-item"
+          [class.active]="seccionActiva === 'portal'"
+          [attr.aria-current]="seccionActiva === 'portal' ? 'page' : null"
+          (click)="seleccionarSeccion('portal')"
+        >
+          <span class="sidebar-item-copy">
+            <strong>Portal del cliente</strong>
+          </span>
+          <span class="sidebar-chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-item"
+          [class.active]="seccionActiva === 'acceso'"
+          [attr.aria-current]="seccionActiva === 'acceso' ? 'page' : null"
+          (click)="seleccionarSeccion('acceso')"
+        >
+          <span class="sidebar-item-copy">
+            <strong>Acceso y finanzas</strong>
+          </span>
+          <span class="sidebar-chevron" aria-hidden="true">›</span>
+        </button>
+      </nav>
+
+      <!-- COLUMNA CENTRAL DE CONTROLES -->
+      <div class="config-controls">
+        <!-- SECCIÓN: PORTAL DEL CLIENTE -->
+        <ng-container *ngIf="seccionActiva === 'portal'">
+          <!-- Tarjeta resumen del estudio -->
+          <div class="studio-summary-card">
+            <div class="studio-summary-info">
+              <div class="studio-icon-box" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="3" width="16" height="18" rx="2" />
+                  <path d="M9 21v-4h6v4" />
+                  <path d="M8 7h2M14 7h2M8 11h2M14 11h2" />
+                </svg>
               </div>
-              <div class="mockup-p-progress">
-                <div class="mockup-bar" [style.width]="'72%'" [style.background]="state.configuracion.colorPrimario"></div>
+              <div class="studio-summary-text">
+                <strong>{{ form.nombre || 'Tu estudio' }}</strong>
+                <span>Freelancer: {{ nombreFreelancer }}</span>
               </div>
-              <small>Avance: 72% · Próxima entrega: 15 abr 2026</small>
+            </div>
+            <button
+              type="button"
+              class="btn-edit-studio-link"
+              (click)="irAEditarDatosEstudio()"
+            >
+              Editar datos <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+
+          <h2 class="section-heading">Apariencia del portal</h2>
+
+          <div class="color-fields-row">
+            <div class="field-block">
+              <label for="colorPrimarioTexto">Color primario de marca</label>
+              <div class="color-input-box" [class.field-invalid]="!colorPrimarioValido">
+                <input
+                  type="color"
+                  aria-label="Selector visual de color primario"
+                  [ngModel]="colorPrimarioPreview"
+                  [disabled]="!esPropietario || cargandoOrg"
+                  (ngModelChange)="alCambiarColorPicker('primario', $event)"
+                />
+                <input
+                  id="colorPrimarioTexto"
+                  type="text"
+                  maxlength="7"
+                  placeholder="#2563EB"
+                  [ngModel]="colorPrimarioTexto"
+                  [disabled]="!esPropietario || cargandoOrg"
+                  (ngModelChange)="alCambiarColorTexto('primario', $event)"
+                />
+              </div>
+              <small class="field-error" *ngIf="!colorPrimarioValido" role="alert">
+                Usa un color hexadecimal válido (#RRGGBB).
+              </small>
+            </div>
+
+            <div class="field-block">
+              <label for="colorSecundarioTexto">Color secundario</label>
+              <div class="color-input-box" [class.field-invalid]="!colorSecundarioValido">
+                <input
+                  type="color"
+                  aria-label="Selector visual de color secundario"
+                  [ngModel]="colorSecundarioPreview"
+                  [disabled]="!esPropietario || cargandoOrg"
+                  (ngModelChange)="alCambiarColorPicker('secundario', $event)"
+                />
+                <input
+                  id="colorSecundarioTexto"
+                  type="text"
+                  maxlength="7"
+                  placeholder="#0F172A"
+                  [ngModel]="colorSecundarioTexto"
+                  [disabled]="!esPropietario || cargandoOrg"
+                  (ngModelChange)="alCambiarColorTexto('secundario', $event)"
+                />
+              </div>
+              <small class="field-error" *ngIf="!colorSecundarioValido" role="alert">
+                Usa un color hexadecimal válido (#RRGGBB).
+              </small>
             </div>
           </div>
+
+          <!-- Aviso automático de contraste -->
+          <div
+            class="contrast-warning-box"
+            *ngIf="contrastePaleta.advertencias.length > 0"
+            role="status"
+          >
+            <span class="contrast-badge">Contraste</span>
+            <p>{{ contrastePaleta.advertencias[0] }}</p>
+          </div>
+
+          <div class="field-block">
+            <div class="label-with-counter">
+              <label for="mensajeBienvenidaTextarea">Mensaje de bienvenida para clientes</label>
+              <span class="char-counter">{{ form.portalMensajeBienvenida.length }}/400</span>
+            </div>
+            <textarea
+              id="mensajeBienvenidaTextarea"
+              class="control-input control-textarea"
+              maxlength="400"
+              rows="3"
+              [placeholder]="placeholderMensajeBienvenida"
+              [(ngModel)]="form.portalMensajeBienvenida"
+              [disabled]="!esPropietario || cargandoOrg"
+              (ngModelChange)="marcarEditado()"
+            ></textarea>
+          </div>
+
+          <hr class="section-divider" />
+
+          <!-- Facturas visibles (acceso rápido sincronizado) -->
+          <div class="invoices-toggle-section">
+            <h3 class="subsection-heading">Facturas visibles</h3>
+            <div class="invoices-toggle-row">
+              <div class="invoices-toggle-left">
+                <button
+                  type="button"
+                  role="switch"
+                  id="portalFacturasSwitchRapido"
+                  class="switch-control"
+                  [class.switch-on]="portalMostrarFinanzas"
+                  [attr.aria-checked]="portalMostrarFinanzas"
+                  aria-label="Mostrar facturas en el portal del cliente"
+                  [disabled]="!esPropietario || guardandoFinanzas || cargandoOrg"
+                  (click)="cambiarPortalMostrarFinanzas(!portalMostrarFinanzas)"
+                >
+                  <span class="switch-thumb"></span>
+                </button>
+                <span class="invoices-toggle-desc">
+                  Solo los titulares verán las facturas al activar esta opción.
+                </span>
+              </div>
+              <span
+                class="status-pill"
+                [class.status-pill-on]="portalMostrarFinanzas"
+                [class.status-pill-off]="!portalMostrarFinanzas"
+              >
+                {{ portalMostrarFinanzas ? 'Visible' : 'Oculto' }}
+              </span>
+            </div>
+            <small class="inline-status-text" *ngIf="guardandoFinanzas">
+              Actualizando visibilidad de facturas…
+            </small>
+            <small class="inline-status-success" *ngIf="mensajeExitoFinanzas" role="status">
+              {{ mensajeExitoFinanzas }}
+            </small>
+            <small class="field-error" *ngIf="errorFinanzas" role="alert">
+              {{ errorFinanzas }}
+            </small>
+          </div>
+        </ng-container>
+
+        <!-- SECCIÓN: DATOS DEL ESTUDIO -->
+        <ng-container *ngIf="seccionActiva === 'estudio'">
+          <h2 class="section-heading">Datos del estudio</h2>
+          <p class="section-subcopy">
+            Información fiscal y de contacto de tu organización. Se guarda al pulsar «Guardar cambios».
+          </p>
+
+          <div class="field-block">
+            <label for="inputNombreEstudio">Nombre del estudio</label>
+            <input
+              #inputNombreEstudio
+              id="inputNombreEstudio"
+              type="text"
+              class="control-input"
+              maxlength="120"
+              [(ngModel)]="form.nombre"
+              [disabled]="!esPropietario || cargandoOrg"
+              (ngModelChange)="marcarEditado()"
+            />
+            <small class="field-error" *ngIf="!nombreValido" role="alert">
+              El nombre del estudio debe tener al menos 2 caracteres.
+            </small>
+          </div>
+
+          <div class="two-col-row">
+            <div class="field-block">
+              <label for="inputCorreoContacto">Correo de contacto</label>
+              <input
+                id="inputCorreoContacto"
+                type="email"
+                class="control-input"
+                maxlength="120"
+                placeholder="hola@tuestudio.com"
+                [(ngModel)]="form.correoContacto"
+                [disabled]="!esPropietario || cargandoOrg"
+                (ngModelChange)="marcarEditado()"
+              />
+              <small class="field-error" *ngIf="!correoValido" role="alert">
+                Ingresa un correo electrónico válido.
+              </small>
+            </div>
+
+            <div class="field-block">
+              <label for="inputTelefono">Teléfono (WhatsApp)</label>
+              <input
+                id="inputTelefono"
+                type="text"
+                class="control-input"
+                maxlength="40"
+                placeholder="+507 6000-0000"
+                [(ngModel)]="form.telefono"
+                [disabled]="!esPropietario || cargandoOrg"
+                (ngModelChange)="marcarEditado()"
+              />
+            </div>
+          </div>
+
+          <div class="two-col-row">
+            <div class="field-block">
+              <label for="inputRuc">RUC / Cédula fiscal</label>
+              <input
+                id="inputRuc"
+                type="text"
+                class="control-input"
+                maxlength="60"
+                [(ngModel)]="form.ruc"
+                [disabled]="!esPropietario || cargandoOrg"
+                (ngModelChange)="marcarEditado()"
+              />
+            </div>
+
+            <div class="field-block">
+              <label for="selectMoneda">Moneda principal</label>
+              <select
+                id="selectMoneda"
+                class="control-input"
+                [(ngModel)]="form.moneda"
+                [disabled]="!esPropietario || cargandoOrg"
+                (ngModelChange)="marcarEditado()"
+              >
+                <option *ngFor="let m of monedasDisponibles" [value]="m">
+                  {{ m }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <label for="inputDireccion">Dirección fiscal o comercial</label>
+            <input
+              id="inputDireccion"
+              type="text"
+              class="control-input"
+              maxlength="240"
+              [(ngModel)]="form.direccion"
+              [disabled]="!esPropietario || cargandoOrg"
+              (ngModelChange)="marcarEditado()"
+            />
+          </div>
+        </ng-container>
+
+        <!-- SECCIÓN: ACCESO Y FINANZAS -->
+        <ng-container *ngIf="seccionActiva === 'acceso'">
+          <h2 class="section-heading">Acceso y finanzas</h2>
+          <p class="section-subcopy">
+            Define tu especialidad de trabajo y qué información financiera pueden consultar tus clientes titulares.
+          </p>
+
+          <div class="field-block">
+            <label for="tipoFreelanceSelect">Modalidad de freelance / Especialidad</label>
+            <select
+              id="tipoFreelanceSelect"
+              class="control-input"
+              [(ngModel)]="tipoFreelanceSeleccionado"
+              [disabled]="!esPropietario || guardandoTipo || cargandoOrg"
+              (ngModelChange)="cambiarTipoFreelance($event)"
+            >
+              <option value="GENERAL">General / Multidisciplinario</option>
+              <option value="DESARROLLO_SOFTWARE">Desarrollo de Software</option>
+              <option value="FOTOGRAFIA">Fotografía</option>
+              <option value="DISENO_GRAFICO">Diseño Gráfico</option>
+            </select>
+            <small class="field-hint" *ngIf="esPropietario && !guardandoTipo">
+              Puedes cambiar de modalidad en cualquier momento sin perder ningún dato ni historial.
+            </small>
+            <small class="field-hint" *ngIf="!esPropietario">
+              Solo el propietario del estudio tiene permisos para cambiar la modalidad.
+            </small>
+            <small class="inline-status-text" *ngIf="guardandoTipo">
+              Guardando cambios de modalidad…
+            </small>
+            <small class="inline-status-success" *ngIf="mensajeExitoTipo" role="status">
+              {{ mensajeExitoTipo }}
+            </small>
+            <small class="field-error" *ngIf="errorTipo" role="alert">
+              {{ errorTipo }}
+            </small>
+          </div>
+
+          <div class="portal-finanzas-card">
+            <div class="finanzas-card-head">
+              <div class="finanzas-card-copy">
+                <label for="portalMostrarFinanzasToggle" class="finanzas-checkbox-label">
+                  <input
+                    type="checkbox"
+                    id="portalMostrarFinanzasToggle"
+                    [(ngModel)]="portalMostrarFinanzas"
+                    [disabled]="!esPropietario || guardandoFinanzas || cargandoOrg"
+                    (ngModelChange)="cambiarPortalMostrarFinanzas($event)"
+                  />
+                  Mostrar facturas en el portal del cliente
+                </label>
+                <p>
+                  Permite que los contactos titulares de cada cliente consulten sus facturas emitidas, pendientes y pagadas. Los colaboradores del cliente no tendrán acceso a estos datos financieros.
+                </p>
+              </div>
+              <span
+                class="status-pill"
+                [class.status-pill-on]="portalMostrarFinanzas"
+                [class.status-pill-off]="!portalMostrarFinanzas"
+              >
+                {{ portalMostrarFinanzas ? 'Visible en portal' : 'Oculto' }}
+              </span>
+            </div>
+
+            <div class="finanzas-card-feedback">
+              <small class="field-hint" *ngIf="!esPropietario">
+                Solo el propietario del estudio tiene permisos para modificar la visualización de facturas.
+              </small>
+              <small class="inline-status-text" *ngIf="guardandoFinanzas">
+                Guardando preferencia de facturas en el portal…
+              </small>
+              <small class="inline-status-success" *ngIf="mensajeExitoFinanzas" role="status">
+                {{ mensajeExitoFinanzas }}
+              </small>
+              <small class="field-error" *ngIf="errorFinanzas" role="alert">
+                {{ errorFinanzas }}
+              </small>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- ESTADO DE CAMBIOS (SIN GUARDAR / GUARDANDO / GUARDADO / ERROR) -->
+        <div
+          class="save-status-footer"
+          *ngIf="seccionActiva !== 'acceso'"
+          [attr.role]="estadoGuardado === 'error' ? 'alert' : 'status'"
+          aria-live="polite"
+        >
+          <span class="status-indicator status-unsaved" *ngIf="estadoGuardado === 'sin_guardar'">
+            <i class="status-dot" aria-hidden="true"></i>
+            Cambios sin guardar
+          </span>
+          <span class="status-indicator status-saving" *ngIf="estadoGuardado === 'guardando'">
+            <i class="status-dot" aria-hidden="true"></i>
+            Guardando cambios…
+          </span>
+          <span class="status-indicator status-saved" *ngIf="estadoGuardado === 'guardado'">
+            <i class="status-dot" aria-hidden="true"></i>
+            Cambios guardados en el portal
+          </span>
+          <span class="status-indicator status-error" *ngIf="estadoGuardado === 'error'">
+            <i class="status-dot" aria-hidden="true"></i>
+            {{ errorGuardado }}
+          </span>
         </div>
       </div>
+
+      <!-- COLUMNA DERECHA: VISTA PREVIA EN VIVO -->
+      <aside class="config-preview-pane" aria-label="Vista previa en vivo del portal del cliente">
+        <div class="preview-toolbar">
+          <div>
+            <h2>Vista previa en vivo</h2>
+            <small class="preview-disclaimer">Representación fiel del portal del cliente actual</small>
+          </div>
+          <div class="device-toggle" role="group" aria-label="Tamaño de vista previa">
+            <button
+              type="button"
+              class="device-btn"
+              [class.active]="modoPreview === 'desktop'"
+              [attr.aria-pressed]="modoPreview === 'desktop'"
+              (click)="seleccionarModoPreview('desktop')"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+              </svg>
+              Desktop
+            </button>
+            <button
+              type="button"
+              class="device-btn"
+              [class.active]="modoPreview === 'movil'"
+              [attr.aria-pressed]="modoPreview === 'movil'"
+              (click)="seleccionarModoPreview('movil')"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="6" y="2" width="12" height="20" rx="2" />
+                <path d="M12 18h.01" />
+              </svg>
+              Móvil
+            </button>
+          </div>
+        </div>
+
+        <div class="preview-stage" [class.preview-stage-mobile]="modoPreview === 'movil'">
+          <app-portal-preview
+            [modo]="modoPreview"
+            [nombreEstudio]="form.nombre"
+            [esFotografia]="esFotografia"
+            [colorPrimario]="colorPrimarioPreview"
+            [colorSecundario]="colorSecundarioPreview"
+            [mensajeBienvenida]="form.portalMensajeBienvenida"
+            [portalMostrarFinanzas]="portalMostrarFinanzas"
+            [vistaPrevia]="vistaPrevia"
+            [cargando]="cargandoVistaPrevia"
+          ></app-portal-preview>
+        </div>
+
+        <div class="preview-invoices-banner" role="status">
+          <span class="info-circle" aria-hidden="true">i</span>
+          <span>
+            {{
+              portalMostrarFinanzas
+                ? 'Facturas visibles en el portal solo para contactos titulares.'
+                : 'Facturas ocultas en el portal.'
+            }}
+          </span>
+        </div>
+      </aside>
     </div>
   </section>
 </main>

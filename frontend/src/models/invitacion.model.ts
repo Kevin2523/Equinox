@@ -48,7 +48,7 @@ export interface ConsultaInvitacionPublica {
   rol: RolInvitacion;
   expiraEn: string;
   cliente: { nombre: string; empresa: string | null };
-  organizacion: { nombre: string; logoUrl: string | null };
+  organizacion: { nombre: string; logoUrl: string | null; tipoFreelance?: string | null };
   esUsuarioExistente: boolean;
 }
 

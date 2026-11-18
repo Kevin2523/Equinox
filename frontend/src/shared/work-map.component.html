@@ -1,74 +1,221 @@
-<section class="map-area" >
-    <!-- Map Header -->
-    <div class="map-head">
-      <div>
-        <p class="eyebrow">VISTA GENERAL</p>
-        <h1>Mapa de trabajo</h1>
-        <p><b>{{ totalActivos }}</b> proyectos activos conectados</p>
+<!-- ==========================================================================
+     CANVAS DE TRABAJO TÁCTIL (HOY / EQUINOX)
+     Fiel a la referencia: Lienzo cálido con cuadrícula, carpetas físicas conectadas
+     a un nodo central, proyecto seleccionado en azul y barra de herramientas flotante.
+     ========================================================================== -->
+<section
+  class="map-canvas-container"
+  [class.grabbing]="isDragging"
+  (mousedown)="onMouseDown($event)"
+  (touchstart)="onTouchStart($event)"
+  (touchmove)="onTouchMove($event)"
+  (touchend)="onTouchEnd()"
+  (touchcancel)="onTouchEnd()"
+  aria-label="Lienzo de mapa de trabajo interactivo"
+>
+  <!-- Canvas Header (Top-Left) -->
+  <div class="canvas-header">
+    <p class="canvas-eyebrow">{{ studioName }} / ESPACIO 01</p>
+    <h1 class="canvas-title">Todo conectado.</h1>
+    <p class="canvas-subtitle">{{ totalProyectosVisibles === 0 ? 'Sin proyectos en movimiento' : (totalProyectosVisibles + (totalProyectosVisibles === 1 ? ' proyecto en movimiento' : ' proyectos en movimiento')) }}</p>
+  </div>
+
+  <!-- Interactive Pan & Zoom Viewport -->
+  <div
+    class="canvas-viewport"
+    [style.transform]="'translate(' + panX + 'px, ' + panY + 'px) scale(' + (zoomLevel / 100) + ')'"
+  >
+    <div class="canvas-stage" [style.width.px]="stageWidth" [style.height.px]="stageHeight">
+      <!-- SVG Curved Connection Lines Layer -->
+      <svg class="connections-svg" [attr.viewBox]="'0 0 ' + stageWidth + ' ' + stageHeight" preserveAspectRatio="none" aria-hidden="true">
+        <g *ngFor="let p of proyectosVisuales; trackBy: trackByProyectoId">
+          <!-- Connecting Bezier Curve -->
+          <path
+            [attr.d]="p.curvePath"
+            class="conn-path"
+            [class.selected]="api.proyectoSeleccionado?.id === p.id"
+          />
+
+          <!-- Terminal Pin at folder connection point -->
+          <circle
+            [attr.cx]="p.connX"
+            [attr.cy]="p.connY"
+            [attr.r]="api.proyectoSeleccionado?.id === p.id ? 4.5 : 3.5"
+            class="conn-dot"
+            [class.selected]="api.proyectoSeleccionado?.id === p.id"
+          />
+        </g>
+      </svg>
+
+      <!-- Central Hub Node (Organización autenticada) -->
+      <div
+        class="central-hub"
+        [style.left.px]="hubX"
+        [style.top.px]="hubY"
+        (click)="resetZoom()"
+        (keydown.enter)="resetZoom()"
+        (keydown.space)="$event.preventDefault(); resetZoom()"
+        title="Restablecer vista"
+        role="button"
+        tabindex="0"
+      >
+        <span class="hub-line-1">{{ hubLine1 }}</span>
+        <span class="hub-line-2">{{ hubLine2 }}</span>
       </div>
 
-      <!-- Map Search Bar -->
-      <label class="map-search">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input [(ngModel)]="state.query" placeholder="Buscar clientes o proyectos...">
-      </label>
+      <!-- Empty State Card (Organizaciones sin proyectos) -->
+      <div
+        class="empty-map-node"
+        *ngIf="!cargando && totalProyectosVisibles === 0"
+        [style.left.px]="hubX"
+        [style.top.px]="hubY + 130"
+      >
+        <div class="empty-map-card">
+          <div class="empty-icon-ring">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </div>
+          <h3 class="empty-map-title">Sin proyectos activos</h3>
+          <p class="empty-map-text">Esta organización aún no tiene proyectos registrados.</p>
+          <button type="button" class="empty-map-action" (click)="state.openQuickCreate('Proyecto')">
+            + Crear primer proyecto
+          </button>
+        </div>
+      </div>
+
+      <!-- Project Folders (Carpetas / Fichas Visuales) -->
+      <button
+        *ngFor="let p of proyectosVisuales; trackBy: trackByProyectoId"
+        type="button"
+        class="folder-node"
+        [class.selected]="api.proyectoSeleccionado?.id === p.id"
+        [style.left.px]="p.posX"
+        [style.top.px]="p.posY"
+        [style.transform]="'translate(-50%, -50%) rotate(' + p.tiltDeg + 'deg)'"
+        (click)="seleccionar(p)"
+        [attr.aria-pressed]="api.proyectoSeleccionado?.id === p.id"
+        [attr.aria-label]="p.nombre + ', ' + p.statusDisplay"
+      >
+        <div class="folder-card-wrapper">
+          <!-- The Document / Photo Card Sticking Out Behind -->
+          <div class="folder-insert">
+            <!-- Tab on Top -->
+            <div class="insert-tab-row">
+              <span
+                class="insert-num-badge"
+                [class.badge-blue]="api.proyectoSeleccionado?.id === p.id"
+                [class.badge-lime]="api.proyectoSeleccionado?.id !== p.id && p.variant === 'lime'"
+                [class.badge-kraft]="api.proyectoSeleccionado?.id !== p.id && p.variant === 'kraft'"
+              >
+                {{ p.tabNum }}
+              </span>
+
+              <!-- Paperclip on top-right/left -->
+              <span class="paperclip" *ngIf="p.tabNum === '01' || p.tabNum === '04'"></span>
+            </div>
+
+            <!-- Graphic Preview Canvas within the Insert (Neutral & Driven by Real Data) -->
+            <div class="insert-graphic">
+              <!-- Style 0: Editorial / Typography Layout -->
+              <div class="preview-card preview-editorial" *ngIf="p.previewStyle === 'editorial'">
+                <div class="card-editorial-main">
+                  <span class="card-micro-tag">{{ p.cliente?.empresa || p.cliente?.nombre || studioName }}</span>
+                  <span class="card-editorial-title">{{ p.nombre }}</span>
+                  <span class="card-editorial-meta" *ngIf="p.formattedDate">Entrega: {{ p.formattedDate }}</span>
+                </div>
+                <div class="card-editorial-side">
+                  <span class="card-monogram">{{ p.initials }}</span>
+                </div>
+              </div>
+
+              <!-- Style 1: Architectural Blueprint / Technical Grid -->
+              <div class="preview-card preview-blueprint" *ngIf="p.previewStyle === 'blueprint'">
+                <div class="blueprint-grid-overlay"></div>
+                <div class="blueprint-content">
+                  <div class="blueprint-header">
+                    <span class="blueprint-badge">FICHA TECNICA</span>
+                    <span class="blueprint-ref">#{{ p.tabNum }}</span>
+                  </div>
+                  <div class="blueprint-title">{{ p.nombre }}</div>
+                  <div class="blueprint-footer">
+                    <span class="blueprint-status">{{ p.statusDisplay }}</span>
+                    <span class="blueprint-metric" *ngIf="p._count?.tareas">{{ p._count?.tareas }} tareas</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Style 2: Craft / Warm Minimal Stamp -->
+              <div class="preview-card preview-craft" *ngIf="p.previewStyle === 'craft'">
+                <div class="craft-left">
+                  <div class="craft-stamp">{{ p.initials }}</div>
+                </div>
+                <div class="craft-right">
+                  <span class="craft-eyebrow">{{ p.cliente?.nombre || 'PROYECTO' }}</span>
+                  <span class="craft-title">{{ p.nombre }}</span>
+                  <span class="craft-status-pill">{{ p.statusDisplay }}</span>
+                </div>
+              </div>
+
+              <!-- Style 3: Monochrome Architectural Frame -->
+              <div class="preview-card preview-monochrome" *ngIf="p.previewStyle === 'monochrome'">
+                <div class="mono-facade">
+                  <div class="mono-frame">
+                    <span class="mono-title">{{ p.nombre }}</span>
+                    <span class="mono-client">{{ p.cliente?.empresa || p.cliente?.nombre || studioName }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Front Folder Pocket (Pouch) -->
+          <div class="folder-pocket" [ngClass]="'variant-' + p.variant">
+            <div class="pocket-body">
+              <h2 class="folder-title">{{ p.nombre | uppercase }}</h2>
+              <p class="folder-cat">{{ p.categoryDisplay }}</p>
+            </div>
+
+            <div class="pocket-bottom">
+              <div class="folder-divider"></div>
+              <div class="pocket-footer">
+                <span class="status-dot"></span>
+                <span class="status-label">{{ p.statusDisplay }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </button>
     </div>
+  </div>
 
-    <!-- Connections follow the same data coordinates as their project nodes. -->
-    <svg class="connections" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <path *ngFor="let p of proyectosVisibles" class="main-line" [attr.d]="'M 50 50 Q 50 ' + p.y + ' ' + p.x + ' ' + p.y"/>
-    </svg>
+  <!-- Bottom-Left Floating Zoom Widget -->
+  <div class="zoom-dock">
+    <button class="zoom-btn" (click)="zoomOut()" aria-label="Reducir zoom" title="Alejar">−</button>
+    <span class="zoom-pct">{{ zoomLevel }}%</span>
+    <button class="zoom-btn" (click)="zoomIn()" aria-label="Aumentar zoom" title="Acercar">+</button>
+    <div class="zoom-divider"></div>
+    <span class="zoom-hint">Arrastra para explorar</span>
+  </div>
 
-    <!-- Dynamic Relation Labels -->
-    <div class="relation-label collab">
-      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M20 8v6M17 11h6"/></svg>
-      Colaboración
-    </div>
-    <div class="relation-label opportunity">✦ Oportunidad</div>
-    <div class="relation-label synergy">↗ Sinergia</div>
-
-    <!-- Project Nodes on the Map -->
-    <button
-      *ngFor="let p of proyectosVisibles"
-      class="project-node"
-      [style.--node-x]="p.x + '%'"
-      [style.--node-y]="p.y + '%'"
-      [class.selected]="api.proyectoSeleccionado?.id === p.id"
-      (click)="seleccionar(p)"
-      [attr.aria-label]="p.nombre + ' ' + p.estado"
-    >
-      <!-- Circular Visual Node Identity -->
-      <span class="node-visual" [ngClass]="p.visualClass"><i></i></span>
-      <strong>{{ p.nombre }}</strong>
-      <small>{{ p.clienteNombre }}</small>
-
-      <em *ngIf="api.proyectoSeleccionado?.id === p.id">● {{ p.estado }}</em>
+  <!-- Bottom-Center Floating Command Dock -->
+  <div class="command-dock">
+    <button class="dock-create-btn" id="createBtn" (click)="state.openQuickCreate('Proyecto')">
+      <span>+ Crear proyecto</span>
     </button>
+    <div class="dock-divider"></div>
+    <button class="dock-icon-btn" id="dockSearch" (click)="state.openSearch()" title="Buscar">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+    </button>
+    <div class="dock-divider"></div>
+    <button class="dock-icon-btn" (click)="abrirProyectos()" title="Ver proyectos">
+      <svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v11H3zM3 11h18"/></svg>
+    </button>
+  </div>
 
-    <!-- Floating Command Dock -->
-    <div class="command-dock">
-      <button class="create" id="createBtn" (click)="state.openQuickCreate()">
-        <span>＋</span>Crear
-      </button>
-      <i></i>
-      <button id="dockSearch" (click)="state.openSearch()">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        Buscar...
-      </button>
-      <i></i>
-      <button title="Archivos del proyecto" (click)="state.switchTab('archivos')">
-        <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM15 3v5h5M8 13h8M8 17h6"/></svg>
-      </button>
-      <button title="Tareas pendientes" (click)="state.navigate('tareas')">
-        <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v8H3V4h13"/></svg>
-      </button>
-      <button title="Añadir colaborador" (click)="state.collaboratorModalOpen = true">
-        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
-      </button>
-      <i></i>
-      <button title="Más opciones" (click)="state.navigate('configuracion')">•••</button>
-    </div>
-    <div class="map-api-state" *ngIf="cargando">Cargando proyectos…</div>
-    <div class="map-api-state map-api-state-error" *ngIf="error" role="alert">{{ error }} <button type="button" (click)="cargar()">Reintentar</button></div>
-    <div class="map-api-state" *ngIf="!cargando && !error && proyectosVisibles.length === 0">{{ state.query ? 'No hay proyectos que coincidan con la búsqueda.' : 'Todavía no hay proyectos. Crea uno desde la sección Proyectos.' }}</div>
-  </section>
+  <!-- State Toasts -->
+  <div class="map-status-toast" *ngIf="cargando">Cargando proyectos…</div>
+  <div class="map-status-toast map-status-error" *ngIf="error" role="alert">
+    {{ error }} <button type="button" (click)="cargar()">Reintentar</button>
+  </div>
+</section>

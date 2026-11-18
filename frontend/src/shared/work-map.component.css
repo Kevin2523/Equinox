@@ -1,0 +1,1008 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   CANVAS AREA & WARM GRID
+   ========================================================================== */
+.map-canvas-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background-color: #f3efe6;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.map-canvas-container.grabbing {
+  cursor: grabbing;
+}
+
+/* Canvas Header (Top-Left) */
+.canvas-header {
+  position: absolute;
+  top: 32px;
+  left: 36px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.canvas-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #555555;
+  text-transform: uppercase;
+  margin: 0 0 4px 0;
+}
+
+.canvas-title {
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.04em;
+  margin: 0 0 4px 0;
+  line-height: 1.1;
+}
+
+.canvas-subtitle {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Interactive Pan/Zoom Layer */
+.canvas-viewport {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  transition: transform 0.08s ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas-stage {
+  position: relative;
+  width: 1000px;
+  height: 760px;
+  flex-shrink: 0;
+}
+
+/* SVG Connections Layer */
+.connections-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.conn-path {
+  fill: none;
+  stroke: #262626;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transition: stroke 0.25s ease, stroke-width 0.25s ease;
+}
+
+.conn-path.selected {
+  stroke: #2563eb;
+  stroke-width: 2.5;
+}
+
+.conn-dot {
+  fill: #262626;
+  transition: fill 0.25s ease, r 0.25s ease;
+}
+
+.conn-dot.selected {
+  fill: #2563eb;
+}
+
+/* Central Hub (Organization Node) */
+.central-hub {
+  position: absolute;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 2px solid #111827;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  z-index: 5;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.central-hub:hover {
+  transform: translate(-50%, -50%) scale(1.04);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12);
+}
+
+.hub-line-1 {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #111827;
+  line-height: 1.15;
+}
+
+.hub-line-2 {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #111827;
+  line-height: 1.15;
+}
+
+/* ==========================================================================
+   TACTILE PROJECT FOLDERS / CARPETAS VISUALES
+   ========================================================================== */
+.folder-node {
+  position: absolute;
+  width: 260px;
+  height: 195px;
+  z-index: 4;
+  cursor: pointer;
+  outline: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  text-align: left;
+  transform-origin: center center;
+  touch-action: manipulation;
+}
+
+.folder-node * {
+  pointer-events: none;
+}
+
+.folder-node.selected {
+  z-index: 9;
+}
+
+.folder-card-wrapper {
+  position: relative;
+  width: 260px;
+  height: 195px;
+}
+
+/* Hover & Focus feedback on desktop/fine pointers (sin desplazamiento geométrico para evitar parpadeos) */
+@media (hover: hover) and (pointer: fine) {
+  .folder-node:hover {
+    z-index: 10;
+  }
+
+  .folder-node.selected:hover {
+    z-index: 11;
+  }
+
+  .folder-node:hover .folder-insert,
+  .folder-node:focus-visible .folder-insert {
+    box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.14);
+  }
+
+  .folder-node:hover .folder-pocket,
+  .folder-node:focus-visible .folder-pocket {
+    box-shadow:
+      0 20px 36px -6px rgba(0, 0, 0, 0.24),
+      0 8px 16px -2px rgba(0, 0, 0, 0.12),
+      0 0 0 2px rgba(17, 24, 39, 0.18);
+  }
+
+  .folder-node.selected:hover .folder-pocket.variant-blue,
+  .folder-node.selected:focus-visible .folder-pocket.variant-blue {
+    box-shadow:
+      0 22px 42px -6px rgba(29, 78, 216, 0.48),
+      0 8px 18px rgba(29, 78, 216, 0.24),
+      0 0 0 2px rgba(37, 99, 235, 0.4);
+  }
+}
+
+/* Accessible focus ring for keyboard navigation */
+.folder-node:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 4px;
+  border-radius: 14px;
+  z-index: 12;
+}
+
+/* The Document / Photo Card Sticking Out Behind */
+.folder-insert {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 120px;
+  padding-bottom: 43px;
+  box-sizing: border-box;
+  z-index: 1;
+  background: #ffffff;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s ease;
+}
+
+/* Top Tab Sticking Out */
+.insert-tab-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px 2px;
+  background: #faf7f2;
+  border-bottom: 1px solid #eae5db;
+}
+
+.insert-num-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #fde047;
+  color: #111827;
+  letter-spacing: 0.05em;
+}
+
+.insert-num-badge.badge-blue {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.insert-num-badge.badge-lime {
+  background: #d9ea4b;
+  color: #111827;
+}
+
+.insert-num-badge.badge-kraft {
+  background: #e2d6c1;
+  color: #111827;
+}
+
+/* Metallic Paperclip */
+.paperclip {
+  width: 13px;
+  height: 22px;
+  border: 2px solid #8e9bb0;
+  border-radius: 7px;
+  transform: rotate(-12deg);
+  opacity: 0.85;
+}
+
+/* Preview Graphic Canvas within the Insert */
+.insert-graphic {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.preview-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Style 0: Editorial / Typography Layout */
+.preview-editorial {
+  background: #fcfbf9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 10px;
+  border-bottom: 1px solid #e2dcce;
+}
+
+.card-editorial-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  max-width: 68%;
+  overflow: hidden;
+}
+
+.card-micro-tag {
+  font-size: 8px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-editorial-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-editorial-meta {
+  font-size: 8px;
+  font-weight: 700;
+  color: #d97706;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card-editorial-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30%;
+}
+
+.card-monogram {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1e293b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+/* Style 1: Architectural Blueprint / Technical Grid */
+.preview-blueprint {
+  background: #1e293b;
+  color: #f8fafc;
+  padding: 5px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+.blueprint-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 12px 12px;
+  pointer-events: none;
+}
+
+.blueprint-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.blueprint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.08em;
+}
+
+.blueprint-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.blueprint-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 8px;
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+/* Style 2: Craft / Warm Minimal Stamp */
+.preview-craft {
+  background: #f4f6ea;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+.craft-stamp {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px dashed #4d7c0f;
+  color: #365314;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(132, 204, 22, 0.15);
+  flex-shrink: 0;
+}
+
+.craft-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.craft-eyebrow {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #65a30d;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.craft-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  margin: 1px 0 2px;
+}
+
+.craft-status-pill {
+  font-size: 8px;
+  font-weight: 700;
+  color: #3f6212;
+  background: rgba(132, 204, 22, 0.25);
+  border-radius: 3px;
+  padding: 1px 5px;
+  width: fit-content;
+}
+
+/* Style 3: Monochrome Architectural Frame */
+.preview-monochrome {
+  background: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mono-facade {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  box-sizing: border-box;
+}
+
+.mono-frame {
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.mono-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mono-client {
+  display: block;
+  font-size: 8px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Empty Canvas Node (No Projects) */
+.empty-map-node {
+  position: absolute;
+  transform: translate(-50%, 0);
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.empty-map-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1.5px dashed #d1c8b8;
+  border-radius: 12px;
+  padding: 22px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 270px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
+.empty-icon-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f3efe6;
+  border: 1px solid #e2dcce;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4b5563;
+  margin-bottom: 12px;
+}
+
+.empty-icon-ring svg {
+  width: 22px;
+  height: 22px;
+}
+
+.empty-map-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 6px 0;
+}
+
+.empty-map-text {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.4;
+  margin: 0 0 16px 0;
+}
+
+.empty-map-action {
+  background: #111827;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.empty-map-action:hover {
+  background: #000000;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   THE FRONT FOLDER FLAP / POCKET (CARPETA)
+   ========================================================================== */
+.folder-pocket {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 118px;
+  z-index: 2;
+  box-sizing: border-box;
+  border-radius: 10px;
+  padding: 16px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow:
+    0 16px 30px -8px rgba(0, 0, 0, 0.18),
+    0 4px 10px -2px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.22s ease;
+  overflow: hidden;
+}
+
+/* Realistic Crease on Bottom Corner */
+.folder-pocket::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, transparent 50%, rgba(0, 0, 0, 0.09) 50%);
+  pointer-events: none;
+}
+
+/* Variant A: Royal Blue (Selected Project) */
+.folder-pocket.variant-blue {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  color: #ffffff;
+  box-shadow:
+    0 20px 38px -6px rgba(29, 78, 216, 0.42),
+    0 6px 14px rgba(29, 78, 216, 0.2);
+}
+
+.folder-pocket.variant-blue .folder-title {
+  color: #ffffff;
+}
+
+.folder-pocket.variant-blue .folder-cat {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.folder-pocket.variant-blue .folder-divider {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.folder-pocket.variant-blue .status-dot {
+  background-color: #ffffff;
+}
+
+.folder-pocket.variant-blue .status-label {
+  color: #ffffff;
+}
+
+/* Variant B: Manila Cream */
+.folder-pocket.variant-cream {
+  background: linear-gradient(180deg, #f7f3e8 0%, #eee8d8 100%);
+  color: #111827;
+  border-top: 1px solid #fdfbf7;
+}
+
+/* Variant C: Kraft Cardboard */
+.folder-pocket.variant-kraft {
+  background: linear-gradient(180deg, #ded3be 0%, #d4c7b0 100%);
+  color: #111827;
+  border-top: 1px solid #e7decd;
+}
+
+/* Variant D: Chartreuse Lime */
+.folder-pocket.variant-lime {
+  background: linear-gradient(180deg, #dce842 0%, #cbdb30 100%);
+  color: #111827;
+  border-top: 1px solid #e7f065;
+}
+
+/* Pocket Content */
+.pocket-body {
+  position: relative;
+  z-index: 2;
+}
+
+.folder-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #111827;
+}
+
+.folder-cat {
+  font-size: 11px;
+  font-weight: 500;
+  color: #4b5563;
+  margin: 4px 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pocket-bottom {
+  position: relative;
+  z-index: 2;
+}
+
+.folder-divider {
+  height: 1px;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin: 8px 0;
+}
+
+.pocket-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #111827;
+  flex-shrink: 0;
+}
+
+.status-label {
+  color: #111827;
+}
+
+/* ==========================================================================
+   FLOATING BOTTOM CONTROLS
+   ========================================================================== */
+/* Left Zoom Widget */
+.zoom-dock {
+  position: absolute;
+  bottom: 24px;
+  left: 36px;
+  z-index: 15;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #dfd8ca;
+  border-radius: 8px;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  font-size: 12px;
+  color: #4b5563;
+  backdrop-filter: blur(8px);
+}
+
+.zoom-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #e2dcce;
+  background: #ffffff;
+  color: #111827;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.zoom-btn:hover {
+  background: #f3efe6;
+}
+
+.zoom-pct {
+  font-weight: 600;
+  min-width: 32px;
+  text-align: center;
+  color: #111827;
+}
+
+.zoom-divider {
+  width: 1px;
+  height: 16px;
+  background: #dfd8ca;
+  margin: 0 4px;
+}
+
+.zoom-hint {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Center Command Dock */
+.command-dock {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  background: #18181b;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 6px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.dock-create-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.dock-create-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dock-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.28);
+  margin: 0 2px;
+}
+
+.dock-icon-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dock-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dock-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: block;
+  stroke: #ffffff;
+  stroke-width: 2.2;
+  fill: none;
+}
+
+/* State Toasts */
+.map-status-toast {
+  position: absolute;
+  bottom: 84px;
+  left: 36px;
+  background: #ffffff;
+  border: 1px solid #dfd8ca;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #4b5563;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  z-index: 12;
+}
+
+.map-status-error {
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+/* Responsive Floating Docks on Narrow Screens / Mobile */
+@media (max-width: 900px) {
+  .zoom-hint,
+  .zoom-divider {
+    display: none;
+  }
+  .zoom-dock {
+    left: 16px;
+    bottom: 16px;
+    padding: 3px 8px;
+    gap: 6px;
+  }
+  .command-dock {
+    bottom: 16px;
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 820px) {
+  :host {
+    height: 560px;
+    min-height: 480px;
+  }
+
+  .canvas-header {
+    top: 14px;
+    left: 14px;
+    right: 120px;
+  }
+
+  .canvas-title {
+    font-size: 24px;
+  }
+
+  .zoom-dock {
+    top: 14px;
+    right: 14px;
+    bottom: auto;
+    left: auto;
+    padding: 3px 6px;
+    gap: 4px;
+  }
+
+  .command-dock {
+    bottom: 14px;
+    padding: 4px 10px;
+    gap: 6px;
+  }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY: PREFERS REDUCED MOTION
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .folder-node,
+  .folder-card-wrapper,
+  .folder-insert,
+  .folder-pocket,
+  .canvas-viewport,
+  .conn-path,
+  .conn-dot,
+  .central-hub {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .folder-node:hover .folder-card-wrapper,
+  .folder-node:focus-visible .folder-card-wrapper,
+  .folder-node:hover .folder-insert,
+  .folder-node:focus-visible .folder-insert {
+    transform: none !important;
+  }
+}

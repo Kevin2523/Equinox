@@ -1,82 +1,908 @@
-<main class="standard">
-  <section class="collection">
-    <div class="page-title"><div><p class="eyebrow">EQUINOX / CLIENTES</p><h1>Clientes</h1><p>Directorio y relaciones comerciales.</p></div><button class="btn-primary" type="button" (click)="nuevo()"><span>＋</span> Nuevo cliente</button></div>
-    <div class="metrics-row">
-      <div class="metric-card"><small>TOTAL CLIENTES</small><strong>{{ clientes.length }}</strong><p>Contactos registrados</p></div>
-      <div class="metric-card"><small>CLIENTES ACTIVOS</small><strong>{{ totalActivos }}</strong><p>En esta organización</p></div>
-      <div class="metric-card"><small>PROYECTOS ACTIVOS</small><strong>{{ cargandoProyectosActivos ? '…' : errorProyectosActivos ? '—' : proyectosActivos }}</strong><p *ngIf="!errorProyectosActivos">{{ cargandoProyectosActivos ? 'Actualizando contador…' : 'Proyectos en ejecución' }}</p><div *ngIf="errorProyectosActivos" role="alert"><p>{{ errorProyectosActivos }}</p><button class="btn-card-action" type="button" (click)="cargarProyectosActivos()">Reintentar</button></div></div>
+<main class="clientes-page-container" *ngIf="!esFotografia">
+  <!-- Top selector for Studio Name -->
+  <div class="studio-selector-wrapper">
+    <div class="studio-selector-pill" role="status">
+      <span>{{ nombreEstudio }}</span>
+      <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+      </svg>
     </div>
-    <div class="filter-bar"><label class="search-input-pill"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input [(ngModel)]="busqueda" placeholder="Buscar por nombre, empresa, correo o notas..."></label>
-      <div class="filter-pills"><button [class.active]="filtroEstado === 'TODOS'" (click)="filtroEstado = 'TODOS'">Todos</button><button [class.active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado = 'ACTIVO'">Activos</button><button [class.active]="filtroEstado === 'PROSPECTO'" (click)="filtroEstado = 'PROSPECTO'">Prospectos</button><button [class.active]="filtroEstado === 'INACTIVO'" (click)="filtroEstado = 'INACTIVO'">Inactivos</button></div>
+  </div>
+
+  <!-- Main Title Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <div class="title-row">
+        <h1 class="page-title">Clientes</h1>
+        <span class="contacts-count">{{ conteoTodos }} {{ conteoTodos === 1 ? 'contacto' : 'contactos' }}</span>
+      </div>
+      <p class="page-subtitle">Relaciones que hacen crecer tu estudio.</p>
     </div>
-    <p class="api-state" *ngIf="cargando" role="status">Cargando clientes…</p>
-    <div class="api-state api-state-error" *ngIf="error" role="alert">{{ error }} <button class="btn-secondary" (click)="cargar()">Reintentar</button></div>
-    <div class="api-state" *ngIf="!cargando && !error && clientesVisibles.length === 0">{{ busqueda || filtroEstado !== 'TODOS' ? 'No hay clientes que coincidan con la búsqueda.' : 'Todavía no hay clientes. Crea el primero para comenzar.' }}</div>
-    <div class="clients-grid" *ngIf="!cargando && !error && clientesVisibles.length">
-      <article class="client-card" *ngFor="let c of clientesVisibles">
-        <div class="client-card-head"><span class="client-avatar">{{ c.nombre.substring(0, 2).toUpperCase() }}</span><span class="badge" [class.badge-completado]="c.estado === 'ACTIVO'" [class.badge-planificacion]="c.estado === 'PROSPECTO'">● {{ c.estado }}</span></div>
-        <h3>{{ c.nombre }}</h3><p class="client-company">{{ c.empresa || 'Sin empresa' }}</p>
-        <div class="client-contacts"><span *ngIf="c.correo">✉ {{ c.correo }}</span><span *ngIf="c.telefono">☎ {{ c.telefono }}</span></div>
-        <p class="client-notes" *ngIf="c.notasInternas">{{ c.notasInternas }}</p>
-        <div class="client-card-foot"><span><b>{{ c._count?.proyectos || 0 }}</b> proyecto(s)</span><button class="btn-card-action" (click)="verDetalle(c)">Ver detalles ›</button><button class="btn-card-action" type="button" (click)="abrirInvitaciones(c)">Invitar al portal</button></div>
-      </article>
+    <div class="header-actions">
+      <button class="btn-new-client" type="button" (click)="nuevo()">
+        <span class="plus-sign">+</span>
+        <span>Nuevo cliente</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Filter tabs and search control bar -->
+  <section class="controls-bar" aria-label="Filtros y búsqueda">
+    <div class="tabs-group" role="tablist">
+      <button class="tab-item" role="tab" [class.active]="filtroEstado === 'TODOS'" (click)="setFiltroEstado('TODOS')">
+        Todos <span class="tab-count">{{ conteoTodos }}</span>
+      </button>
+      <button class="tab-item" role="tab" [class.active]="filtroEstado === 'ACTIVO'" (click)="setFiltroEstado('ACTIVO')">
+        Activos <span class="tab-count">{{ conteoActivos }}</span>
+      </button>
+      <button class="tab-item" role="tab" [class.active]="filtroEstado === 'PROSPECTO'" (click)="setFiltroEstado('PROSPECTO')">
+        Prospectos <span class="tab-count">{{ conteoProspectos }}</span>
+      </button>
+      <button class="tab-item" role="tab" [class.active]="filtroEstado === 'INACTIVO'" (click)="setFiltroEstado('INACTIVO')">
+        Inactivos <span class="tab-count">{{ conteoInactivos }}</span>
+      </button>
+    </div>
+
+    <div class="search-filter-group">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="m20 20-4-4"/>
+        </svg>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Buscar clientes..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="onBusquedaChange()"
+          aria-label="Buscar clientes"
+        />
+      </div>
+      <button class="btn-filter-icon" type="button" aria-label="Filtrar clientes" title="Filtros">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+        </svg>
+      </button>
     </div>
   </section>
+
+  <!-- Main Content Layout (Table + Selected Client Inspector) -->
+  <div class="clientes-layout">
+    <!-- Left Column: Table of Clients -->
+    <div class="main-column">
+      <!-- Loading State -->
+      <div class="state-card" *ngIf="cargando">
+        <div class="loading-spinner"></div>
+        <p>Cargando clientes...</p>
+      </div>
+
+      <!-- Error State -->
+      <div class="state-card state-error" *ngIf="!cargando && error" role="alert">
+        <p>{{ error }}</p>
+        <button class="btn-retry" type="button" (click)="cargar()">Reintentar</button>
+      </div>
+
+      <!-- Empty State: Zero Clients in database -->
+      <div class="state-card state-empty" *ngIf="!cargando && !error && clientes.length === 0">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/>
+            <line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+        </div>
+        <h3>Todavía no tienes clientes registrados</h3>
+        <p>Registra tu primer cliente para comenzar a asociar proyectos y compartir acceso al portal.</p>
+        <button class="btn-new-client" type="button" (click)="nuevo()">
+          <span class="plus-sign">+</span>
+          <span>Nuevo cliente</span>
+        </button>
+      </div>
+
+      <!-- Filtered Empty State -->
+      <div class="state-card state-empty" *ngIf="!cargando && !error && clientes.length > 0 && clientesFiltrados.length === 0">
+        <h3>Sin resultados</h3>
+        <p>No se encontraron clientes que coincidan con la búsqueda o el filtro actual.</p>
+        <button class="btn-reset-filters" type="button" (click)="busqueda = ''; setFiltroEstado('TODOS')">
+          Mostrar todos los clientes
+        </button>
+      </div>
+
+      <!-- Table View -->
+      <div class="table-card" *ngIf="!cargando && !error && clientesFiltrados.length > 0">
+        <table class="clients-table">
+          <thead>
+            <tr>
+              <th class="col-cliente">CLIENTE</th>
+              <th class="col-proyectos">PROYECTOS</th>
+              <th class="col-actividad">ÚLTIMA ACTIVIDAD</th>
+              <th class="col-estado">ESTADO</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let c of clientesPaginados"
+              [class.selected]="c.id === clienteSeleccionado?.id"
+              (click)="seleccionarCliente(c)"
+              tabindex="0"
+              (keydown.enter)="seleccionarCliente(c)"
+              role="button"
+              [attr.aria-selected]="c.id === clienteSeleccionado?.id"
+            >
+              <td class="col-cliente">
+                <div class="client-cell">
+                  <div
+                    class="client-avatar"
+                    [class.avatar-dark]="c.empresa && c.empresa.toLowerCase().includes('istmo')"
+                    [class.avatar-serif]="c.empresa && c.empresa.toLowerCase().includes('mercadito')"
+                  >
+                    {{ obtenerMonograma(c) }}
+                  </div>
+                  <div class="client-info">
+                    <span class="client-name">{{ c.nombre }}</span>
+                    <span class="client-company">{{ c.empresa || 'Sin empresa' }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="col-proyectos">
+                <span class="projects-count">
+                  {{ c._count?.proyectos || 0 }} {{ (c._count?.proyectos === 1) ? 'proyecto' : 'proyectos' }}
+                </span>
+              </td>
+              <td class="col-actividad">
+                <span class="activity-text">{{ formatearUltimaActividad(c.actualizadoEn || c.creadoEn) }}</span>
+              </td>
+              <td class="col-estado">
+                <div class="status-cell">
+                  <span
+                    class="status-dot"
+                    [class.dot-green]="c.estado === 'ACTIVO'"
+                    [class.dot-amber]="c.estado === 'PROSPECTO'"
+                    [class.dot-gray]="c.estado === 'INACTIVO' || c.estado === 'ARCHIVADO'"
+                  ></span>
+                  <span class="status-text">
+                    {{ c.estado === 'ACTIVO' ? 'Activo' : (c.estado === 'PROSPECTO' ? 'Prospecto' : (c.estado === 'INACTIVO' ? 'Inactivo' : 'Archivado')) }}
+                  </span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Table Pagination Footer -->
+        <div class="pagination-footer">
+          <span class="pagination-summary">
+            Mostrando {{ indiceInicio }}-{{ indiceFin }} de {{ totalFiltrados }}
+          </span>
+
+          <div class="pagination-actions" *ngIf="totalPaginas > 1">
+            <button
+              class="page-arrow"
+              type="button"
+              [disabled]="paginaActual === 1"
+              (click)="cambiarPagina(paginaActual - 1)"
+              aria-label="Página anterior"
+            >
+              ‹
+            </button>
+
+            <button
+              *ngFor="let p of arrayPaginas"
+              class="page-number"
+              type="button"
+              [class.active]="p === paginaActual"
+              (click)="cambiarPagina(p)"
+            >
+              {{ p }}
+            </button>
+
+            <button
+              class="page-arrow"
+              type="button"
+              [disabled]="paginaActual === totalPaginas"
+              (click)="cambiarPagina(paginaActual + 1)"
+              aria-label="Página siguiente"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Inspector Panel of Selected Client -->
+    <aside class="inspector-column" *ngIf="clienteSeleccionado as sel" aria-label="Detalle del cliente seleccionado">
+      <div class="inspector-card">
+        <!-- Top banner image if brand image exists -->
+        <div class="inspector-banner" *ngIf="bannerUrl(sel) as banner">
+          <img [src]="banner" alt="Banner de {{ sel.empresa || sel.nombre }}" />
+        </div>
+
+        <div class="inspector-content">
+          <!-- Client Identity Header -->
+          <div class="identity-header">
+            <span class="company-uppercase">{{ sel.empresa || sel.nombre }}</span>
+            <h2 class="contact-fullname">{{ sel.nombre }}</h2>
+            <span class="client-since" *ngIf="formatearFechaDesde(sel.creadoEn) as desde">
+              Cliente desde {{ desde }}
+            </span>
+          </div>
+
+          <!-- Contact items -->
+          <div class="contact-block">
+            <div class="contact-row" *ngIf="sel.correo">
+              <svg class="contact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="20" height="16" x="2" y="4" rx="2"/>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+              <span class="contact-val">{{ sel.correo }}</span>
+            </div>
+
+            <div class="contact-row" *ngIf="sel.telefono">
+              <svg class="contact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              <span class="contact-val">{{ sel.telefono }}</span>
+            </div>
+
+            <div class="contact-row">
+              <svg class="contact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span class="contact-val">{{ sel.direccion || 'Panamá' }}</span>
+            </div>
+          </div>
+
+          <!-- Section: En curso -->
+          <div class="inspector-section">
+            <h3 class="section-title">En curso</h3>
+            <ng-container *ngIf="obtenerProyectoEnCurso(sel) as proy; else noProyectosEnCurso">
+              <div class="project-header">
+                <span class="project-name">{{ proy.nombre }}</span>
+                <span class="project-percent">{{ calcularProgreso(proy) }}%</span>
+              </div>
+              <div class="project-progress-track">
+                <div class="project-progress-fill" [style.width.%]="calcularProgreso(proy)"></div>
+              </div>
+              <span class="project-delivery-date">
+                {{ formatearFechaEntrega(proy.fechaEntrega) }}
+              </span>
+            </ng-container>
+            <ng-template #noProyectosEnCurso>
+              <p class="empty-hint">Sin proyectos activos actualmente.</p>
+            </ng-template>
+          </div>
+
+          <!-- Section: Portal del cliente -->
+          <div class="inspector-section">
+            <h3 class="section-title">Portal del cliente</h3>
+            <button class="portal-status-btn" type="button" (click)="abrirInvitaciones(sel)" title="Gestionar invitaciones al portal">
+              <div class="portal-status-left">
+                <span
+                  class="status-dot"
+                  [class.dot-green]="obtenerEstadoPortal(sel) === 'ACTIVO'"
+                  [class.dot-amber]="obtenerEstadoPortal(sel) === 'PENDIENTE'"
+                  [class.dot-gray]="obtenerEstadoPortal(sel) === 'SIN_INVITAR'"
+                ></span>
+                <span class="portal-status-text">
+                  {{ obtenerEstadoPortal(sel) === 'ACTIVO' ? 'Activo' : (obtenerEstadoPortal(sel) === 'PENDIENTE' ? 'Invitación pendiente' : 'Sin invitar') }}
+                </span>
+              </div>
+              <svg class="chevron-right" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Inspector Action Buttons -->
+          <div class="inspector-actions">
+            <button class="btn-inspector-action btn-inspector-view" type="button" (click)="verFicha(sel)">
+              <span>Ver ficha</span>
+              <span class="action-symbol">↗</span>
+            </button>
+            <button class="btn-inspector-action btn-inspector-invite" type="button" (click)="abrirInvitaciones(sel)">
+              Invitar al portal
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
 </main>
 
-<div class="overlay" *ngIf="modalFormulario" (click)="modalFormulario = false"><section class="quick-modal" (click)="$event.stopPropagation()">
-  <button class="close" type="button" (click)="modalFormulario = false" aria-label="Cerrar">×</button><small>{{ editandoId ? 'EDITAR CLIENTE' : 'NUEVO CLIENTE' }}</small><h2>{{ editandoId ? 'Actualizar cliente' : 'Registrar cliente' }}</h2>
-  <form #form="ngForm" (ngSubmit)="guardar(form)">
-    <div class="form-group"><label for="cliente-nombre">Nombre del contacto *</label><input id="cliente-nombre" class="form-control" name="nombre" [(ngModel)]="formulario.nombre" required minlength="2"></div>
-    <div class="form-group"><label for="cliente-empresa">Empresa</label><input id="cliente-empresa" class="form-control" name="empresa" [(ngModel)]="formulario.empresa"></div>
-    <div class="form-row"><div class="form-group"><label for="cliente-correo">Correo</label><input id="cliente-correo" class="form-control" type="email" name="correo" [(ngModel)]="formulario.correo" email></div><div class="form-group"><label for="cliente-telefono">Teléfono</label><input id="cliente-telefono" class="form-control" name="telefono" [(ngModel)]="formulario.telefono"></div></div>
-    <div class="form-group"><label for="cliente-direccion">Dirección</label><input id="cliente-direccion" class="form-control" name="direccion" [(ngModel)]="formulario.direccion"></div>
-    <div class="form-group"><label for="cliente-web">Sitio web</label><input id="cliente-web" class="form-control" type="url" name="sitioWeb" [(ngModel)]="formulario.sitioWeb"></div>
-    <div class="form-group"><label for="cliente-estado">Estado</label><select id="cliente-estado" class="form-control" name="estado" [(ngModel)]="formulario.estado"><option value="ACTIVO">Activo</option><option value="PROSPECTO">Prospecto</option><option value="INACTIVO">Inactivo</option><option value="ARCHIVADO">Archivado</option></select></div>
-    <div class="form-group"><label for="cliente-notas">Notas internas</label><textarea id="cliente-notas" class="form-control" name="notasInternas" [(ngModel)]="formulario.notasInternas"></textarea></div>
-    <p class="auth-validation" *ngIf="enviado && form.invalid">Revisa los campos requeridos y el formato del correo.</p><p class="auth-error" role="alert" *ngIf="errorGuardar">{{ errorGuardar }}</p>
-    <div class="modal-actions"><button class="btn-secondary" type="button" (click)="modalFormulario = false">Cancelar</button><button class="btn-primary" type="submit" [disabled]="guardando">{{ guardando ? 'Guardando…' : 'Guardar cliente' }}</button></div>
-  </form>
-</section></div>
+<!-- ==========================================================================
+     VISTA ESPECIALIZADA: MODALIDAD FOTOGRAFÍA (WORKER C)
+     ========================================================================== -->
+<main class="clientes-page-container clientes-fotografia-page" *ngIf="esFotografia">
+  <!-- Top selector for Studio Name -->
+  <div class="studio-selector-wrapper">
+    <div class="studio-selector-pill" role="status">
+      <span>{{ nombreEstudio }}</span>
+      <span class="studio-badge-photo">Estudio Fotográfico</span>
+      <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+      </svg>
+    </div>
+  </div>
 
-<div class="overlay" *ngIf="modalDetalle" (click)="cerrarDetalle()"><section class="quick-modal" (click)="$event.stopPropagation()">
-  <button class="close" type="button" (click)="cerrarDetalle()" aria-label="Cerrar">×</button><small>DETALLE DE CLIENTE</small><p *ngIf="detalleCargando">Cargando detalles…</p><p class="auth-error" *ngIf="detalleError" role="alert">{{ detalleError }}</p>
-  <ng-container *ngIf="clienteDetalle as c"><h2>{{ c.nombre }}</h2><p class="mb-3 text-muted">{{ c.empresa || 'Sin empresa' }}</p>
-    <div class="client-detail-stats"><div><small>CORREO</small><b>{{ c.correo || '—' }}</b></div><div><small>TELÉFONO</small><b>{{ c.telefono || '—' }}</b></div><div><small>ESTADO</small><span class="badge">{{ c.estado }}</span></div></div>
-    <div class="mt-4" *ngIf="c.notasInternas"><small class="eyebrow">NOTAS INTERNAS</small><p class="notes-box">{{ c.notasInternas }}</p></div>
-    <div class="modal-actions mt-4"><button class="btn-secondary" type="button" (click)="cerrarDetalle()">Cerrar</button><button class="btn-secondary" type="button" (click)="abrirInvitaciones(c)">Invitar al portal</button><button class="btn-primary" type="button" (click)="editar(c)">Editar cliente</button></div>
-  </ng-container>
-</section></div>
+  <!-- Main Title Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <div class="title-row">
+        <h1 class="page-title">Clientes</h1>
+        <span class="contacts-count">{{ conteoTodos }} {{ conteoTodos === 1 ? 'contacto' : 'contactos' }}</span>
+      </div>
+      <p class="page-subtitle">Sesiones, galerías y entregas para tus clientes.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-new-client" type="button" (click)="nuevo()">
+        <span class="plus-sign">+</span>
+        <span>Nuevo cliente</span>
+      </button>
+    </div>
+  </header>
 
-<div class="overlay" *ngIf="clienteInvitaciones as cliente" (click)="cerrarInvitaciones()">
-  <section class="quick-modal invitation-modal" role="dialog" aria-modal="true" aria-labelledby="invitation-title" (click)="$event.stopPropagation()">
-    <button class="close" type="button" (click)="cerrarInvitaciones()" aria-label="Cerrar invitaciones">×</button>
-    <small>PORTAL DEL CLIENTE</small><h2 id="invitation-title">Invitaciones · {{ cliente.nombre }}</h2>
-    <p class="invitation-note">No se envían correos desde Equinox. El enlace se muestra solo al crearlo o reenviarlo; compártelo por un canal autorizado.</p>
-    <form (ngSubmit)="crearInvitacion(formInvitacion)" #formInvitacion="ngForm">
-      <div class="form-group"><label for="invitacion-correo">Correo de la cuenta *</label><input id="invitacion-correo" class="form-control" type="email" name="correoInvitacion" [(ngModel)]="formularioInvitacion.correo" required email autocomplete="email"></div>
-      <div class="form-group"><label for="invitacion-rol">Acceso</label><select id="invitacion-rol" class="form-control" name="rolInvitacion" [(ngModel)]="formularioInvitacion.rol"><option value="TITULAR">Titular</option><option value="COLABORADOR">Colaborador</option></select></div>
-      <p class="auth-validation" *ngIf="invitacionEnviada && formInvitacion.invalid">Introduce un correo válido.</p>
-      <div class="modal-actions"><button class="btn-primary" type="submit" [disabled]="enviandoInvitacion || !!operacionInvitacion || cargandoInvitaciones">{{ enviandoInvitacion ? 'Creando…' : 'Crear invitación' }}</button></div>
-    </form>
-    <p class="auth-error" role="alert" *ngIf="errorCrearInvitacion">{{ errorCrearInvitacion }}</p>
-    <p class="auth-success" role="status" *ngIf="exitoInvitacion">{{ exitoInvitacion }}</p>
-    <div class="invitation-link" *ngIf="enlaceInvitacion"><label for="enlace-invitacion">Enlace recién generado</label><div><input id="enlace-invitacion" class="form-control" type="url" readonly [value]="enlaceInvitacion" (focus)="$any($event.target).select()"><button class="btn-secondary" type="button" (click)="copiarEnlace()">Copiar</button></div></div>
-    <hr>
-    <h3>Invitaciones existentes</h3>
-    <p class="api-state" *ngIf="cargandoInvitaciones" role="status">Cargando invitaciones…</p>
-    <div class="api-state api-state-error" *ngIf="errorInvitaciones" role="alert">{{ errorInvitaciones }} <button class="btn-secondary" type="button" (click)="cargarInvitaciones()">Reintentar</button></div>
-    <p class="api-state" *ngIf="!cargandoInvitaciones && !errorInvitaciones && invitaciones.length === 0">Este cliente aún no tiene invitaciones.</p>
-    <ul class="invitation-list" *ngIf="!errorInvitaciones && invitaciones.length">
-      <li *ngFor="let invitacion of invitaciones">
-        <div><strong>{{ invitacion.correo }}</strong><span>{{ invitacion.rol === 'TITULAR' ? 'Titular' : 'Colaborador' }} · {{ invitacion.estado }}</span><small>Vence: {{ invitacion.expiraEn | date:'mediumDate' }}</small></div>
-        <div class="invitation-actions" *ngIf="invitacion.estado === 'PENDIENTE' || invitacion.estado === 'EXPIRADA'">
-          <button class="btn-secondary" type="button" [disabled]="!!operacionInvitacion || enviandoInvitacion || cargandoInvitaciones" (click)="reenviarInvitacion(invitacion)">{{ operacionInvitacion === invitacion.id ? 'Procesando…' : 'Reenviar' }}</button>
-          <button *ngIf="invitacion.estado === 'PENDIENTE'" class="btn-secondary" type="button" [disabled]="!!operacionInvitacion || enviandoInvitacion || cargandoInvitaciones" (click)="revocarInvitacion(invitacion)">{{ confirmarRevocacionId === invitacion.id ? 'Confirmar revocación' : 'Revocar' }}</button>
-          <button *ngIf="confirmarRevocacionId === invitacion.id" class="btn-card-action" type="button" (click)="cancelarRevocacion()">Cancelar</button>
+  <!-- Filter tabs and search control bar -->
+  <section class="controls-bar" aria-label="Filtros y búsqueda">
+    <div class="tabs-group" role="tablist">
+      <button class="tab-item" role="tab" [class.active]="filtroEstado === 'TODOS'" (click)="setFiltroEstado('TODOS')">
+        Todos <span class="tab-count">{{ conteoTodos }}</span>
+      </button>
+      <button class="tab-item" role="tab" [class.active]="filtroEstado === 'ACTIVO'" (click)="setFiltroEstado('ACTIVO')">
+        Activos <span class="tab-count">{{ conteoActivos }}</span>
+      </button>
+      <button class="tab-item" role="tab" [class.active]="filtroEstado === 'PROSPECTO'" (click)="setFiltroEstado('PROSPECTO')">
+        Prospectos <span class="tab-count">{{ conteoProspectos }}</span>
+      </button>
+      <button class="tab-item" role="tab" [class.active]="filtroEstado === 'INACTIVO'" (click)="setFiltroEstado('INACTIVO')">
+        Inactivos <span class="tab-count">{{ conteoInactivos }}</span>
+      </button>
+    </div>
+
+    <div class="search-filter-group">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="m20 20-4-4"/>
+        </svg>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Buscar clientes..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="onBusquedaChange()"
+          aria-label="Buscar clientes"
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- Layout Fotografía: Lista lateral de clientes + Estudio de sesiones fotográficas -->
+  <div class="fotografia-layout">
+    <!-- Columna Izquierda: Selección de Clientes -->
+    <aside class="foto-client-list-column" aria-label="Lista de clientes">
+      <!-- Loading State -->
+      <div class="state-card" *ngIf="cargando">
+        <div class="loading-spinner"></div>
+        <p>Cargando clientes...</p>
+      </div>
+
+      <!-- Error State -->
+      <div class="state-card state-error" *ngIf="!cargando && error" role="alert">
+        <p>{{ error }}</p>
+        <button class="btn-retry" type="button" (click)="cargar()">Reintentar</button>
+      </div>
+
+      <!-- Empty State: Sin clientes registrados -->
+      <div class="state-card state-empty" *ngIf="!cargando && !error && clientes.length === 0">
+        <h3>Todavía no tienes clientes</h3>
+        <p>Registra tu primer cliente para crear sesiones fotográficas y compartir acceso al portal.</p>
+        <button class="btn-new-client" type="button" (click)="nuevo()">
+          <span class="plus-sign">+</span>
+          <span>Nuevo cliente</span>
+        </button>
+      </div>
+
+      <!-- Filtered Empty State -->
+      <div class="state-card state-empty" *ngIf="!cargando && !error && clientes.length > 0 && clientesFiltrados.length === 0">
+        <h3>Sin resultados</h3>
+        <p>No se encontraron clientes que coincidan con la búsqueda.</p>
+        <button class="btn-reset-filters" type="button" (click)="busqueda = ''; setFiltroEstado('TODOS')">
+          Mostrar todos
+        </button>
+      </div>
+
+      <!-- Lista de clientes compacta para fotografía -->
+      <div class="foto-clients-scroll" *ngIf="!cargando && !error && clientesFiltrados.length > 0">
+        <article
+          *ngFor="let c of clientesPaginados"
+          class="foto-client-item"
+          [class.selected]="c.id === clienteSeleccionado?.id"
+          (click)="seleccionarCliente(c)"
+          tabindex="0"
+          (keydown.enter)="seleccionarCliente(c)"
+          role="button"
+          [attr.aria-selected]="c.id === clienteSeleccionado?.id"
+        >
+          <div class="foto-client-avatar">
+            {{ obtenerMonograma(c) }}
+          </div>
+          <div class="foto-client-info">
+            <div class="foto-client-name-row">
+              <span class="foto-client-name">{{ c.nombre }}</span>
+              <span
+                class="status-dot"
+                [class.dot-green]="c.estado === 'ACTIVO'"
+                [class.dot-amber]="c.estado === 'PROSPECTO'"
+                [class.dot-gray]="c.estado === 'INACTIVO' || c.estado === 'ARCHIVADO'"
+                [title]="c.estado"
+              ></span>
+            </div>
+            <span class="foto-client-company">{{ c.empresa || 'Sin empresa' }}</span>
+          </div>
+        </article>
+
+        <!-- Paginación de lista lateral -->
+        <div class="foto-list-pagination" *ngIf="totalPaginas > 1">
+          <button
+            class="page-arrow"
+            type="button"
+            [disabled]="paginaActual === 1"
+            (click)="cambiarPagina(paginaActual - 1)"
+            aria-label="Página anterior"
+          >
+            ‹
+          </button>
+          <span class="pagination-counter">{{ paginaActual }} / {{ totalPaginas }}</span>
+          <button
+            class="page-arrow"
+            type="button"
+            [disabled]="paginaActual === totalPaginas"
+            (click)="cambiarPagina(paginaActual + 1)"
+            aria-label="Página siguiente"
+          >
+            ›
+          </button>
         </div>
-      </li>
-    </ul>
-    <div class="modal-actions"><button class="btn-secondary" type="button" (click)="cerrarInvitaciones()">Cerrar</button></div>
+      </div>
+    </aside>
+
+    <!-- Columna Derecha: Estudio y Sesiones Fotográficas del Cliente -->
+    <section class="foto-workspace-column" *ngIf="clienteSeleccionado as sel" aria-label="Estudio fotográfico del cliente">
+      <!-- Ficha de cabecera del cliente seleccionado -->
+      <header class="foto-client-header-card">
+        <div class="foto-header-top">
+          <div class="foto-header-left">
+            <span class="company-uppercase">{{ sel.empresa || 'Cliente' }}</span>
+            <h2 class="contact-fullname">{{ sel.nombre }}</h2>
+            <div class="foto-header-contact-items">
+              <span class="contact-chip" *ngIf="sel.correo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect width="20" height="16" x="2" y="4" rx="2"/>
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+                {{ sel.correo }}
+              </span>
+              <span class="contact-chip" *ngIf="sel.telefono">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+                {{ sel.telefono }}
+              </span>
+              <span class="contact-chip" *ngIf="sel.direccion">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                {{ sel.direccion }}
+              </span>
+            </div>
+          </div>
+
+          <div class="foto-header-right">
+            <!-- Widget de estado del portal del cliente -->
+            <div class="foto-portal-widget">
+              <span class="widget-label">Portal del cliente</span>
+              <button class="widget-pill" type="button" (click)="abrirInvitaciones(sel)">
+                <span
+                  class="status-dot"
+                  [class.dot-green]="obtenerEstadoPortal(sel) === 'ACTIVO'"
+                  [class.dot-amber]="obtenerEstadoPortal(sel) === 'PENDIENTE'"
+                  [class.dot-gray]="obtenerEstadoPortal(sel) === 'SIN_INVITAR'"
+                ></span>
+                <span class="portal-status-text">
+                  {{ obtenerEstadoPortal(sel) === 'ACTIVO' ? 'Acceso activo' : (obtenerEstadoPortal(sel) === 'PENDIENTE' ? 'Invitación pendiente' : 'Sin invitar') }}
+                </span>
+                <span class="widget-action">Gestionar acceso →</span>
+              </button>
+            </div>
+
+            <div class="foto-client-actions-bar">
+              <button class="btn-inspector-action btn-inspector-edit" type="button" (click)="editar(sel)">
+                <span>Editar</span>
+              </button>
+              <button class="btn-inspector-action btn-inspector-view" type="button" (click)="verFicha(sel)">
+                <span>Ver ficha</span>
+                <span class="action-symbol">↗</span>
+              </button>
+              <button class="btn-inspector-action btn-inspector-invite" type="button" (click)="abrirInvitaciones(sel)">
+                Invitar al portal
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Componente especializado de sesiones fotográficas -->
+      <div class="foto-sessions-wrapper">
+        <app-sesiones-fotograficas [cliente]="clienteSeleccionado"></app-sesiones-fotograficas>
+      </div>
+    </section>
+
+    <!-- Estado si no hay cliente seleccionado -->
+    <div class="foto-workspace-column foto-no-selection" *ngIf="!clienteSeleccionado">
+      <div class="state-card state-empty">
+        <h3>Selecciona un cliente</h3>
+        <p>Elige un cliente de la lista para ver o gestionar sus sesiones fotográficas y fotos.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ==========================================================================
+     MODAL: CREAR / EDITAR CLIENTE
+     ========================================================================== -->
+<div class="modal-backdrop" *ngIf="modalFormulario" (click)="modalFormulario = false">
+  <section class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <span class="modal-eyebrow">{{ editandoId ? 'EDITAR CLIENTE' : (esFotografia ? 'NUEVO CLIENTE · FOTOGRAFÍA' : 'NUEVO CLIENTE') }}</span>
+        <h2 class="modal-title">{{ editandoId ? 'Actualizar cliente' : (esFotografia ? 'Nuevo cliente' : 'Registrar cliente') }}</h2>
+      </div>
+      <button class="modal-close" type="button" (click)="modalFormulario = false" aria-label="Cerrar modal">×</button>
+    </div>
+
+    <form #form="ngForm" (ngSubmit)="guardar(form, esFotografia && !editandoId)" class="modal-form">
+      <div class="form-group">
+        <label for="cliente-nombre">{{ esFotografia && !editandoId ? 'Nombre del cliente *' : 'Nombre del contacto *' }}</label>
+        <input id="cliente-nombre" class="form-input" name="nombre" [(ngModel)]="formulario.nombre" required minlength="2" placeholder="Ej. Ana Rodríguez" />
+      </div>
+
+      <div class="form-group" *ngIf="!esFotografia || editandoId">
+        <label for="cliente-empresa">Empresa</label>
+        <input id="cliente-empresa" class="form-input" name="empresa" [(ngModel)]="formulario.empresa" placeholder="Ej. Café Unido Panamá" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label for="cliente-correo">Correo electrónico <span class="optional-tag" *ngIf="esFotografia && !editandoId">(opcional)</span></label>
+          <input id="cliente-correo" class="form-input" type="email" name="correo" [(ngModel)]="formulario.correo" email placeholder="ana@ejemplo.com" />
+        </div>
+        <div class="form-group flex-1">
+          <label for="cliente-telefono">Teléfono <span class="optional-tag" *ngIf="esFotografia && !editandoId">(opcional)</span></label>
+          <input id="cliente-telefono" class="form-input" name="telefono" [(ngModel)]="formulario.telefono" placeholder="+507 6000-0000" />
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="!esFotografia || editandoId">
+        <label for="cliente-direccion">Dirección / Ubicación</label>
+        <input id="cliente-direccion" class="form-input" name="direccion" [(ngModel)]="formulario.direccion" placeholder="Ej. Ciudad de Panamá, San Francisco" />
+      </div>
+
+      <div class="form-row" *ngIf="!esFotografia || editandoId">
+        <div class="form-group flex-1">
+          <label for="cliente-web">Sitio web</label>
+          <input id="cliente-web" class="form-input" type="url" name="sitioWeb" [(ngModel)]="formulario.sitioWeb" placeholder="https://ejemplo.com" />
+        </div>
+        <div class="form-group flex-1">
+          <label for="cliente-estado">Estado del cliente</label>
+          <select id="cliente-estado" class="form-input" name="estado" [(ngModel)]="formulario.estado">
+            <option value="ACTIVO">Activo</option>
+            <option value="PROSPECTO">Prospecto</option>
+            <option value="INACTIVO">Inactivo</option>
+            <option value="ARCHIVADO">Archivado</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="!esFotografia || editandoId">
+        <label for="cliente-notas">Notas internas</label>
+        <textarea id="cliente-notas" class="form-input" rows="3" name="notasInternas" [(ngModel)]="formulario.notasInternas" placeholder="Notas sobre el cliente o relación comercial..."></textarea>
+      </div>
+
+      <p class="form-validation-error" *ngIf="enviado && form.invalid">
+        Por favor completa los campos requeridos con un formato válido.
+      </p>
+      <p class="form-server-error" *ngIf="errorGuardar" role="alert">
+        {{ errorGuardar }}
+      </p>
+
+      <div class="modal-actions-bar modal-actions-photo" *ngIf="esFotografia && !editandoId">
+        <button class="btn-modal-cancel" type="button" (click)="modalFormulario = false">Cancelar</button>
+        <button class="btn-modal-secondary" type="button" [disabled]="guardando" (click)="guardar(form, false)">
+          {{ guardando ? 'Guardando…' : 'Solo guardar cliente' }}
+        </button>
+        <button class="btn-modal-submit btn-modal-primary-session" type="button" [disabled]="guardando" (click)="guardar(form, true)">
+          {{ guardando ? 'Creando…' : 'Crear cliente y sesión' }}
+        </button>
+      </div>
+
+      <div class="modal-actions-bar" *ngIf="!esFotografia || editandoId">
+        <button class="btn-modal-cancel" type="button" (click)="modalFormulario = false">Cancelar</button>
+        <button class="btn-modal-submit" type="submit" [disabled]="guardando">
+          {{ guardando ? 'Guardando…' : (editandoId ? 'Guardar cambios' : 'Crear cliente') }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- ==========================================================================
+     MODAL: VER FICHA (DETALLES COMPLETOS)
+     ========================================================================== -->
+<div class="modal-backdrop" *ngIf="modalDetalle" (click)="cerrarDetalle()">
+  <section class="modal-card modal-detail-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <span class="modal-eyebrow">FICHA DE CLIENTE</span>
+        <h2 class="modal-title">{{ clienteDetalle?.nombre || 'Detalle' }}</h2>
+      </div>
+      <button class="modal-close" type="button" (click)="cerrarDetalle()" aria-label="Cerrar modal">×</button>
+    </div>
+
+    <div class="modal-body-content">
+      <div class="detail-loading" *ngIf="detalleCargando">
+        <div class="loading-spinner"></div>
+        <p>Cargando información completa...</p>
+      </div>
+
+      <div class="detail-error" *ngIf="detalleError" role="alert">
+        <p>{{ detalleError }}</p>
+      </div>
+
+      <ng-container *ngIf="clienteDetalle as d">
+        <div class="detail-hero">
+          <div class="detail-avatar">{{ obtenerMonograma(d) }}</div>
+          <div class="detail-title-block">
+            <h3>{{ d.nombre }}</h3>
+            <p class="company-sub">{{ d.empresa || 'Sin empresa registrada' }}</p>
+            <div class="badge-row">
+              <span
+                class="badge-status"
+                [class.badge-active]="d.estado === 'ACTIVO'"
+                [class.badge-prospect]="d.estado === 'PROSPECTO'"
+              >
+                ● {{ d.estado }}
+              </span>
+              <span class="badge-date" *ngIf="formatearFechaDesde(d.creadoEn) as desde">
+                Registrado en {{ desde }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-field">
+            <span class="field-label">CORREO</span>
+            <span class="field-value">{{ d.correo || '—' }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="field-label">TELÉFONO</span>
+            <span class="field-value">{{ d.telefono || '—' }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="field-label">DIRECCIÓN</span>
+            <span class="field-value">{{ d.direccion || '—' }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="field-label">SITIO WEB</span>
+            <span class="field-value" *ngIf="d.sitioWeb"><a [href]="d.sitioWeb" target="_blank" rel="noopener noreferrer">{{ d.sitioWeb }}</a></span>
+            <span class="field-value" *ngIf="!d.sitioWeb">—</span>
+          </div>
+        </div>
+
+        <div class="detail-notes-box" *ngIf="d.notasInternas">
+          <span class="field-label">NOTAS INTERNAS</span>
+          <p>{{ d.notasInternas }}</p>
+        </div>
+
+        <!-- Associated projects in detail modal (omitido en fotografía) -->
+        <div class="detail-section" *ngIf="!esFotografia && d.proyectos && d.proyectos.length">
+          <span class="field-label">PROYECTOS ASOCIADOS ({{ d.proyectos.length }})</span>
+          <ul class="detail-project-list">
+            <li *ngFor="let p of d.proyectos">
+              <div>
+                <strong>{{ p.nombre }}</strong>
+                <span class="project-state-badge">{{ p.estado }}</span>
+              </div>
+              <small *ngIf="p.fechaEntrega">{{ formatearFechaEntrega(p.fechaEntrega) }}</small>
+            </li>
+          </ul>
+        </div>
+
+        <div class="modal-actions-bar">
+          <button class="btn-modal-cancel" type="button" (click)="cerrarDetalle()">Cerrar</button>
+          <button class="btn-inspector-invite" type="button" (click)="abrirInvitaciones(d)">Invitar al portal</button>
+          <button class="btn-modal-submit" type="button" (click)="editar(d)">Editar ficha</button>
+        </div>
+      </ng-container>
+    </div>
+  </section>
+</div>
+
+<!-- ==========================================================================
+     MODAL: GESTIÓN DE INVITACIONES AL PORTAL
+     ========================================================================== -->
+<div class="modal-backdrop" *ngIf="clienteInvitaciones as cl" (click)="cerrarInvitaciones()">
+  <section class="modal-card modal-invitation-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <span class="modal-eyebrow">PORTAL DEL CLIENTE</span>
+        <h2 class="modal-title">Invitaciones · {{ cl.nombre }}</h2>
+      </div>
+      <button class="modal-close" type="button" (click)="cerrarInvitaciones()" aria-label="Cerrar modal">×</button>
+    </div>
+
+    <div class="modal-body-content">
+      <div class="invitation-notice-missing-email" *ngIf="!cl.correo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div>
+          <strong>Cliente sin correo registrado</strong>
+          <p>
+            Este cliente no tiene correo electrónico. Introduce su correo a continuación: se guardará automáticamente en su ficha y se generará su acceso al portal.
+          </p>
+        </div>
+      </div>
+
+      <div class="invitation-notice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <p>
+          No se envían correos automáticos sin proveedor SMTP configurado. El enlace de acceso se genera de inmediato; cópialo y compártelo por WhatsApp, email o el canal seguro que prefieras.
+        </p>
+      </div>
+
+      <form (ngSubmit)="crearInvitacion(formInv)" #formInv="ngForm" class="invitation-form">
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="inv-correo">
+              Correo electrónico del contacto *
+              <span class="badge-persist-hint" *ngIf="!cl.correo">(Se guardará en la ficha)</span>
+            </label>
+            <input
+              id="inv-correo"
+              class="form-input"
+              type="email"
+              name="correo"
+              [(ngModel)]="formularioInvitacion.correo"
+              required
+              email
+              placeholder="cliente@ejemplo.com"
+            />
+          </div>
+          <div class="form-group flex-1">
+            <label for="inv-rol">Rol de acceso</label>
+            <select id="inv-rol" class="form-input" name="rol" [(ngModel)]="formularioInvitacion.rol">
+              <option value="TITULAR">Titular</option>
+              <option value="COLABORADOR">Colaborador</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="form-validation-error" *ngIf="invitacionEnviada && formInv.invalid">
+          Introduce un correo electrónico válido.
+        </p>
+        <p class="form-server-error" *ngIf="errorCrearInvitacion" role="alert">
+          {{ errorCrearInvitacion }}
+        </p>
+        <p class="form-server-success" *ngIf="exitoInvitacion" role="status">
+          {{ exitoInvitacion }}
+        </p>
+
+        <div class="generated-link-box" *ngIf="enlaceInvitacion">
+          <label for="enlace-recien-creado">Enlace de acceso generado</label>
+          <div class="link-input-group">
+            <input
+              id="enlace-recien-creado"
+              class="form-input"
+              type="url"
+              readonly
+              [value]="enlaceInvitacion"
+              (focus)="$any($event.target).select()"
+            />
+            <button class="btn-copy-link" type="button" (click)="copiarEnlace()">Copiar enlace</button>
+          </div>
+        </div>
+
+        <div class="invitation-submit-row">
+          <button
+            class="btn-modal-submit"
+            type="submit"
+            [disabled]="enviandoInvitacion || !!operacionInvitacion || cargandoInvitaciones"
+          >
+            {{ enviandoInvitacion ? 'Guardando y generando…' : (!cl.correo ? 'Guardar correo y generar invitación' : 'Crear enlace de invitación') }}
+          </button>
+        </div>
+      </form>
+
+      <div class="invitations-history">
+        <h4 class="history-title">Invitaciones emitidas</h4>
+        <div class="detail-loading" *ngIf="cargandoInvitaciones">
+          <div class="loading-spinner"></div>
+          <p>Consultando invitaciones...</p>
+        </div>
+
+        <div class="detail-error" *ngIf="errorInvitaciones" role="alert">
+          <p>{{ errorInvitaciones }}</p>
+          <button class="btn-retry" type="button" (click)="cargarInvitaciones()">Reintentar</button>
+        </div>
+
+        <p class="empty-hint" *ngIf="!cargandoInvitaciones && !errorInvitaciones && invitaciones.length === 0">
+          Este cliente todavía no tiene invitaciones registradas.
+        </p>
+
+        <ul class="invitations-list" *ngIf="!cargandoInvitaciones && !errorInvitaciones && invitaciones.length > 0">
+          <li *ngFor="let inv of invitaciones">
+            <div class="inv-item-info">
+              <strong>{{ inv.correo }}</strong>
+              <div class="inv-meta">
+                <span>{{ inv.rol === 'TITULAR' ? 'Titular' : 'Colaborador' }}</span>
+                <span class="inv-dot">·</span>
+                <span
+                  class="badge-status"
+                  [class.badge-active]="inv.estado === 'ACEPTADA'"
+                  [class.badge-prospect]="inv.estado === 'PENDIENTE'"
+                >
+                  {{ inv.estado }}
+                </span>
+                <span class="inv-dot">·</span>
+                <small>Expira: {{ inv.expiraEn | date:'d MMM yyyy' }}</small>
+              </div>
+            </div>
+
+            <div class="inv-item-actions" *ngIf="inv.estado === 'PENDIENTE' || inv.estado === 'EXPIRADA'">
+              <button
+                class="btn-inv-action"
+                type="button"
+                [disabled]="!!operacionInvitacion || enviandoInvitacion"
+                (click)="reenviarInvitacion(inv)"
+              >
+                {{ operacionInvitacion === inv.id ? 'Reenviando…' : 'Reenviar' }}
+              </button>
+              <button
+                *ngIf="inv.estado === 'PENDIENTE'"
+                class="btn-inv-action btn-inv-revoke"
+                type="button"
+                [disabled]="!!operacionInvitacion || enviandoInvitacion"
+                (click)="revocarInvitacion(inv)"
+              >
+                {{ confirmarRevocacionId === inv.id ? 'Confirmar revocación' : 'Revocar' }}
+              </button>
+              <button
+                *ngIf="confirmarRevocacionId === inv.id"
+                class="btn-inv-cancel"
+                type="button"
+                (click)="cancelarRevocacion()"
+              >
+                Cancelar
+              </button>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="modal-actions-bar">
+        <button class="btn-modal-cancel" type="button" (click)="cerrarInvitaciones()">Cerrar</button>
+      </div>
+    </div>
   </section>
 </div>

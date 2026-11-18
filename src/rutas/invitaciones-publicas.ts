@@ -102,7 +102,7 @@ rutasInvitacionesPublicas.get(
             select: { nombre: true, empresa: true },
           },
           organizacion: {
-            select: { nombre: true, logoUrl: true },
+            select: { nombre: true, logoUrl: true, tipoFreelance: true },
           },
         },
       });
@@ -158,6 +158,7 @@ rutasInvitacionesPublicas.get(
         organizacion: {
           nombre: invitacion.organizacion.nombre,
           logoUrl: invitacion.organizacion.logoUrl,
+          tipoFreelance: invitacion.organizacion.tipoFreelance,
         },
         esUsuarioExistente: Boolean(usuarioExistente),
       });

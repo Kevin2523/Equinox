@@ -1,11 +1,144 @@
-<aside class="inspector" *ngIf="api.proyectos.length">
+<!-- ==========================================================================
+     INSPECTOR LATERAL DE PROYECTO SELECCIONADO
+     Fiel a la referencia: Tipografía editorial, progreso lineal, hitos conectados,
+     tareas pendientes con casillas interactivas y botón negro de apertura.
+     ========================================================================== -->
+<aside class="inspector-sidebar">
   <ng-container *ngIf="api.proyectoSeleccionado as proyecto; else seleccionaProyecto">
-    <div class="cover"><div class="cover-gradient"><span>{{ proyecto.cliente?.nombre || 'Proyecto' }}</span></div><button aria-label="Editar proyecto" title="Editar proyecto" (click)="editar(proyecto.id)"><svg viewBox="0 0 24 24"><path d="m4 16-1 5 5-1L20 8l-4-4zM14 6l4 4"/></svg></button></div>
-    <div class="project-title"><div><h2>{{ proyecto.nombre }}</h2><p>{{ proyecto.cliente?.nombre }}{{ proyecto.cliente?.empresa ? ' · ' + proyecto.cliente?.empresa : '' }}</p></div><span class="badge" [ngClass]="claseEstado(proyecto.estado)">● {{ proyecto.estado }}</span></div>
-    <section class="progress-block"><h3>Descripción</h3><p>{{ proyecto.descripcion || 'Sin descripción registrada.' }}</p></section>
-    <section class="delivery"><h3>Fechas</h3><div><b>Inicio</b><span>{{ proyecto.fechaInicio ? (proyecto.fechaInicio | date:'mediumDate') : 'Sin fecha' }}</span></div><div><b>Entrega</b><span>{{ proyecto.fechaEntrega ? (proyecto.fechaEntrega | date:'mediumDate') : 'Sin fecha' }}</span></div></section>
-    <section class="delivery"><h3>Presupuesto</h3><p>{{ proyecto.presupuesto === null ? 'Sin presupuesto' : (proyecto.moneda + ' ' + (proyecto.presupuesto | number:'1.2-2')) }}</p></section>
-    <button class="btn-secondary" type="button" (click)="editar(proyecto.id)">Editar proyecto</button>
+    <div class="inspector-content">
+
+      <!-- Header Section -->
+      <div class="inspector-top-meta">
+        <span class="eyebrow-selection">PROYECTO SELECCIONADO / {{ proyectoIndex }}</span>
+      </div>
+
+      <h2 class="project-headline">{{ proyecto.nombre }}</h2>
+      <p class="project-tagline">{{ subtitulo }}</p>
+
+      <div class="project-status-row">
+        <span class="status-outline-badge">
+          {{ estadoLegible(proyecto.estado) }}
+        </span>
+        <span class="client-pill-badge" *ngIf="proyecto.cliente?.empresa || proyecto.cliente?.nombre">
+          {{ proyecto.cliente?.empresa || proyecto.cliente?.nombre }}
+        </span>
+      </div>
+
+      <!-- Progress Section -->
+      <div class="progress-section">
+        <div class="progress-labels">
+          <span class="progress-title">Progreso</span>
+          <span class="progress-percentage">{{ progresoCalculado }}%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="progresoCalculado"></div>
+        </div>
+      </div>
+
+      <!-- Delivery Deadline Box (Orange Highlight Box) -->
+      <div class="delivery-highlight-box" *ngIf="fechaEntregaFormateada">
+        <span>ENTREGA {{ fechaEntregaFormateada }}</span>
+      </div>
+      <div class="delivery-highlight-box delivery-box-muted" *ngIf="!fechaEntregaFormateada">
+        <span>SIN FECHA DE ENTREGA ASIGNADA</span>
+      </div>
+
+      <!-- Milestones Timeline (Hitos del proyecto) -->
+      <div class="milestones-block">
+        <div class="milestones-list" *ngIf="hitos.length > 0">
+          <div class="milestone-item" *ngFor="let h of hitos; let last = last">
+            <!-- Step Number -->
+            <span class="step-num">{{ h.numStr }}</span>
+
+            <!-- Node on Line -->
+            <div class="step-node-col">
+              <div
+                class="node-circle"
+                [class.node-completed]="h.estado === 'COMPLETADO'"
+                [class.node-in-progress]="h.estado === 'EN_CURSO'"
+                [class.node-pending]="h.estado === 'PENDIENTE'"
+              >
+                <!-- Checkmark for completed -->
+                <svg *ngIf="h.estado === 'COMPLETADO'" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                </svg>
+              </div>
+              <div class="vertical-connector-line" *ngIf="!last"></div>
+            </div>
+
+            <!-- Title and Meta -->
+            <div class="step-details">
+              <h3 class="step-title" [class.step-title-bold]="h.estado === 'EN_CURSO'">{{ h.titulo }}</h3>
+              <span class="step-meta">{{ h.meta }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="empty-block-hint" *ngIf="!cargandoDetalles && hitos.length === 0">
+          <p>Sin hitos registrados para este proyecto.</p>
+        </div>
+      </div>
+
+      <!-- Next Tasks Section ("Lo siguiente") -->
+      <div class="next-tasks-block">
+        <div class="next-tasks-header">
+          <h3 class="next-tasks-title">Lo siguiente</h3>
+          <span class="tasks-counter" *ngIf="tareasMostradas.length > 0">{{ tareasPendientesCount }} pendientes</span>
+        </div>
+        <div class="task-checkbox-list" *ngIf="tareasMostradas.length > 0">
+          <label class="task-checkbox-item" *ngFor="let t of tareasMostradas" (click)="$event.preventDefault(); toggleTarea(t)">
+            <span class="custom-checkbox" [class.checked]="t.estado === 'COMPLETADA'">
+              <svg *ngIf="t.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+              </svg>
+            </span>
+            <span class="task-title-text" [class.done]="t.estado === 'COMPLETADA'">{{ t.titulo }}</span>
+          </label>
+        </div>
+        <div class="empty-block-hint" *ngIf="!cargandoDetalles && tareasMostradas.length === 0">
+          <p>Sin tareas registradas en este proyecto.</p>
+        </div>
+      </div>
+
+      <!-- Action Button (Bottom) -->
+      <button class="open-project-btn" type="button" (click)="abrirProyecto(proyecto.id)">
+        <span>Abrir proyecto</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="7" y1="17" x2="17" y2="7"></line>
+          <polyline points="7 7 17 7 17 17"></polyline>
+        </svg>
+      </button>
+
+    </div>
   </ng-container>
-  <ng-template #seleccionaProyecto><div class="empty"><p>Selecciona un proyecto del mapa para consultar sus datos.</p></div></ng-template>
+
+  <ng-template #seleccionaProyecto>
+    <div class="empty-state">
+      <div class="empty-inspector-card">
+        <div class="empty-inspector-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <h3 class="empty-inspector-title">
+          {{ api.proyectos.length === 0 ? 'Sin proyectos en el espacio' : 'Selecciona un proyecto' }}
+        </h3>
+        <p class="empty-inspector-text">
+          {{ api.proyectos.length === 0
+            ? 'No hay proyectos registrados en esta organización. Comienza creando un nuevo proyecto para comenzar.'
+            : 'Haz clic en una carpeta del mapa para inspeccionar sus hitos, tareas pendientes y detalles.' }}
+        </p>
+        <button
+          *ngIf="api.proyectos.length === 0"
+          type="button"
+          class="empty-inspector-btn"
+          (click)="state.openQuickCreate('Proyecto')"
+        >
+          <span>+ Crear proyecto</span>
+        </button>
+      </div>
+    </div>
+  </ng-template>
 </aside>

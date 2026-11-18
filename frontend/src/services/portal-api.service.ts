@@ -2,7 +2,17 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { obtenerBaseApi } from '../auth/api.config';
-import { ArchivoPortal, ComentarioPortal, FacturaPortal, HitoPortal, IdentidadPortal, ProyectoPortal } from '../models/portal.model';
+import {
+  ArchivoPortal,
+  ComentarioPortal,
+  FacturaPortal,
+  FotoPortal,
+  HitoPortal,
+  IdentidadPortal,
+  PaginaFotosPortal,
+  ProyectoPortal,
+  SesionFotograficaPortal
+} from '../models/portal.model';
 
 @Injectable({ providedIn: 'root' })
 export class PortalApiService {
@@ -38,7 +48,39 @@ export class PortalApiService {
     return firstValueFrom(this.http.post<ComentarioPortal>(`${this.base}/proyectos/${encodeURIComponent(id)}/comentarios`, { contenido }));
   }
 
-  facturas(): Promise<FacturaPortal[]> {
-    return firstValueFrom(this.http.get<FacturaPortal[]>(`${this.base}/facturas`));
+  finanzasDesactivadas = false;
+
+  async facturas(): Promise<FacturaPortal[]> {
+    const res: any = await firstValueFrom(
+      this.http.get<any>(`${this.base}/facturas`, { observe: 'response' })
+    );
+    if (res && res.headers && typeof res.headers.get === 'function') {
+      const estado = res.headers.get('x-portal-finanzas');
+      this.finanzasDesactivadas = estado === 'deshabilitado';
+      return res.body || [];
+    }
+    return Array.isArray(res) ? res : (res?.body || []);
+  }
+
+  sesionesFotograficas(): Promise<SesionFotograficaPortal[]> {
+    return firstValueFrom(this.http.get<SesionFotograficaPortal[]>(`${this.base}/sesiones-fotograficas`));
+  }
+
+  sesionFotografica(id: string): Promise<SesionFotograficaPortal> {
+    return firstValueFrom(this.http.get<SesionFotograficaPortal>(`${this.base}/sesiones-fotograficas/${encodeURIComponent(id)}`));
+  }
+
+  fotosSesion(sesionId: string, pagina: number = 1, limite: number = 24): Promise<PaginaFotosPortal> {
+    const query = `pagina=${encodeURIComponent(pagina)}&limite=${encodeURIComponent(limite)}`;
+    return firstValueFrom(this.http.get<PaginaFotosPortal>(
+      `${this.base}/sesiones-fotograficas/${encodeURIComponent(sesionId)}/fotos?${query}`
+    ));
+  }
+
+  obtenerContenidoFoto(sesionId: string, fotoId: string, variante: 'miniatura' | 'original' = 'miniatura'): Promise<Blob> {
+    return firstValueFrom(this.http.get(
+      `${this.base}/sesiones-fotograficas/${encodeURIComponent(sesionId)}/fotos/${encodeURIComponent(fotoId)}/contenido?variante=${encodeURIComponent(variante)}`,
+      { responseType: 'blob' }
+    ));
   }
 }

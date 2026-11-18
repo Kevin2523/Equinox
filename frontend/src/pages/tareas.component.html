@@ -1,42 +1,922 @@
-<main class="standard"><section class="collection">
-  <div class="page-title"><div><p class="eyebrow">EQUINOX / TAREAS</p><h1>Tareas</h1>
-    <p>Progreso por proyecto: tareas completadas entre tareas no canceladas. Sin tareas, el progreso queda sin definir.</p></div>
-    <button class="btn-primary" type="button" (click)="state.openQuickCreate('Tarea')" [disabled]="!state.proyectos.length"><span>＋</span> Nueva tarea</button>
-  </div>
-  <div class="filter-bar"><label class="search-input-pill"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-    <input [(ngModel)]="state.query" placeholder="Buscar tareas..." aria-label="Buscar tareas"></label>
-    <div class="filter-pills"><button [class.active]="state.taskFilter === 'TODAS'" (click)="state.taskFilter = 'TODAS'">Todas</button>
-      <button [class.active]="state.taskFilter === 'HOY'" (click)="state.taskFilter = 'HOY'">Para hoy</button>
-      <button [class.active]="state.taskFilter === 'PROXIMAS'" (click)="state.taskFilter = 'PROXIMAS'">Próximas</button>
-      <button [class.active]="state.taskFilter === 'COMPLETADAS'" (click)="state.taskFilter = 'COMPLETADAS'">Completadas</button></div></div>
-  <p class="api-state" *ngIf="cargando" role="status">Cargando tareas…</p>
-  <div class="api-state api-state-error" *ngIf="error" role="alert">{{ error }} <button class="btn-secondary" (click)="cargar()">Reintentar</button></div>
-  <p class="api-state api-state-error" *ngIf="errorAccion" role="alert">{{ errorAccion }}</p>
-  <p class="api-state" *ngIf="!cargando && !error && !state.proyectos.length">Crea un proyecto antes de registrar tareas.</p>
-  <p class="api-state" *ngIf="!cargando && !error && state.proyectos.length && !visibles.length">No hay tareas que coincidan con este filtro.</p>
-  <div class="tasks-table-card" *ngIf="!cargando && !error">
-    <div class="task-master-row" *ngFor="let tarea of visibles" [class.done]="tarea.estado === 'COMPLETADA'">
-      <label class="custom-checkbox"><input type="checkbox" [checked]="tarea.estado === 'COMPLETADA'" [disabled]="guardando"
-        [attr.aria-label]="'Completar ' + tarea.titulo" (change)="alternar(tarea)"><span class="checkmark"></span></label>
-      <div class="task-master-body"><b [class.strikethrough]="tarea.estado === 'COMPLETADA'">{{ tarea.titulo }}</b><p *ngIf="tarea.descripcion">{{ tarea.descripcion }}</p>
-        <div class="task-tags"><span class="badge-project">{{ tarea.proyectoNombre }}</span><span class="priority-tag">{{ tarea.prioridad }}</span>
-          <small>{{ tarea.fechaVencimiento ? ('Vence: ' + tarea.fechaVencimiento.slice(0, 10)) : 'Sin vencimiento' }}</small>
-          <small *ngIf="progreso(tarea.proyectoId) !== null">Proyecto: {{ progreso(tarea.proyectoId) }}%</small></div>
-        <div *ngIf="editandoId === tarea.id" class="form-row">
-          <label>Título <input class="form-control" [(ngModel)]="borrador.titulo" minlength="2"></label>
-          <label>Descripción <textarea class="form-control" [(ngModel)]="borrador.descripcion"></textarea></label>
-          <label>Estado <select class="form-control" [(ngModel)]="borrador.estado"><option value="PENDIENTE">Pendiente</option><option value="EN_PROGRESO">En progreso</option><option value="BLOQUEADA">Bloqueada</option><option value="COMPLETADA">Completada</option><option value="CANCELADA">Cancelada</option></select></label>
-          <label>Prioridad <select class="form-control" [(ngModel)]="borrador.prioridad"><option value="BAJA">Baja</option><option value="MEDIA">Media</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></label>
-          <label>Vencimiento <input class="form-control" type="date" [(ngModel)]="borrador.fechaVencimiento"></label>
-          <button class="btn-primary" type="button" [disabled]="guardando" (click)="guardar(tarea)">Guardar</button>
-          <button class="btn-secondary" type="button" (click)="editandoId = null">Cancelar</button>
+<main class="tareas-page-wrapper">
+  <div class="tareas-container">
+
+    <!-- Subtítulo / Nombre del estudio de la organización autenticada -->
+    <div class="studio-kicker-row" *ngIf="nombreEstudio">
+      <span class="studio-kicker" [title]="'Organización: ' + nombreEstudio">{{ nombreEstudio }}</span>
+    </div>
+
+    <!-- Cabecera principal: Título y botón Nueva tarea -->
+    <header class="page-header">
+      <h1 class="page-title">Tareas</h1>
+      <button
+        type="button"
+        class="btn-nueva-tarea"
+        (click)="abrirModalCrear()"
+        [disabled]="cargando || !proyectos.length"
+        title="Crear una nueva tarea">
+        <svg class="plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Nueva tarea</span>
+      </button>
+    </header>
+
+    <!-- Barra de navegación por pestañas y búsqueda -->
+    <div class="tabs-and-search-bar">
+      <nav class="tabs-nav" aria-label="Filtro de estado de tareas">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="pestanaActiva === 'PENDIENTES'"
+          (click)="pestanaActiva = 'PENDIENTES'">
+          <span>Pendientes</span>
+          <span class="tab-count">{{ totalPendientes }}</span>
+          <span class="tab-indicator" *ngIf="pestanaActiva === 'PENDIENTES'"></span>
+        </button>
+
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="pestanaActiva === 'COMPLETADAS'"
+          (click)="pestanaActiva = 'COMPLETADAS'">
+          <span>Completadas</span>
+          <span class="tab-count" *ngIf="totalCompletadas > 0">{{ totalCompletadas }}</span>
+          <span class="tab-indicator" *ngIf="pestanaActiva === 'COMPLETADAS'"></span>
+        </button>
+      </nav>
+
+      <!-- Búsqueda elegante -->
+      <div class="search-container">
+        <div class="search-box" [class.is-open]="busquedaAbierta || busqueda">
+          <button
+            type="button"
+            class="search-trigger-btn"
+            (click)="toggleBusqueda()"
+            aria-label="Buscar tareas"
+            title="Buscar tareas">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+          <input
+            #searchInput
+            type="text"
+            class="search-input"
+            [(ngModel)]="busqueda"
+            placeholder="Buscar tareas..."
+            aria-label="Buscar tareas" />
+          <button
+            type="button"
+            class="search-clear-btn"
+            *ngIf="busqueda"
+            (click)="limpiarBusqueda()"
+            aria-label="Limpiar búsqueda">
+            ×
+          </button>
         </div>
       </div>
-      <span class="task-status-pill" [class.pill-done]="tarea.estado === 'COMPLETADA'">{{ tarea.estado }}</span>
-      <button class="btn-secondary" type="button" (click)="iniciarEdicion(tarea)">Editar</button>
-      <button class="btn-secondary" type="button" *ngIf="confirmandoEliminarId !== tarea.id" (click)="confirmandoEliminarId = tarea.id">Eliminar</button>
-      <ng-container *ngIf="confirmandoEliminarId === tarea.id"><button class="btn-secondary" type="button" [disabled]="guardando" (click)="eliminar(tarea)">Confirmar eliminación</button>
-        <button class="btn-secondary" type="button" (click)="confirmandoEliminarId = null">Cancelar</button></ng-container>
+    </div>
+
+    <!-- Notificación de error en acción rápida (ej. alternar estado) -->
+    <div class="action-alert" *ngIf="errorAccion" role="alert">
+      <span>{{ errorAccion }}</span>
+      <button type="button" class="action-alert-close" (click)="errorAccion = ''">×</button>
+    </div>
+
+    <!-- Estado: Cargando -->
+    <div class="loading-state" *ngIf="cargando" role="status" aria-label="Cargando tareas">
+      <div class="skeleton-group">
+        <div class="skeleton-header"></div>
+        <div class="skeleton-row" *ngFor="let s of [1, 2, 3]"></div>
+      </div>
+      <div class="skeleton-group">
+        <div class="skeleton-header"></div>
+        <div class="skeleton-row" *ngFor="let s of [1, 2]"></div>
+      </div>
+    </div>
+
+    <!-- Estado: Error al cargar -->
+    <div class="error-state-card" *ngIf="error && !cargando" role="alert">
+      <svg class="error-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <div class="error-state-content">
+        <h3>Hubo un problema al cargar las tareas</h3>
+        <p>{{ error }}</p>
+      </div>
+      <button type="button" class="btn-retry" (click)="cargar()">Reintentar</button>
+    </div>
+
+    <!-- Estado: Sin proyectos registrados -->
+    <div class="empty-state-card" *ngIf="!cargando && !error && !proyectos.length">
+      <div class="empty-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </div>
+      <h3>No hay proyectos activos en esta organización</h3>
+      <p>Crea tu primer proyecto para empezar a registrar y organizar tus tareas.</p>
+      <button type="button" class="btn-empty-action" (click)="navegarAProyecto('')">Ir a Proyectos</button>
+    </div>
+
+    <!-- Estado: Con proyectos pero sin ninguna tarea registrada -->
+    <div class="empty-state-card" *ngIf="!cargando && !error && proyectos.length && !tareas.length">
+      <div class="empty-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M9 11l3 3L22 4"></path>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+      </div>
+      <h3>Organiza tu día de trabajo</h3>
+      <p>Todavía no tienes tareas registradas. Añade tu primera tarea vinculada a un proyecto.</p>
+      <button type="button" class="btn-empty-action" (click)="abrirModalCrear()">+ Crear primera tarea</button>
+    </div>
+
+    <!-- Estado: Búsqueda sin resultados -->
+    <div class="empty-state-card" *ngIf="!cargando && !error && tareas.length && busqueda && !tareasFiltradas.length">
+      <p class="empty-search-text">No se encontraron tareas que coincidan con <strong>"{{ busqueda }}"</strong>.</p>
+      <button type="button" class="btn-empty-action" (click)="limpiarBusqueda()">Limpiar filtro</button>
+    </div>
+
+    <!-- Contenido Principal: Listas de tareas agrupadas -->
+    <div class="tasks-content" *ngIf="!cargando && !error && tareas.length && (tareasFiltradas.length || !busqueda)">
+
+      <!-- ================= PESTAÑA PENDIENTES ================= -->
+      <ng-container *ngIf="pestanaActiva === 'PENDIENTES'">
+
+        <!-- Mensaje si no hay pendientes pero sí completadas -->
+        <div class="tab-all-done-banner" *ngIf="!tareasFiltradas.length && !busqueda">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#16a34a" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>¡Todo al día! No tienes tareas pendientes.</span>
+        </div>
+
+        <!-- Grupo: Vencidas (si existen) -->
+        <section class="task-group group-overdue" *ngIf="grupoVencidas.length > 0">
+          <div class="group-header">
+            <h2 class="group-title text-overdue">Vencidas</h2>
+            <span class="group-count badge-overdue">{{ grupoVencidas.length }}</span>
+          </div>
+
+          <div class="task-rows-list">
+            <div
+              class="task-row is-overdue"
+              *ngFor="let tarea of grupoVencidas">
+
+              <div class="task-row-left">
+                <label class="task-checkbox-label">
+                  <input
+                    type="checkbox"
+                    [checked]="tarea.estado === 'COMPLETADA'"
+                    [disabled]="guardando"
+                    (change)="alternar(tarea, $event)"
+                    [attr.aria-label]="'Marcar como completada: ' + tarea.titulo" />
+                  <span class="task-checkbox-custom">
+                    <svg *ngIf="tarea.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
+                    </svg>
+                  </span>
+                </label>
+
+                <div class="task-info">
+                  <div class="task-title">{{ tarea.titulo }}</div>
+                  <button
+                    type="button"
+                    class="task-project"
+                    (click)="navegarAProyecto(tarea.proyectoId, $event)"
+                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    {{ tarea.proyectoNombre }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="task-row-right">
+                <span class="task-date date-overdue" title="Tarea con fecha límite vencida">
+                  {{ formatearFechaDisplay(tarea.fechaVencimiento) }}
+                </span>
+
+                <div class="menu-container">
+                  <button
+                    type="button"
+                    class="btn-dots"
+                    (click)="toggleMenu(tarea.id, $event)"
+                    aria-label="Acciones de la tarea">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                      <circle cx="5" cy="12" r="2"/>
+                      <circle cx="12" cy="12" r="2"/>
+                      <circle cx="19" cy="12" r="2"/>
+                    </svg>
+                  </button>
+
+                  <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
+                    <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Editar</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      <span>Ver proyecto</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span>Completar</span>
+                    </button>
+                    <div class="menu-divider"></div>
+                    <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- Grupo: Hoy -->
+        <section class="task-group" *ngIf="grupoHoy.length > 0">
+          <div class="group-header">
+            <h2 class="group-title">Hoy</h2>
+            <span class="group-count">{{ grupoHoy.length }}</span>
+          </div>
+
+          <div class="task-rows-list">
+            <div
+              class="task-row"
+              *ngFor="let tarea of grupoHoy">
+
+              <div class="task-row-left">
+                <label class="task-checkbox-label">
+                  <input
+                    type="checkbox"
+                    [checked]="tarea.estado === 'COMPLETADA'"
+                    [disabled]="guardando"
+                    (change)="alternar(tarea, $event)"
+                    [attr.aria-label]="'Marcar como completada: ' + tarea.titulo" />
+                  <span class="task-checkbox-custom">
+                    <svg *ngIf="tarea.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
+                    </svg>
+                  </span>
+                </label>
+
+                <div class="task-info">
+                  <div class="task-title">{{ tarea.titulo }}</div>
+                  <button
+                    type="button"
+                    class="task-project"
+                    (click)="navegarAProyecto(tarea.proyectoId, $event)"
+                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    {{ tarea.proyectoNombre }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="task-row-right">
+                <span class="task-date date-today">Hoy</span>
+
+                <div class="menu-container">
+                  <button
+                    type="button"
+                    class="btn-dots"
+                    (click)="toggleMenu(tarea.id, $event)"
+                    aria-label="Acciones de la tarea">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                      <circle cx="5" cy="12" r="2"/>
+                      <circle cx="12" cy="12" r="2"/>
+                      <circle cx="19" cy="12" r="2"/>
+                    </svg>
+                  </button>
+
+                  <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
+                    <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Editar</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      <span>Ver proyecto</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span>Completar</span>
+                    </button>
+                    <div class="menu-divider"></div>
+                    <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- Grupo: Próximas -->
+        <section class="task-group" *ngIf="grupoProximas.length > 0">
+          <div class="group-header">
+            <h2 class="group-title">Próximas</h2>
+            <span class="group-count" *ngIf="grupoProximas.length > 0">{{ grupoProximas.length }}</span>
+          </div>
+
+          <div class="task-rows-list">
+            <div
+              class="task-row"
+              *ngFor="let tarea of grupoProximas">
+
+              <div class="task-row-left">
+                <label class="task-checkbox-label">
+                  <input
+                    type="checkbox"
+                    [checked]="tarea.estado === 'COMPLETADA'"
+                    [disabled]="guardando"
+                    (change)="alternar(tarea, $event)"
+                    [attr.aria-label]="'Marcar como completada: ' + tarea.titulo" />
+                  <span class="task-checkbox-custom">
+                    <svg *ngIf="tarea.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
+                    </svg>
+                  </span>
+                </label>
+
+                <div class="task-info">
+                  <div class="task-title">{{ tarea.titulo }}</div>
+                  <button
+                    type="button"
+                    class="task-project"
+                    (click)="navegarAProyecto(tarea.proyectoId, $event)"
+                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    {{ tarea.proyectoNombre }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="task-row-right">
+                <span class="task-date">{{ formatearFechaDisplay(tarea.fechaVencimiento) }}</span>
+
+                <div class="menu-container">
+                  <button
+                    type="button"
+                    class="btn-dots"
+                    (click)="toggleMenu(tarea.id, $event)"
+                    aria-label="Acciones de la tarea">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                      <circle cx="5" cy="12" r="2"/>
+                      <circle cx="12" cy="12" r="2"/>
+                      <circle cx="19" cy="12" r="2"/>
+                    </svg>
+                  </button>
+
+                  <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
+                    <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Editar</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      <span>Ver proyecto</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span>Completar</span>
+                    </button>
+                    <div class="menu-divider"></div>
+                    <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- Grupo: Sin fecha (si existen) -->
+        <section class="task-group" *ngIf="grupoSinFecha.length > 0">
+          <div class="group-header">
+            <h2 class="group-title">Sin fecha</h2>
+            <span class="group-count">{{ grupoSinFecha.length }}</span>
+          </div>
+
+          <div class="task-rows-list">
+            <div
+              class="task-row"
+              *ngFor="let tarea of grupoSinFecha">
+
+              <div class="task-row-left">
+                <label class="task-checkbox-label">
+                  <input
+                    type="checkbox"
+                    [checked]="tarea.estado === 'COMPLETADA'"
+                    [disabled]="guardando"
+                    (change)="alternar(tarea, $event)"
+                    [attr.aria-label]="'Marcar como completada: ' + tarea.titulo" />
+                  <span class="task-checkbox-custom">
+                    <svg *ngIf="tarea.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
+                    </svg>
+                  </span>
+                </label>
+
+                <div class="task-info">
+                  <div class="task-title">{{ tarea.titulo }}</div>
+                  <button
+                    type="button"
+                    class="task-project"
+                    (click)="navegarAProyecto(tarea.proyectoId, $event)"
+                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    {{ tarea.proyectoNombre }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="task-row-right">
+                <span class="task-date text-muted">Sin fecha</span>
+
+                <div class="menu-container">
+                  <button
+                    type="button"
+                    class="btn-dots"
+                    (click)="toggleMenu(tarea.id, $event)"
+                    aria-label="Acciones de la tarea">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                      <circle cx="5" cy="12" r="2"/>
+                      <circle cx="12" cy="12" r="2"/>
+                      <circle cx="19" cy="12" r="2"/>
+                    </svg>
+                  </button>
+
+                  <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
+                    <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Editar</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      <span>Ver proyecto</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span>Completar</span>
+                    </button>
+                    <div class="menu-divider"></div>
+                    <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- Botón '+ Añadir tarea' / Creación rápida al final de la lista según la referencia -->
+        <div class="add-task-footer" *ngIf="proyectos.length > 0">
+          <button
+            *ngIf="!creacionRapidaAbierta"
+            type="button"
+            class="btn-add-inline"
+            (click)="abrirCreacionRapida()">
+            <svg class="plus-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Añadir tarea</span>
+          </button>
+
+          <form
+            *ngIf="creacionRapidaAbierta"
+            class="inline-quick-form"
+            (ngSubmit)="guardarTareaRapida()">
+            <div class="inline-quick-inputs">
+              <input
+                type="text"
+                class="inline-input-title"
+                [(ngModel)]="formRapido.titulo"
+                name="tituloRapido"
+                placeholder="Escribe el título de la tarea..."
+                required
+                minlength="2"
+                aria-label="Título de la nueva tarea" />
+
+              <select
+                class="inline-select-project"
+                [(ngModel)]="formRapido.proyectoId"
+                name="proyectoRapido"
+                required
+                aria-label="Proyecto">
+                <option *ngFor="let p of proyectos" [value]="p.id">{{ p.nombre }}</option>
+              </select>
+
+              <input
+                type="date"
+                class="inline-input-date"
+                [(ngModel)]="formRapido.fechaVencimiento"
+                name="fechaRapida"
+                aria-label="Fecha de vencimiento" />
+            </div>
+
+            <div class="inline-quick-actions">
+              <span class="inline-error-msg" *ngIf="errorRapido">{{ errorRapido }}</span>
+              <button type="button" class="btn-cancel-sm" (click)="cerrarCreacionRapida()" [disabled]="guardando">
+                Cancelar
+              </button>
+              <button type="submit" class="btn-submit-sm" [disabled]="guardando">
+                {{ guardando ? 'Guardando…' : 'Añadir' }}
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </ng-container>
+
+      <!-- ================= PESTAÑA COMPLETADAS ================= -->
+      <ng-container *ngIf="pestanaActiva === 'COMPLETADAS'">
+
+        <div class="tab-all-done-banner" *ngIf="!tareasFiltradas.length && !busqueda">
+          <span>No tienes tareas completadas todavía. Completa tareas marcando la casilla de verificación.</span>
+        </div>
+
+        <!-- Grupo: Completadas Hoy -->
+        <section class="task-group" *ngIf="grupoCompletadasHoy.length > 0">
+          <div class="group-header">
+            <h2 class="group-title">Hoy</h2>
+            <span class="group-count">{{ grupoCompletadasHoy.length }}</span>
+          </div>
+
+          <div class="task-rows-list">
+            <div
+              class="task-row is-completed-row"
+              *ngFor="let tarea of grupoCompletadasHoy">
+
+              <div class="task-row-left">
+                <label class="task-checkbox-label">
+                  <input
+                    type="checkbox"
+                    [checked]="true"
+                    [disabled]="guardando"
+                    (change)="alternar(tarea, $event)"
+                    [attr.aria-label]="'Reabrir tarea: ' + tarea.titulo" />
+                  <span class="task-checkbox-custom is-checked">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
+                    </svg>
+                  </span>
+                </label>
+
+                <div class="task-info">
+                  <div class="task-title text-strikethrough">{{ tarea.titulo }}</div>
+                  <button
+                    type="button"
+                    class="task-project"
+                    (click)="navegarAProyecto(tarea.proyectoId, $event)"
+                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    {{ tarea.proyectoNombre }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="task-row-right">
+                <span class="task-date text-muted">Hoy</span>
+
+                <div class="menu-container">
+                  <button
+                    type="button"
+                    class="btn-dots"
+                    (click)="toggleMenu(tarea.id, $event)"
+                    aria-label="Acciones de la tarea">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                      <circle cx="5" cy="12" r="2"/>
+                      <circle cx="12" cy="12" r="2"/>
+                      <circle cx="19" cy="12" r="2"/>
+                    </svg>
+                  </button>
+
+                  <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
+                    <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                      <span>Reabrir tarea</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Editar</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      <span>Ver proyecto</span>
+                    </button>
+                    <div class="menu-divider"></div>
+                    <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- Grupo: Completadas Anteriores -->
+        <section class="task-group" *ngIf="grupoCompletadasAnteriores.length > 0">
+          <div class="group-header">
+            <h2 class="group-title">Anteriores</h2>
+            <span class="group-count">{{ grupoCompletadasAnteriores.length }}</span>
+          </div>
+
+          <div class="task-rows-list">
+            <div
+              class="task-row is-completed-row"
+              *ngFor="let tarea of grupoCompletadasAnteriores">
+
+              <div class="task-row-left">
+                <label class="task-checkbox-label">
+                  <input
+                    type="checkbox"
+                    [checked]="true"
+                    [disabled]="guardando"
+                    (change)="alternar(tarea, $event)"
+                    [attr.aria-label]="'Reabrir tarea: ' + tarea.titulo" />
+                  <span class="task-checkbox-custom is-checked">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
+                    </svg>
+                  </span>
+                </label>
+
+                <div class="task-info">
+                  <div class="task-title text-strikethrough">{{ tarea.titulo }}</div>
+                  <button
+                    type="button"
+                    class="task-project"
+                    (click)="navegarAProyecto(tarea.proyectoId, $event)"
+                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    {{ tarea.proyectoNombre }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="task-row-right">
+                <span class="task-date text-muted">{{ formatearFechaDisplay(tarea.completadaEn || tarea.actualizadoEn) }}</span>
+
+                <div class="menu-container">
+                  <button
+                    type="button"
+                    class="btn-dots"
+                    (click)="toggleMenu(tarea.id, $event)"
+                    aria-label="Acciones de la tarea">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                      <circle cx="5" cy="12" r="2"/>
+                      <circle cx="12" cy="12" r="2"/>
+                      <circle cx="19" cy="12" r="2"/>
+                    </svg>
+                  </button>
+
+                  <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
+                    <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                      <span>Reabrir tarea</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Editar</span>
+                    </button>
+                    <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      <span>Ver proyecto</span>
+                    </button>
+                    <div class="menu-divider"></div>
+                    <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+      </ng-container>
+
+    </div>
+
+  </div>
+
+  <!-- ================= MODAL: NUEVA TAREA ================= -->
+  <div class="modal-backdrop" *ngIf="modalCrear" (click)="cerrarModalCrear()">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="modal-crear-title">
+      <header class="modal-header">
+        <h2 id="modal-crear-title">Nueva tarea</h2>
+        <button type="button" class="btn-modal-close" (click)="cerrarModalCrear()" aria-label="Cerrar modal">×</button>
+      </header>
+
+      <form class="modal-body" (ngSubmit)="guardarNuevaTarea()">
+        <div class="form-field">
+          <label for="crear-proyecto">Proyecto *</label>
+          <select id="crear-proyecto" [(ngModel)]="formCrear.proyectoId" name="proyectoId" required class="input-select">
+            <option value="" disabled>Selecciona un proyecto</option>
+            <option *ngFor="let p of proyectos" [value]="p.id">
+              {{ p.nombre }} {{ p.cliente ? '(' + p.cliente.nombre + ')' : '' }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="crear-titulo">Título de la tarea *</label>
+          <input
+            id="crear-titulo"
+            type="text"
+            [(ngModel)]="formCrear.titulo"
+            name="titulo"
+            placeholder="Ej. Integrar tienda en línea"
+            required
+            minlength="2"
+            class="input-text" />
+        </div>
+
+        <div class="form-field-row">
+          <div class="form-field">
+            <label for="crear-fecha">Fecha límite</label>
+            <input
+              id="crear-fecha"
+              type="date"
+              [(ngModel)]="formCrear.fechaVencimiento"
+              name="fechaVencimiento"
+              class="input-date" />
+          </div>
+
+          <div class="form-field">
+            <label for="crear-prioridad">Prioridad</label>
+            <select id="crear-prioridad" [(ngModel)]="formCrear.prioridad" name="prioridad" class="input-select">
+              <option value="BAJA">Baja</option>
+              <option value="MEDIA">Media</option>
+              <option value="ALTA">Alta</option>
+              <option value="URGENTE">Urgente</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="crear-desc">Descripción (opcional)</label>
+          <textarea
+            id="crear-desc"
+            [(ngModel)]="formCrear.descripcion"
+            name="descripcion"
+            rows="3"
+            placeholder="Detalles adicionales, requisitos o notas..."
+            class="input-textarea"></textarea>
+        </div>
+
+        <div class="modal-alert-error" *ngIf="errorModal" role="alert">
+          {{ errorModal }}
+        </div>
+
+        <footer class="modal-footer">
+          <button type="button" class="btn-cancel" (click)="cerrarModalCrear()" [disabled]="guardando">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-submit" [disabled]="guardando">
+            <span *ngIf="!guardando">Crear tarea</span>
+            <span *ngIf="guardando">Guardando…</span>
+          </button>
+        </footer>
+      </form>
     </div>
   </div>
-</section></main>
+
+  <!-- ================= MODAL: EDITAR TAREA ================= -->
+  <div class="modal-backdrop" *ngIf="modalEditar" (click)="cerrarModalEditar()">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="modal-editar-title">
+      <header class="modal-header">
+        <h2 id="modal-editar-title">Editar tarea</h2>
+        <button type="button" class="btn-modal-close" (click)="cerrarModalEditar()" aria-label="Cerrar modal">×</button>
+      </header>
+
+      <form class="modal-body" (ngSubmit)="guardarEdicion()">
+        <div class="form-field">
+          <label>Proyecto</label>
+          <input
+            type="text"
+            [value]="tareaEditando?.proyectoNombre || ''"
+            disabled
+            class="input-text is-disabled" />
+        </div>
+
+        <div class="form-field">
+          <label for="editar-titulo">Título *</label>
+          <input
+            id="editar-titulo"
+            type="text"
+            [(ngModel)]="formEditar.titulo"
+            name="titulo"
+            required
+            minlength="2"
+            class="input-text" />
+        </div>
+
+        <div class="form-field-row">
+          <div class="form-field">
+            <label for="editar-estado">Estado</label>
+            <select id="editar-estado" [(ngModel)]="formEditar.estado" name="estado" class="input-select">
+              <option value="PENDIENTE">Pendiente</option>
+              <option value="EN_PROGRESO">En progreso</option>
+              <option value="BLOQUEADA">Bloqueada</option>
+              <option value="COMPLETADA">Completada</option>
+              <option value="CANCELADA">Cancelada</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="editar-prioridad">Prioridad</label>
+            <select id="editar-prioridad" [(ngModel)]="formEditar.prioridad" name="prioridad" class="input-select">
+              <option value="BAJA">Baja</option>
+              <option value="MEDIA">Media</option>
+              <option value="ALTA">Alta</option>
+              <option value="URGENTE">Urgente</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="editar-fecha">Fecha límite</label>
+          <input
+            id="editar-fecha"
+            type="date"
+            [(ngModel)]="formEditar.fechaVencimiento"
+            name="fechaVencimiento"
+            class="input-date" />
+        </div>
+
+        <div class="form-field">
+          <label for="editar-desc">Descripción</label>
+          <textarea
+            id="editar-desc"
+            [(ngModel)]="formEditar.descripcion"
+            name="descripcion"
+            rows="3"
+            class="input-textarea"></textarea>
+        </div>
+
+        <div class="modal-alert-error" *ngIf="errorModal" role="alert">
+          {{ errorModal }}
+        </div>
+
+        <footer class="modal-footer">
+          <button type="button" class="btn-cancel" (click)="cerrarModalEditar()" [disabled]="guardando">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-submit" [disabled]="guardando">
+            <span *ngIf="!guardando">Guardar cambios</span>
+            <span *ngIf="guardando">Guardando…</span>
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: CONFIRMAR ELIMINAR ================= -->
+  <div class="modal-backdrop" *ngIf="modalEliminar" (click)="cerrarModalEliminar()">
+    <div class="modal-card modal-card-sm" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="modal-eliminar-title">
+      <header class="modal-header">
+        <h2 id="modal-eliminar-title">Eliminar tarea</h2>
+        <button type="button" class="btn-modal-close" (click)="cerrarModalEliminar()" aria-label="Cerrar modal">×</button>
+      </header>
+
+      <div class="modal-body">
+        <p class="modal-confirm-text">
+          ¿Estás seguro de que deseas eliminar permanentemente la tarea
+          <strong>"{{ tareaEliminando?.titulo }}"</strong>?
+        </p>
+        <p class="modal-confirm-subtext">Esta acción no se puede deshacer.</p>
+
+        <footer class="modal-footer">
+          <button type="button" class="btn-cancel" (click)="cerrarModalEliminar()" [disabled]="guardando">
+            Cancelar
+          </button>
+          <button type="button" class="btn-danger" (click)="eliminarTareaConfirmada()" [disabled]="guardando">
+            <span *ngIf="!guardando">Eliminar tarea</span>
+            <span *ngIf="guardando">Eliminando…</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+</main>

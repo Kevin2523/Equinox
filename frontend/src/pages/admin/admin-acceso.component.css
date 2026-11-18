@@ -1,0 +1,297 @@
+.admin-auth-shell {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f6f8fe 0%, #fbfcff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+}
+
+.admin-auth-card {
+  width: 100%;
+  max-width: 460px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 32px 30px;
+  box-shadow: var(--shadow-md);
+}
+
+.admin-auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.admin-auth-brand > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-auth-brand strong {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: -0.04em;
+}
+
+.admin-auth-logo {
+  width: 28px;
+  height: 28px;
+  display: flex;
+}
+
+.admin-auth-logo svg {
+  width: 28px;
+  height: 28px;
+}
+
+.admin-auth-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--blue);
+  background: var(--blue-soft);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.admin-auth-card h1 {
+  font-size: 23px;
+  margin: 0 0 8px;
+  color: var(--navy);
+}
+
+.admin-auth-subtitle {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0 0 22px;
+}
+
+.admin-auth-alert {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  line-height: 1.45;
+}
+
+.admin-auth-alert.error {
+  background: var(--coral-soft);
+  color: #a82b1f;
+  border: 1px solid rgba(255, 112, 95, 0.35);
+}
+
+.admin-auth-alert.warning {
+  background: var(--yellow-soft);
+  color: #8f5b00;
+  border: 1px solid rgba(255, 220, 104, 0.7);
+}
+
+.admin-auth-alert.success {
+  background: var(--green-soft);
+  color: #166e48;
+  border: 1px solid rgba(56, 187, 131, 0.35);
+}
+
+.admin-password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-password-wrap .form-control {
+  padding-right: 68px;
+}
+
+.admin-toggle-pass {
+  position: absolute;
+  right: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue);
+}
+
+.admin-auth-submit {
+  width: 100%;
+  justify-content: center;
+  height: 44px;
+  margin-top: 6px;
+}
+
+.admin-auth-links {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.admin-link-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.admin-link-btn:hover {
+  text-decoration: underline;
+}
+
+.admin-mfa-qr-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #f8faff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 18px 16px;
+  margin-bottom: 18px;
+}
+
+.admin-mfa-qr-frame {
+  background: #ffffff;
+  border: 2px solid #09142e;
+  border-radius: 12px;
+  padding: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(9, 20, 46, 0.08);
+  margin-bottom: 12px;
+}
+
+.admin-mfa-qr-img {
+  display: block;
+  width: 220px;
+  height: 220px;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.admin-mfa-qr-status {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 12px 0;
+}
+
+.admin-mfa-qr-caption {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--navy);
+  margin: 0 0 12px;
+}
+
+.admin-mfa-manual-toggle-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.admin-mfa-toggle-btn {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--navy);
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-mfa-toggle-btn:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.admin-mfa-toggle-btn:focus-visible,
+.admin-btn-sm:focus-visible,
+.admin-link-btn:focus-visible,
+.admin-toggle-pass:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.admin-mfa-secret-box {
+  width: 100%;
+  text-align: left;
+  background: #ffffff;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.admin-mfa-secret-box small {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.admin-mfa-secret-code {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+  word-break: break-all;
+  margin-bottom: 10px;
+  user-select: all;
+}
+
+.admin-mfa-copy-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-mfa-code-input {
+  letter-spacing: 0.22em;
+  font-weight: 700;
+  font-size: 18px;
+  text-align: center;
+}
+
+.admin-recovery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 14px;
+  background: #f8faff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.admin-recovery-grid code {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+@media (max-width: 480px) {
+  .admin-auth-shell {
+    padding: 16px 12px;
+  }
+
+  .admin-auth-card {
+    padding: 22px 18px;
+  }
+
+  .admin-mfa-qr-img {
+    width: 196px;
+  }
+
+  .admin-recovery-grid {
+    grid-template-columns: 1fr;
+  }
+}
