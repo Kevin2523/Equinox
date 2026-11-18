@@ -240,32 +240,32 @@ export async function ejecutarBloqueos(ctx: Contexto): Promise<number> {
 
   await caso("LimitadorMemoria real conserva contadores y libera solo expirados", async () => {
     const l = new LimitadorMemoria(1000, 2, "Espere", 2);
-    const ejecutar = (clave: string) => {
+    const ejecutar = async (clave: string) => {
       let pasa = false, status = 200;
       const headers: Record<string, string> = {};
       const res = { setHeader: (k: string, v: string) => { headers[k] = v; },
         status: (s: number) => { status = s; return res; }, json: () => res };
-      l.limitar(() => clave)({} as Request, res as unknown as Response, () => { pasa = true; });
+      await l.limitar(() => clave)({} as Request, res as unknown as Response, () => { pasa = true; });
       return { pasa, status, headers };
     };
     try {
       hooksPruebas.fijarReloj(ahora);
-      assert.equal(ejecutar("activa").pasa, true);
-      assert.equal(ejecutar("activa").pasa, true);
+      assert.equal((await ejecutar("activa")).pasa, true);
+      assert.equal((await ejecutar("activa")).pasa, true);
       hooksPruebas.fijarReloj(new Date(ahora.getTime() + 500));
-      assert.equal(ejecutar("segunda").pasa, true);
-      const rechazo = ejecutar("tercera");
+      assert.equal((await ejecutar("segunda")).pasa, true);
+      const rechazo = await ejecutar("tercera");
       assert.equal(rechazo.status, 429);
       assert.equal(rechazo.pasa, false);
       assert.equal(rechazo.headers["Retry-After"], "1");
-      assert.equal(ejecutar("activa").status, 429);
+      assert.equal((await ejecutar("activa")).status, 429);
       assert.equal(l.tamano(), 2);
       hooksPruebas.fijarReloj(new Date(ahora.getTime() + 1000));
-      assert.equal(ejecutar("tercera").pasa, true);
+      assert.equal((await ejecutar("tercera")).pasa, true);
       assert.equal(l.tamano(), 2);
-      assert.equal(ejecutar("segunda").pasa, true);
-      assert.equal(ejecutar("segunda").status, 429);
-      assert.equal(ejecutar("cuarta").status, 429);
+      assert.equal((await ejecutar("segunda")).pasa, true);
+      assert.equal((await ejecutar("segunda")).status, 429);
+      assert.equal((await ejecutar("cuarta")).status, 429);
     } finally { l.detener(); }
   });
 
@@ -315,10 +315,10 @@ export async function ejecutarBloqueos(ctx: Contexto): Promise<number> {
       process.env.NODE_ENV = "production";
       l.configurarCapacidadPrueba(1);
       assert.ok(hooksPruebas.obtenerAhora().getTime() !== ahora.getTime());
-      l.limitar(() => "uno")({} as Request, res, () => paso++);
-      l.limitar(() => "dos")({} as Request, res, () => paso++);
+      await l.limitar(() => "uno")({} as Request, res, () => paso++);
+      await l.limitar(() => "dos")({} as Request, res, () => paso++);
       l.reiniciar();
-      l.limitar(() => "uno")({} as Request, res, () => paso++);
+      await l.limitar(() => "uno")({} as Request, res, () => paso++);
       assert.equal(paso, 2);
       assert.equal(l.tamano(), 2);
     } finally { process.env.NODE_ENV = entorno; l.detener(); }

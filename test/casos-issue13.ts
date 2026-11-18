@@ -23,6 +23,7 @@ async function main() {
       data: {
         id,
         usuarioId: contexto.usuarioId,
+        tipoAcceso: contexto.tipoAcceso,
         tokenHash: hashToken(firmado.token),
         expiraEn: firmado.expiraEn,
       },
