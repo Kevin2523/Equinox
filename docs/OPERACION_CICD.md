@@ -133,7 +133,7 @@ Dado que el servidor Ubuntu casero opera tras NAT con **Cloudflare Tunnel** (sin
    - `.github/workflows/cd-production.yml` ejecuta `ci.yml` y **se detiene en `publish-images` esperando aprobación manual en `environment: production`** (`Kevin2523`).
    - Solo tras la aprobación publica `:prod`/`:latest`/`sha-...` y los firma con Cosign OIDC ligado a `refs/heads/main`.
 3. **Agente Pull en Ubuntu (`deploy/cd/equinox-cd-pull.sh` + `systemd`)**:
-   - Ejecutado por `equinox-cd@staging.timer` y `equinox-cd@production.timer` cada ~2 minutos como servicio `oneshot` aislado por `flock` y `COMPOSE_PROJECT_NAME` (`equinox-staging` vs `equinox-prod`).
+   - Ejecutado por `equinox-cd@staging.timer` y `equinox-cd@production.timer` cada ~10 minutos (`OnUnitActiveSec=10min`, para respetar el límite de la API anónima de GitHub de 60 req/h sin `GITHUB_TOKEN`) como servicio `oneshot` aislado por `flock` y `COMPOSE_PROJECT_NAME` (`equinox-staging` vs `equinox-prod`).
    - Consulta el digest remoto vía API OCI v2 de `ghcr.io` sin descargar capas si no hay cambios.
    - Si el digest cambió, **verifica la firma Cosign OIDC** (`--certificate-oidc-issuer https://token.actions.githubusercontent.com` y `--certificate-identity` exacta del workflow y rama).
    - Descarga por digest inmutable (`BACKEND_IMAGE_REF`, `MIGRATOR_IMAGE_REF` y `FRONTEND_IMAGE_REF` en `compose.prod.yml`), ejecuta `docker compose ... run --rm migrator` (`prisma migrate deploy` idempotente), levanta con `up -d --remove-orphans` y valida `/salud/listo` + `/nginx-salud`.
