@@ -43,6 +43,7 @@ jobs:
           POSTGRES_PASSWORD: ci_dummy_password
           SECRETO_JWT: ci_dummy_jwt_secret
           BACKEND_IMAGE: ghcr.io/owner/equinox-backend
+          MIGRATOR_IMAGE: ghcr.io/owner/equinox-migrator
           FRONTEND_IMAGE: ghcr.io/owner/equinox-frontend
           URL_BASE: https://equinox.example.invalid
           ORIGENES_PERMITIDOS: https://equinox.example.invalid
@@ -97,7 +98,9 @@ jobs:
         run: npm ci
 
       - name: Gate crítico de producción (Backend)
-        run: npm audit --omit=dev --audit-level=critical
+        run: |
+          npm audit --omit=dev --audit-level=critical
+          npm audit --omit=dev --omit=optional --audit-level=high
 
       - name: Gate crítico de producción (Frontend)
         working-directory: frontend
@@ -250,9 +253,23 @@ jobs:
         with:
           context: ${{ env.BACKEND_CONTEXT }}
           file: ${{ env.BACKEND_DOCKERFILE }}
+          target: runner
           push: false
           load: false
           tags: equinox-backend:ci-${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Validar build imagen Migrator (sin push)
+        if: steps.check_dockerfiles.outputs.ready == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BACKEND_CONTEXT }}
+          file: ${{ env.BACKEND_DOCKERFILE }}
+          target: migrator
+          push: false
+          load: false
+          tags: equinox-migrator:ci-${{ github.sha }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 

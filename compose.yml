@@ -17,15 +17,33 @@ services:
     networks:
       - equinox_net
 
+  migrator:
+    image: ${MIGRATOR_IMAGE:-equinox-migrator}:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      target: migrator
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-equinox}:${POSTGRES_PASSWORD:?Definir POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-equinox}?schema=public
+    networks:
+      - equinox_net
+
   backend:
     image: ${BACKEND_IMAGE:-equinox-backend}:${IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile.backend
+      target: runner
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: production
       ENTORNO: produccion
@@ -43,7 +61,6 @@ services:
       EQUINOX_ARCHIVOS_DIR: /data/archivos
       ALMACENAMIENTO_FOTOS_DIR: /data/fotos
       ALMACENAMIENTO_MAX_BYTES: ${ALMACENAMIENTO_MAX_BYTES:-52428800}
-      MIGRAR_AL_INICIAR: ${MIGRAR_AL_INICIAR:-true}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}

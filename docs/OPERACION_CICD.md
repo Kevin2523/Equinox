@@ -35,9 +35,9 @@ Se ejecuta en `push` y `pull_request` hacia `develop` y `main`, y también puede
 ### Contrato con Docker / Compose
 
 Los workflows de CD asumen el contrato acordado con Docker:
-- `Dockerfile.backend` (contexto `.`) y `frontend/Dockerfile` (contexto `frontend`).
-- `compose.yml` + `compose.prod.yml` consumiendo `BACKEND_IMAGE`, `FRONTEND_IMAGE` e `IMAGE_TAG`.
-- Migraciones idempotentes mediante `docker compose -f compose.yml -f compose.prod.yml run --rm backend npm run prisma:desplegar`.
+- `Dockerfile.backend` (contexto `.`, target `runner` sin `prisma` CLI y target `migrator` one-shot con `prisma` CLI) y `frontend/Dockerfile` (contexto `frontend`).
+- `compose.yml` + `compose.prod.yml` consumiendo `BACKEND_IMAGE`, `MIGRATOR_IMAGE`, `FRONTEND_IMAGE` e `IMAGE_TAG`.
+- Migraciones idempotentes mediante el servicio `migrator` (`docker compose -f compose.yml -f compose.prod.yml run --rm migrator` y `depends_on: migrator: condition: service_completed_successfully` en `backend`).
 - Verificación de salud interna (`http://127.0.0.1:3000/salud/listo` en `backend` y `http://127.0.0.1/nginx-salud` en `frontend`).
 
 ---

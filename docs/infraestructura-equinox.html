@@ -237,9 +237,9 @@
         <rect x="605" y="305" width="94" height="19" rx="9" fill="#0f766e"/>
         <text x="652" y="318" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
         <text x="607" y="343" font-size="14" font-weight="700" fill="#0f172a">backend (Node.js / Express 5)</text>
-        <text x="607" y="363" font-size="11.5" fill="#334155">• Dockerfile.backend (red interna)</text>
+        <text x="607" y="363" font-size="11.5" fill="#334155">• Target runner (sin Prisma CLI)</text>
         <text x="607" y="381" font-size="11.5" fill="#334155">• Puerto 3000, CONFIAR_PROXY=1</text>
-        <text x="607" y="399" font-size="11.5" fill="#334155">• Entrypoint: prisma migrate deploy</text>
+        <text x="607" y="399" font-size="11.5" fill="#334155">• Espera db + migrator exit 0</text>
         <text x="607" y="417" font-size="11.5" fill="#334155">• Helmet + CORS + Auth JWT + MFA</text>
         <text x="607" y="435" font-size="11.5" fill="#334155">• Healthcheck: GET /salud/listo</text>
         <text x="607" y="461" font-size="11" fill="#be123c" font-weight="600">Secretos (.env en $APP_DIR):</text>
@@ -248,32 +248,39 @@
         <text x="607" y="517" font-size="10.5" fill="#b45309">Pendiente crear .env en servidor</text>
 
         <!-- Postgres Container -->
-        <rect x="900" y="68" width="250" height="205" rx="10" fill="#ffffff" stroke="#0f766e" stroke-width="2"/>
-        <rect x="910" y="78" width="94" height="19" rx="9" fill="#0f766e"/>
-        <text x="957" y="91" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">COMPOSE LISTO</text>
-        <rect x="1011" y="78" width="128" height="19" rx="9" fill="#b45309"/>
-        <text x="1075" y="91" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">BD VACÍA EN SERVER</text>
-        <text x="912" y="118" font-size="14" font-weight="700" fill="#0f172a">db (PostgreSQL 16-alpine)</text>
-        <text x="912" y="138" font-size="11.5" fill="#334155">• Volumen: equinox_pgdata</text>
-        <text x="912" y="156" font-size="11.5" fill="#334155">• 11 migraciones Prisma listas</text>
-        <text x="912" y="174" font-size="11.5" fill="#334155">• Healthcheck: pg_isready</text>
-        <text x="912" y="196" font-size="11" fill="#b45309" font-weight="600">Pendiente en destino: primer up,</text>
-        <text x="912" y="212" font-size="11" fill="#b45309" font-weight="600">migrate deploy + admin:bootstrap</text>
-        <text x="912" y="236" font-size="11" fill="#be123c">Puerto 5432 sin bind al host</text>
+        <rect x="900" y="68" width="250" height="142" rx="10" fill="#ffffff" stroke="#0f766e" stroke-width="2"/>
+        <rect x="910" y="76" width="94" height="18" rx="9" fill="#0f766e"/>
+        <text x="957" y="88" font-size="9.5" font-weight="700" fill="#fff" text-anchor="middle">COMPOSE LISTO</text>
+        <rect x="1010" y="76" width="130" height="18" rx="9" fill="#b45309"/>
+        <text x="1075" y="88" font-size="9.5" font-weight="700" fill="#fff" text-anchor="middle">BD VACÍA EN SERVER</text>
+        <text x="912" y="112" font-size="13.5" font-weight="700" fill="#0f172a">db (PostgreSQL 16-alpine)</text>
+        <text x="912" y="130" font-size="11" fill="#334155">• Volumen: equinox_pgdata (:5432)</text>
+        <text x="912" y="147" font-size="11" fill="#334155">• 11 migraciones + pg_isready healthy</text>
+        <text x="912" y="165" font-size="10.5" fill="#b45309" font-weight="600">Pendiente servidor: primer up +</text>
+        <text x="912" y="180" font-size="10.5" fill="#b45309" font-weight="600">admin:bootstrap (sin bind :5432)</text>
+
+        <!-- Migrator One-Shot Container -->
+        <rect x="900" y="226" width="250" height="102" rx="10" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+        <rect x="910" y="234" width="94" height="18" rx="9" fill="#0f766e"/>
+        <text x="957" y="246" font-size="9.5" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+        <text x="1012" y="247" font-size="10.5" font-weight="700" fill="#0f766e">one-shot (restart: no)</text>
+        <text x="912" y="269" font-size="13.5" font-weight="700" fill="#0f172a">migrator (Prisma CLI)</text>
+        <text x="912" y="287" font-size="11" fill="#334155">• Espera db service_healthy</text>
+        <text x="912" y="303" font-size="11" fill="#334155">• Ejecuta prisma migrate deploy</text>
+        <text x="912" y="319" font-size="11" fill="#0f766e" font-weight="600">• completed_successfully → backend</text>
 
         <!-- Volúmenes Privados -->
-        <rect x="900" y="295" width="250" height="255" rx="10" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
-        <rect x="910" y="305" width="94" height="19" rx="9" fill="#0f766e"/>
-        <text x="957" y="318" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
-        <text x="912" y="343" font-size="14" font-weight="700" fill="#0f172a">Volúmenes Privados Docker</text>
-        <text x="912" y="365" font-size="11.5" fill="#334155">• equinox_archivos → /data/archivos</text>
-        <text x="912" y="383" font-size="11.5" fill="#334155">• equinox_fotos → /data/fotos</text>
-        <text x="912" y="405" font-size="11.5" fill="#334155">• Fuera de webroot (sin static)</text>
-        <text x="912" y="423" font-size="11.5" fill="#334155">• Claves UUID v4 + path.resolve</text>
-        <text x="912" y="441" font-size="11.5" fill="#334155">• Firmas mágicas (máx 50 MB)</text>
-        <text x="912" y="459" font-size="11.5" fill="#334155">• Streaming sin Base64 (Nginx</text>
-        <text x="912" y="475" font-size="11.5" fill="#334155">  proxy_request_buffering off)</text>
-        <text x="912" y="501" font-size="11" fill="#0f766e">Declarados en compose.yml</text>
+        <rect x="900" y="344" width="250" height="206" rx="10" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+        <rect x="910" y="352" width="94" height="18" rx="9" fill="#0f766e"/>
+        <text x="957" y="364" font-size="9.5" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+        <text x="912" y="388" font-size="13.5" font-weight="700" fill="#0f172a">Volúmenes Privados Docker</text>
+        <text x="912" y="408" font-size="11" fill="#334155">• equinox_archivos → /data/archivos</text>
+        <text x="912" y="425" font-size="11" fill="#334155">• equinox_fotos → /data/fotos</text>
+        <text x="912" y="442" font-size="11" fill="#334155">• Fuera de webroot (sin static)</text>
+        <text x="912" y="459" font-size="11" fill="#334155">• UUID v4 + path.resolve + 50 MB</text>
+        <text x="912" y="476" font-size="11" fill="#334155">• Streaming sin Base64 (Nginx</text>
+        <text x="912" y="492" font-size="11" fill="#334155">  proxy_request_buffering off)</text>
+        <text x="912" y="514" font-size="10.5" fill="#0f766e">Declarados en compose.yml</text>
 
         <!-- Backups (arriba derecha) -->
         <rect x="1180" y="68" width="224" height="205" rx="10" fill="#fffbeb" stroke="#b45309" stroke-width="2" stroke-dasharray="7 5"/>
@@ -358,27 +365,33 @@
         <path d="M 527 155 L 593 155" stroke="#b45309" stroke-width="2.2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
         <text x="560" y="145" font-size="10.5" font-weight="600" fill="#b45309" text-anchor="middle">:8082</text>
 
-        <!-- Frontend Nginx -> Backend API -->
-        <path d="M 722 273 L 722 293" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
-        <text x="732" y="287" font-size="10.5" font-weight="600" fill="#0f766e">proxy /api/ → :3000</text>
+        <!-- Frontend Nginx <- Backend API (depends_on healthy) -->
+        <path d="M 722 293 L 722 275" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
+        <text x="732" y="287" font-size="10.5" font-weight="600" fill="#0f766e">healthy → frontend</text>
 
         <!-- Backend -> SMTP (por debajo de Límites de Red) -->
         <path d="M 595 516 L 250 516" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
         <text x="420" y="507" font-size="10.5" font-weight="600" fill="#b45309" text-anchor="middle">SMTP :587 (opcional / 503 si falta)</text>
 
+        <!-- db -> migrator -->
+        <path d="M 1025 210 L 1025 224" fill="none" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
+
+        <!-- migrator -> backend -->
+        <path d="M 900 282 L 875 282 L 875 335 L 852 335" fill="none" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
+
         <!-- Backend -> Postgres -->
-        <path d="M 850 350 L 875 350 L 875 170 L 898 170" fill="none" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
-        <text x="875" y="255" font-size="10.5" font-weight="600" fill="#0f766e" text-anchor="middle" transform="rotate(-90 868 255)">Prisma TCP :5432</text>
+        <path d="M 850 355 L 882 355 L 882 140 L 898 140" fill="none" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
+        <text x="874" y="218" font-size="10" font-weight="600" fill="#0f766e" text-anchor="middle" transform="rotate(-90 868 218)">Prisma :5432</text>
 
         <!-- Backend -> Volúmenes -->
-        <path d="M 850 425 L 898 425" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
-        <text x="874" y="416" font-size="10" font-weight="600" fill="#0f766e" text-anchor="middle">FS</text>
+        <path d="M 850 435 L 898 435" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
+        <text x="874" y="426" font-size="10" font-weight="600" fill="#0f766e" text-anchor="middle">FS</text>
 
         <!-- Postgres -> Backups -->
-        <path d="M 1150 170 L 1178 170" fill="none" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+        <path d="M 1150 140 L 1178 140" fill="none" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
 
         <!-- Volúmenes -> Backups -->
-        <path d="M 1150 380 L 1166 380 L 1166 230 L 1178 230" fill="none" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+        <path d="M 1150 390 L 1166 390 L 1166 215 L 1178 215" fill="none" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
 
         <!-- GitHub -> develop CI -->
         <path d="M 353 758 L 393 758" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
@@ -400,7 +413,7 @@
         <ul>
           <li><strong>CI y firma Cosign OIDC</strong> (<code>.github/workflows/ci.yml</code>, <code>cd-staging.yml</code>, <code>cd-production.yml</code>): Gitleaks, <code>npm audit</code>, Prisma + PostgreSQL 16, Angular build + tests, Docker Buildx, push a GHCR y firma de digests con Cosign OIDC keyless.</li>
           <li><strong>Agente Pull-Based CD</strong> (<code>deploy/cd/equinox-cd-pull.sh</code>, <code>equinox-cd@.service</code>, <code>equinox-cd@.timer</code>, <code>equinox-cd.env.example</code>): resolución de digest en GHCR, verificación <code>cosign verify</code> por issuer/workflow, pinning <code>@sha256</code>, <code>prisma migrate deploy</code>, healthcheck y rollback automático.</li>
-          <li><strong>Contenedores, Nginx y volúmenes</strong> (<code>compose.yml</code>, <code>compose.prod.yml</code>, <code>frontend/nginx.conf</code>, <code>env.js</code>): red interna <code>equinox_net</code>, volúmenes <code>equinox_pgdata</code>, <code>equinox_archivos</code> y <code>equinox_fotos</code>.</li>
+          <li><strong>Contenedores, migrator one-shot y volúmenes</strong> (<code>compose.yml</code>, <code>compose.prod.yml</code>, <code>Dockerfile.backend</code>, <code>frontend/nginx.conf</code>): arranque ordenado <code>db (healthy) → migrator (migrate deploy, completed_successfully) → backend (target runner sin Prisma CLI) → frontend</code>, en red interna <code>equinox_net</code> con volúmenes <code>equinox_pgdata</code>, <code>equinox_archivos</code> y <code>equinox_fotos</code>.</li>
         </ul>
       </div>
 
