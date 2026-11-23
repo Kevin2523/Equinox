@@ -27,7 +27,19 @@ require_cmd() {
 : "${BACKEND_IMAGE:?Definir BACKEND_IMAGE (ej. ghcr.io/kevin2523/equinox-backend)}"
 : "${MIGRATOR_IMAGE:?Definir MIGRATOR_IMAGE (ej. ghcr.io/kevin2523/equinox-migrator)}"
 : "${FRONTEND_IMAGE:?Definir FRONTEND_IMAGE (ej. ghcr.io/kevin2523/equinox-frontend)}"
-: "${IMAGE_TAG:?Definir IMAGE_TAG (ej. staging o prod)}"
+
+ENFORCE_HEAD_SHA="${ENFORCE_HEAD_SHA:-true}"
+GITHUB_REPO="${GITHUB_REPO:-Kevin2523/Equinox}"
+if [ -z "${TARGET_BRANCH:-}" ]; then
+  if [ "$ENV_NAME" = "production" ]; then
+    TARGET_BRANCH="main"
+  else
+    TARGET_BRANCH="develop"
+  fi
+fi
+if [ "$ENFORCE_HEAD_SHA" != "true" ]; then
+  : "${IMAGE_TAG:?Definir IMAGE_TAG cuando ENFORCE_HEAD_SHA=false}"
+fi
 
 BACKEND_IMAGE=$(printf '%s' "$BACKEND_IMAGE" | tr '[:upper:]' '[:lower:]')
 MIGRATOR_IMAGE=$(printf '%s' "$MIGRATOR_IMAGE" | tr '[:upper:]' '[:lower:]')
@@ -71,7 +83,31 @@ if ! flock -n 9; then
   exit 0
 fi
 
-# --- Helpers OCI / GHCR ---
+# --- Helpers GitHub / OCI / GHCR ---
+resolve_github_head_sha() {
+  local repo="$1"
+  local branch="$2"
+  local api_url="https://api.github.com/repos/${repo}/commits/${branch}"
+  local sha=""
+
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    sha=$(curl -fsSL --connect-timeout 10 --max-time 20 \
+      -H "Accept: application/vnd.github.sha" \
+      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+      "$api_url")
+  else
+    sha=$(curl -fsSL --connect-timeout 10 --max-time 20 \
+      -H "Accept: application/vnd.github.sha" \
+      "$api_url")
+  fi
+
+  sha=$(printf '%s' "$sha" | tr '[:upper:]' '[:lower:]' | tr -d '\r\n ')
+  if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+    die "SHA de HEAD inválido recibido desde GitHub para ${repo}@${branch}: '${sha}'"
+  fi
+  printf '%s' "$sha"
+}
+
 resolve_ghcr_digest() {
   local full_image="$1"
   local tag="$2"
@@ -92,11 +128,19 @@ resolve_ghcr_digest() {
   token=$(printf '%s' "$token_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['token'])")
   [ -n "$token" ] || die "No se pudo obtener token OCI de GHCR para ${repo}"
 
-  local headers
-  headers=$(curl -fsSL --connect-timeout 10 --max-time 30 -I \
+  local resp status headers
+  resp=$(curl -sS --connect-timeout 10 --max-time 30 -I -w "\n__HTTP_CODE__:%{http_code}" \
     -H "Authorization: Bearer ${token}" \
     -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
     "https://ghcr.io/v2/${repo}/manifests/${tag}")
+  status="${resp##*__HTTP_CODE__:}"
+  status="${status//[[:space:]]/}"
+  headers="${resp%__HTTP_CODE__:*}"
+
+  if [ "$status" = "404" ]; then
+    return 2
+  fi
+  [ "$status" = "200" ] || die "Error consultando manifest GHCR para ${full_image}:${tag} (HTTP ${status})"
 
   local digest
   digest=$(printf '%s\n' "$headers" | awk 'tolower($0) ~ /^docker-content-digest:[[:space:]]*/{sub(/^[^:]*:[[:space:]]*/,""); gsub(/\r/,""); print; exit}')
@@ -157,18 +201,24 @@ write_state() {
   local failed_backend="${7:-}"
   local failed_migrator="${8:-}"
   local failed_frontend="${9:-}"
+  local commit_sha="${10:-}"
+  local prev_commit="${11:-}"
+  local failed_commit="${12:-}"
   local tmp_file
   tmp_file=$(mktemp "${STATE_DIR}/.${ENV_NAME}.state.XXXXXX")
   cat >"$tmp_file" <<EOF
 CURRENT_BACKEND_DIGEST=${backend_digest}
 CURRENT_MIGRATOR_DIGEST=${migrator_digest}
 CURRENT_FRONTEND_DIGEST=${frontend_digest}
+CURRENT_COMMIT_SHA=${commit_sha}
 PREV_BACKEND_DIGEST=${prev_backend}
 PREV_MIGRATOR_DIGEST=${prev_migrator}
 PREV_FRONTEND_DIGEST=${prev_frontend}
+PREV_COMMIT_SHA=${prev_commit}
 FAILED_BACKEND_DIGEST=${failed_backend}
 FAILED_MIGRATOR_DIGEST=${failed_migrator}
 FAILED_FRONTEND_DIGEST=${failed_frontend}
+FAILED_COMMIT_SHA=${failed_commit}
 UPDATED_AT=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 EOF
   chmod 600 "$tmp_file"
@@ -179,26 +229,67 @@ EOF
 CURRENT_BACKEND_DIGEST=""
 CURRENT_MIGRATOR_DIGEST=""
 CURRENT_FRONTEND_DIGEST=""
+CURRENT_COMMIT_SHA=""
 PREV_BACKEND_DIGEST=""
 PREV_MIGRATOR_DIGEST=""
 PREV_FRONTEND_DIGEST=""
+PREV_COMMIT_SHA=""
 FAILED_BACKEND_DIGEST=""
 FAILED_MIGRATOR_DIGEST=""
 FAILED_FRONTEND_DIGEST=""
+FAILED_COMMIT_SHA=""
 if [ -f "$STATE_FILE" ]; then
   # shellcheck disable=SC1090
   source "$STATE_FILE"
 fi
 
+# --- Resolver referencia inmutable por commit HEAD ---
+TARGET_COMMIT_SHA=""
+RESOLVED_TAG="${IMAGE_TAG:-}"
+if [ "$ENFORCE_HEAD_SHA" = "true" ]; then
+  HEAD_SHA=$(resolve_github_head_sha "$GITHUB_REPO" "$TARGET_BRANCH")
+  if [[ "${IMAGE_TAG:-}" =~ ^sha-([0-9a-fA-F]{40})$ ]]; then
+    REQ_SHA=$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]')
+    if [ "$REQ_SHA" != "$HEAD_SHA" ]; then
+      die "Bloqueado: intento de despliegue fuera de orden (solicitado ${IMAGE_TAG}, HEAD actual de ${TARGET_BRANCH} es ${HEAD_SHA})."
+    fi
+  fi
+  TARGET_COMMIT_SHA="$HEAD_SHA"
+  RESOLVED_TAG="sha-${HEAD_SHA}"
+fi
+
 # --- Consultar digests remotos ---
-REMOTE_BACKEND_DIGEST=$(resolve_ghcr_digest "$BACKEND_IMAGE" "$IMAGE_TAG")
-REMOTE_MIGRATOR_DIGEST=$(resolve_ghcr_digest "$MIGRATOR_IMAGE" "$IMAGE_TAG")
-REMOTE_FRONTEND_DIGEST=$(resolve_ghcr_digest "$FRONTEND_IMAGE" "$IMAGE_TAG")
+resolve_or_wait() {
+  local img="$1"
+  local tag="$2"
+  local out=""
+  local rc=0
+  out=$(resolve_ghcr_digest "$img" "$tag") || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    return 2
+  elif [ "$rc" -ne 0 ]; then
+    exit "$rc"
+  fi
+  printf '%s' "$out"
+}
+
+RC_B=0; REMOTE_BACKEND_DIGEST=$(resolve_or_wait "$BACKEND_IMAGE" "$RESOLVED_TAG") || RC_B=$?
+RC_M=0; REMOTE_MIGRATOR_DIGEST=$(resolve_or_wait "$MIGRATOR_IMAGE" "$RESOLVED_TAG") || RC_M=$?
+RC_F=0; REMOTE_FRONTEND_DIGEST=$(resolve_or_wait "$FRONTEND_IMAGE" "$RESOLVED_TAG") || RC_F=$?
+if [ "$RC_B" -eq 2 ] || [ "$RC_M" -eq 2 ] || [ "$RC_F" -eq 2 ]; then
+  log "Release ${RESOLVED_TAG} aún no publicado en GHCR; manteniendo release actual (${CURRENT_COMMIT_SHA:-ninguno})."
+  exit 0
+fi
+if [ "$RC_B" -ne 0 ] || [ "$RC_M" -ne 0 ] || [ "$RC_F" -ne 0 ]; then
+  exit 1
+fi
+[ -n "$REMOTE_BACKEND_DIGEST" ] && [ -n "$REMOTE_MIGRATOR_DIGEST" ] && [ -n "$REMOTE_FRONTEND_DIGEST" ] || die "Digest vacío recibido para ${RESOLVED_TAG}"
 
 if [ "$REMOTE_BACKEND_DIGEST" = "$CURRENT_BACKEND_DIGEST" ] \
   && [ "$REMOTE_MIGRATOR_DIGEST" = "$CURRENT_MIGRATOR_DIGEST" ] \
-  && [ "$REMOTE_FRONTEND_DIGEST" = "$CURRENT_FRONTEND_DIGEST" ]; then
-  log "Sin cambios (${IMAGE_TAG}: backend=${REMOTE_BACKEND_DIGEST:0:19}..., migrator=${REMOTE_MIGRATOR_DIGEST:0:19}..., frontend=${REMOTE_FRONTEND_DIGEST:0:19}...)."
+  && [ "$REMOTE_FRONTEND_DIGEST" = "$CURRENT_FRONTEND_DIGEST" ] \
+  && [ "$TARGET_COMMIT_SHA" = "$CURRENT_COMMIT_SHA" ]; then
+  log "Sin cambios (${RESOLVED_TAG}: backend=${REMOTE_BACKEND_DIGEST:0:19}..., migrator=${REMOTE_MIGRATOR_DIGEST:0:19}..., frontend=${REMOTE_FRONTEND_DIGEST:0:19}...)."
   exit 0
 fi
 
@@ -206,10 +297,10 @@ if [ -n "$FAILED_BACKEND_DIGEST" ] && [ -n "$FAILED_MIGRATOR_DIGEST" ] && [ -n "
   && [ "$REMOTE_BACKEND_DIGEST" = "$FAILED_BACKEND_DIGEST" ] \
   && [ "$REMOTE_MIGRATOR_DIGEST" = "$FAILED_MIGRATOR_DIGEST" ] \
   && [ "$REMOTE_FRONTEND_DIGEST" = "$FAILED_FRONTEND_DIGEST" ]; then
-  die "Release fallido previamente (${IMAGE_TAG}: backend=${REMOTE_BACKEND_DIGEST:0:19}..., migrator=${REMOTE_MIGRATOR_DIGEST:0:19}..., frontend=${REMOTE_FRONTEND_DIGEST:0:19}...); omitiendo reintento para evitar bucle de rollback."
+  die "Release fallido previamente (${RESOLVED_TAG}: backend=${REMOTE_BACKEND_DIGEST:0:19}..., migrator=${REMOTE_MIGRATOR_DIGEST:0:19}..., frontend=${REMOTE_FRONTEND_DIGEST:0:19}...); omitiendo reintento para evitar bucle de rollback."
 fi
 
-log "Nuevo release detectado para ${IMAGE_TAG}: backend=${REMOTE_BACKEND_DIGEST}, migrator=${REMOTE_MIGRATOR_DIGEST}, frontend=${REMOTE_FRONTEND_DIGEST}"
+log "Nuevo release detectado para ${RESOLVED_TAG}: backend=${REMOTE_BACKEND_DIGEST}, migrator=${REMOTE_MIGRATOR_DIGEST}, frontend=${REMOTE_FRONTEND_DIGEST}"
 
 NEW_BACKEND_REF="${BACKEND_IMAGE}@${REMOTE_BACKEND_DIGEST}"
 NEW_MIGRATOR_REF="${MIGRATOR_IMAGE}@${REMOTE_MIGRATOR_DIGEST}"
@@ -269,9 +360,10 @@ elif ! check_health "$CHECK_HOST" "$CHECK_PORT"; then
 fi
 
 if [ "$DEPLOY_OK" = "true" ]; then
-  write_state "$REMOTE_BACKEND_DIGEST" "$REMOTE_MIGRATOR_DIGEST" "$REMOTE_FRONTEND_DIGEST" "$CURRENT_BACKEND_DIGEST" "$CURRENT_MIGRATOR_DIGEST" "$CURRENT_FRONTEND_DIGEST" "" "" ""
+  write_state "$REMOTE_BACKEND_DIGEST" "$REMOTE_MIGRATOR_DIGEST" "$REMOTE_FRONTEND_DIGEST" "$CURRENT_BACKEND_DIGEST" "$CURRENT_MIGRATOR_DIGEST" "$CURRENT_FRONTEND_DIGEST" "" "" "" "$TARGET_COMMIT_SHA" "$CURRENT_COMMIT_SHA" ""
   cat >"${APP_DIR}/.cd-active-refs.env" <<EOF
 # Generado automáticamente por equinox-cd-pull.sh
+COMMIT_SHA=${TARGET_COMMIT_SHA}
 BACKEND_IMAGE_REF=${NEW_BACKEND_REF}
 MIGRATOR_IMAGE_REF=${NEW_MIGRATOR_REF}
 FRONTEND_IMAGE_REF=${NEW_FRONTEND_REF}
@@ -283,7 +375,7 @@ fi
 
 # --- Rollback automático ---
 log "ERROR: Falló el despliegue, la migración o el healthcheck en ${CHECK_HOST}:${CHECK_PORT}."
-write_state "$CURRENT_BACKEND_DIGEST" "$CURRENT_MIGRATOR_DIGEST" "$CURRENT_FRONTEND_DIGEST" "$PREV_BACKEND_DIGEST" "$PREV_MIGRATOR_DIGEST" "$PREV_FRONTEND_DIGEST" "$REMOTE_BACKEND_DIGEST" "$REMOTE_MIGRATOR_DIGEST" "$REMOTE_FRONTEND_DIGEST"
+write_state "$CURRENT_BACKEND_DIGEST" "$CURRENT_MIGRATOR_DIGEST" "$CURRENT_FRONTEND_DIGEST" "$PREV_BACKEND_DIGEST" "$PREV_MIGRATOR_DIGEST" "$PREV_FRONTEND_DIGEST" "$REMOTE_BACKEND_DIGEST" "$REMOTE_MIGRATOR_DIGEST" "$REMOTE_FRONTEND_DIGEST" "$CURRENT_COMMIT_SHA" "$PREV_COMMIT_SHA" "$TARGET_COMMIT_SHA"
 if [ -n "$CURRENT_BACKEND_DIGEST" ] && [ -n "$CURRENT_MIGRATOR_DIGEST" ] && [ -n "$CURRENT_FRONTEND_DIGEST" ]; then
   log "Iniciando rollback automático a digests previos..."
   export BACKEND_IMAGE_REF="${BACKEND_IMAGE}@${CURRENT_BACKEND_DIGEST}"
