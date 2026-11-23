@@ -108,6 +108,8 @@ jobs:
       IMAGE_TAG: sha-${{ github.sha }}
       GHCR_USER: ${{ secrets.GHCR_READ_USER || github.actor }}
       GHCR_TOKEN: ${{ secrets.GHCR_READ_TOKEN || secrets.GITHUB_TOKEN }}
+      FRONTEND_BIND_IP: ${{ vars.PROD_FRONTEND_BIND_IP || '' }}
+      FRONTEND_PORT: ${{ vars.PROD_FRONTEND_PORT || '' }}
     steps:
       - name: Validar rama main y secretos obligatorios de Producción
         run: |
@@ -147,14 +149,29 @@ jobs:
       - name: Desplegar contenedores y ejecutar migraciones en Producción
         run: |
           ssh -p "$SSH_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "${SSH_USER}@${SSH_HOST}" \
-            "APP_DIR='${APP_DIR}' BACKEND_IMAGE='${BACKEND_IMAGE}' FRONTEND_IMAGE='${FRONTEND_IMAGE}' IMAGE_TAG='${IMAGE_TAG}' GHCR_USER='${GHCR_USER}' GHCR_TOKEN='${GHCR_TOKEN}' bash -s" <<'EOF'
+            "APP_DIR='${APP_DIR}' BACKEND_IMAGE='${BACKEND_IMAGE}' FRONTEND_IMAGE='${FRONTEND_IMAGE}' IMAGE_TAG='${IMAGE_TAG}' GHCR_USER='${GHCR_USER}' GHCR_TOKEN='${GHCR_TOKEN}' FRONTEND_BIND_IP='${FRONTEND_BIND_IP}' FRONTEND_PORT='${FRONTEND_PORT}' bash -s" <<'EOF'
           set -euo pipefail
           cd "$APP_DIR"
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
           export BACKEND_IMAGE FRONTEND_IMAGE IMAGE_TAG
+          ENV_BIND_IP=""
+          ENV_PORT=""
+          if [ -f .env ]; then
+            ENV_BIND_IP=$(grep -E '^FRONTEND_BIND_IP=' .env | tail -n1 | cut -d= -f2- | tr -d '\r"' | xargs || true)
+            ENV_PORT=$(grep -E '^FRONTEND_PORT=' .env | tail -n1 | cut -d= -f2- | tr -d '\r"' | xargs || true)
+          fi
+          CHECK_BIND_IP="${FRONTEND_BIND_IP:-${ENV_BIND_IP:-127.0.0.1}}"
+          CHECK_PORT="${FRONTEND_PORT:-${ENV_PORT:-8082}}"
+          if [ -n "$FRONTEND_BIND_IP" ]; then export FRONTEND_BIND_IP; fi
+          if [ -n "$FRONTEND_PORT" ]; then export FRONTEND_PORT; fi
+          CHECK_HOST="$CHECK_BIND_IP"
+          if [ "$CHECK_HOST" = "0.0.0.0" ] || [ -z "$CHECK_HOST" ]; then
+            CHECK_HOST="127.0.0.1"
+          fi
           docker compose -f compose.yml -f compose.prod.yml pull
           docker compose -f compose.yml -f compose.prod.yml run --rm backend npm run prisma:desplegar
           docker compose -f compose.yml -f compose.prod.yml up -d --remove-orphans
           docker compose -f compose.yml -f compose.prod.yml exec -T backend node -e "fetch('http://127.0.0.1:3000/salud/listo').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-          curl -fsS http://127.0.0.1/nginx-salud >/dev/null
+          curl -fsS "http://${CHECK_HOST}:${CHECK_PORT}/nginx-salud" >/dev/null
+          curl -fsS "http://${CHECK_HOST}:${CHECK_PORT}/salud/listo" >/dev/null
           EOF

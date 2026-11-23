@@ -27,6 +27,36 @@ env:
   FRONTEND_CONTEXT: frontend
 
 jobs:
+  yaml-and-compose-validate:
+    name: Validación YAML, Workflows y Compose
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Validar sintaxis YAML (Workflows y Compose)
+        run: |
+          ruby -ryaml -e 'Dir[".github/workflows/*.yml", "compose*.yml"].each { |f| YAML.load_file(f); puts "OK: #{f}" }'
+
+      - name: Validar configuración Docker Compose
+        env:
+          POSTGRES_PASSWORD: ci_dummy_password
+          SECRETO_JWT: ci_dummy_jwt_secret
+          BACKEND_IMAGE: ghcr.io/owner/equinox-backend
+          FRONTEND_IMAGE: ghcr.io/owner/equinox-frontend
+          URL_BASE: https://equinox.example.invalid
+          ORIGENES_PERMITIDOS: https://equinox.example.invalid
+        run: |
+          docker compose -f compose.yml config --quiet
+          docker compose -f compose.yml -f compose.prod.yml config --quiet
+
+      - name: Verificar que CD no use puerto 80 implícito
+        run: |
+          if grep -nE 'curl .*http://127\.0\.0\.1/nginx-salud' .github/workflows/cd-*.yml; then
+            echo "::error::Workflow CD apunta al puerto 80 en vez del puerto Compose aislado"
+            exit 1
+          fi
+
   secret-scan:
     name: Escaneo de secretos (Gitleaks)
     runs-on: ubuntu-latest
