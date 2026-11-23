@@ -8,7 +8,7 @@ on:
 
 concurrency:
   group: cd-staging
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -37,11 +37,20 @@ jobs:
       backend_image: ${{ steps.meta_backend.outputs.tags }}
       frontend_image: ${{ steps.meta_frontend.outputs.tags }}
       backend_digest: ${{ steps.build_backend.outputs.digest }}
+      migrator_digest: ${{ steps.build_migrator.outputs.digest }}
       frontend_digest: ${{ steps.build_frontend.outputs.digest }}
       image_tag: sha-${{ github.sha }}
     steps:
       - name: Checkout repositorio
         uses: actions/checkout@v4
+
+      - name: Validar que github.sha es el HEAD actual de develop
+        run: |
+          HEAD_SHA=$(git ls-remote origin refs/heads/develop | awk '{print $1}')
+          if [ -z "$HEAD_SHA" ] || [ "$HEAD_SHA" != "${{ github.sha }}" ]; then
+            echo "::error::Ejecución obsoleta bloqueada: github.sha (${{ github.sha }}) ya no es HEAD de develop (${HEAD_SHA})."
+            exit 1
+          fi
 
       - name: Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -62,7 +71,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/equinox-backend
           tags: |
-            type=raw,value=staging
             type=raw,value=sha-${{ github.sha }}
 
       - name: Build y Push imagen Backend
@@ -84,7 +92,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/equinox-migrator
           tags: |
-            type=raw,value=staging
             type=raw,value=sha-${{ github.sha }}
 
       - name: Build y Push imagen Migrator
@@ -106,7 +113,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/equinox-frontend
           tags: |
-            type=raw,value=staging
             type=raw,value=sha-${{ github.sha }}
 
       - name: Build y Push imagen Frontend
@@ -120,6 +126,28 @@ jobs:
           labels: ${{ steps.meta_frontend.outputs.labels }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Promover etiqueta :staging solo si HEAD sigue vigente
+        env:
+          BACKEND_DIGEST: ${{ steps.build_backend.outputs.digest }}
+          MIGRATOR_DIGEST: ${{ steps.build_migrator.outputs.digest }}
+          FRONTEND_DIGEST: ${{ steps.build_frontend.outputs.digest }}
+        run: |
+          HEAD_SHA=$(git ls-remote origin refs/heads/develop | awk '{print $1}')
+          if [ -z "$HEAD_SHA" ] || [ "$HEAD_SHA" != "${{ github.sha }}" ]; then
+            echo "::error::Ejecución obsoleta detectada tras build: github.sha (${{ github.sha }}) ya no es HEAD de develop (${HEAD_SHA}). Se aborta sin sobrescribir :staging."
+            exit 1
+          fi
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          for img_digest in \
+            "equinox-backend:${BACKEND_DIGEST}" \
+            "equinox-migrator:${MIGRATOR_DIGEST}" \
+            "equinox-frontend:${FRONTEND_DIGEST}"; do
+            name="${img_digest%%:*}"
+            digest="${img_digest#*:}"
+            ref="${{ env.REGISTRY }}/${OWNER_LC}/${name}@${digest}"
+            docker buildx imagetools create -t "${{ env.REGISTRY }}/${OWNER_LC}/${name}:staging" "$ref"
+          done
 
       - name: Firmar digests con Cosign (OIDC keyless)
         env:
