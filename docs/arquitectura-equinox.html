@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Arquitectura Completa — Equinox CRM</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-alt: #f1f5f9;
+      --ink: #0f172a;
+      --muted: #475569;
+      --border: #cbd5e1;
+      --border-soft: #e2e8f0;
+      --impl: #0f766e;
+      --impl-bg: #f0fdfa;
+      --plan: #b45309;
+      --plan-bg: #fffbeb;
+      --sec: #be123c;
+      --sec-bg: #fff1f2;
+      --accent: #1d4ed8;
+      --accent-bg: #eff6ff;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; max-width: 100%; overflow-x: hidden; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.55;
+      font-size: 15px;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: 0.86em;
+      background: var(--surface-alt);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: var(--ink);
+      word-break: break-word;
+    }
+    pre {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 14px 16px;
+      border-radius: 10px;
+      overflow-x: auto;
+      line-height: 1.45;
+      margin: 10px 0;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Layout */
+    .app-shell {
+      display: grid;
+      grid-template-columns: 270px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 30;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .brand-title {
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    .brand-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .search-box input:focus {
+      outline: 2px solid var(--impl);
+      border-color: transparent;
+    }
+    .nav-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .nav-list a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-list a:hover, .nav-list a.active {
+      background: var(--impl-bg);
+      color: var(--impl);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .nav-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--surface-alt);
+      color: var(--muted);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .nav-list a.active .nav-num {
+      background: var(--impl);
+      color: #fff;
+    }
+
+    /* Mobile Header */
+    .mobile-bar {
+      display: none;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .menu-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Main content */
+    main {
+      padding: 24px 32px 60px;
+      max-width: 1220px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #134e4a 100%);
+      color: #f8fafc;
+      border-radius: 16px;
+      padding: 26px 28px;
+      box-shadow: var(--shadow);
+    }
+    .hero-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .hero p {
+      margin: 0;
+      color: #cbd5e1;
+      font-size: 14px;
+      max-width: 780px;
+    }
+    .hero strong {
+      color: #5eead4;
+    }
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1.5px solid;
+    }
+    .pill-impl { color: var(--impl); background: var(--impl-bg); border-color: var(--impl); }
+    .pill-plan { color: var(--plan); background: var(--plan-bg); border-color: var(--plan); border-style: dashed; }
+    .pill-sec  { color: var(--sec);  background: var(--sec-bg);  border-color: var(--sec);  border-style: dotted; }
+    .pill-info { color: var(--accent); background: var(--accent-bg); border-color: var(--accent); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot-impl { background: var(--impl); }
+    .dot-plan { background: var(--plan); }
+    .dot-sec  { background: var(--sec); }
+
+    /* Sections */
+    section.doc-sec {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+      scroll-margin-top: 72px;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .sec-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .sec-header h2 {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 750;
+      letter-spacing: -0.015em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sec-tag {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--ink);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    h3 {
+      margin: 18px 0 8px;
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    p { margin: 0 0 10px; color: var(--muted); }
+    ul, ol { margin: 0 0 12px; padding-left: 20px; color: var(--muted); }
+    li { margin-bottom: 5px; }
+    strong { color: var(--ink); }
+
+    /* Grids & Cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .card.impl { border-left: 4px solid var(--impl); background: var(--impl-bg); }
+    .card.plan { border-left: 4px solid var(--plan); background: var(--plan-bg); }
+    .card.sec  { border-left: 4px solid var(--sec);  background: var(--sec-bg); }
+    .card h4 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .card p, .card ul { font-size: 13.5px; margin-bottom: 4px; }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 10px 0 4px;
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+    th {
+      background: var(--surface-alt);
+      color: var(--ink);
+      font-weight: 700;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border-soft);
+      color: var(--muted);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--muted);
+      padding: 7px 13px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--impl);
+      color: #fff;
+      border-color: var(--impl);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Interactive Diagram */
+    .diagram-box {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 12px;
+      overflow-x: auto;
+    }
+    svg.arch {
+      width: 100%;
+      min-width: 900px;
+      height: auto;
+      display: block;
+      font-family: var(--sans);
+    }
+    .svg-node { cursor: pointer; transition: opacity 0.15s, filter 0.15s; }
+    .svg-node:hover { filter: drop-shadow(0 3px 6px rgba(15, 23, 42, 0.15)); }
+    .svg-node.selected rect.node-bg { stroke-width: 3; }
+    .inspector {
+      margin-top: 12px;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .inspector-title {
+      font-weight: 750;
+      font-size: 15px;
+      color: var(--ink);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Step timeline */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .step {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      background: var(--bg);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--impl);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+    }
+    .step.plan .step-num { background: var(--plan); }
+    .step.sec .step-num  { background: var(--sec); }
+    .step h4 { margin: 0 0 4px; font-size: 14px; color: var(--ink); }
+    .step p { margin: 0; font-size: 13.5px; }
+
+    /* Callouts */
+    .callout {
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 10px 0;
+      font-size: 13.5px;
+      border: 1px solid;
+    }
+    .callout-impl { background: var(--impl-bg); border-color: var(--impl); color: #134e4a; }
+    .callout-plan { background: var(--plan-bg); border-color: var(--plan); color: #78350f; }
+    .callout-sec  { background: var(--sec-bg);  border-color: var(--sec);  color: #881337; }
+
+    .hidden-by-filter { display: none !important; }
+
+    /* Responsive */
+    @media (max-width: 960px) {
+      .app-shell { display: block; width: 100%; max-width: 100%; }
+      .mobile-bar { display: flex; width: 100%; max-width: 100%; }
+      main { width: 100%; max-width: 100%; min-width: 0; padding: 14px 12px 44px; gap: 16px; }
+      .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr); }
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .hero { padding: 18px 16px; }
+      .hero h1 { font-size: 20px; }
+      section.doc-sec { padding: 14px 12px; }
+      .sec-header h2 { font-size: 16.5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-bar">
+    <div>
+      <strong style="font-size:15px;">Equinox CRM</strong>
+      <span style="font-size:12px;color:var(--muted);display:block;">Arquitectura Completa</span>
+    </div>
+    <button class="menu-btn" id="menuToggle" type="button" aria-label="Abrir menú de navegación">☰ Índice</button>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Navegación principal">
+      <div class="brand">
+        <div>
+          <div class="brand-title">Equinox CRM</div>
+          <div class="brand-sub">Arquitectura &amp; Operación Técnica</div>
+        </div>
+        <button class="menu-btn" id="menuClose" type="button" style="display:none;">✕</button>
+      </div>
+      <div class="search-box">
+        <input id="searchInput" type="search" placeholder="Filtrar secciones o términos..." aria-label="Filtrar secciones">
+      </div>
+      <nav>
+        <ul class="nav-list" id="navList">
+          <li><a href="#resumen" class="active"><span class="nav-num">01</span>Resumen y Estado Real</a></li>
+          <li><a href="#diagrama"><span class="nav-num">02</span>Diagrama Interactivo</a></li>
+          <li><a href="#flujos"><span class="nav-num">03</span>Flujos Paso a Paso</a></li>
+          <li><a href="#preguntas"><span class="nav-num">04</span>Por Qué 8 Contenedores / Migrator / CI</a></li>
+          <li><a href="#frontend"><span class="nav-num">05</span>Frontend Angular 20 &amp; Nginx</a></li>
+          <li><a href="#backend"><span class="nav-num">06</span>Backend API, Auth, MFA &amp; Multitenancy</a></li>
+          <li><a href="#portal-archivos"><span class="nav-num">07</span>Portal Cliente y Archivos Privados</a></li>
+          <li><a href="#datos"><span class="nav-num">08</span>PostgreSQL 16 y Prisma (11 Migraciones)</a></li>
+          <li><a href="#infra-cicd"><span class="nav-num">09</span>Docker, CI/CD, GHCR, Cosign &amp; Pull CD</a></li>
+          <li><a href="#estado"><span class="nav-num">10</span>Implementado vs. Pendiente</a></li>
+          <li><a href="#operacion"><span class="nav-num">11</span>Operación, Backups &amp; Recuperación</a></li>
+          <li><a href="#glosario"><span class="nav-num">12</span>Glosario y Referencias del Repo</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="hero">
+        <div class="hero-top">
+          <div>
+            <h1>Arquitectura Completa y Funcionamiento de Equinox</h1>
+            <p>Documentación técnica verificada directamente sobre el código fuente, esquema Prisma, Docker Compose, Nginx, GitHub Actions y scripts Pull-Based CD del repositorio. Distingue explícitamente entre lo <strong>implementado en el repositorio</strong> y lo <strong>pendiente por activar en servidor/Cloudflare/GitHub</strong>.</p>
+          </div>
+        </div>
+        <div class="hero-badges">
+          <span class="pill pill-impl"><span class="dot dot-impl"></span>IMPLEMENTADO EN REPO</span>
+          <span class="pill pill-plan"><span class="dot dot-plan"></span>PENDIENTE EN SERVIDOR / CF / GH</span>
+          <span class="pill pill-sec"><span class="dot dot-sec"></span>LÍMITE DE RED / SECRETOS</span>
+        </div>
+      </header>
+
+      <!-- 01 RESUMEN -->
+      <section class="doc-sec" id="resumen">
+        <div class="sec-header">
+          <h2><span class="sec-tag">01</span>Resumen Ejecutivo y Stack Tecnológico</h2>
+          <span class="pill pill-impl">Verificado en código</span>
+        </div>
+        <p><strong>Equinox</strong> es un CRM multitenant orientado a freelancers y estudios (incluyendo modalidad especializada de fotografía, desarrollo de software y diseño gráfico) con portal de clientes y consola de superadministración global. Su arquitectura separa estrictamente la capa de presentación (SPA Angular servida por Nginx), la API REST (Express 5 + TypeScript), la base de datos relacional (PostgreSQL 16 + Prisma 6) y el almacenamiento privado de binarios fuera del webroot.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Capa</th><th>Tecnología / Versión</th><th>Responsabilidad Principal</th><th>Archivo Clave</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Frontend SPA</strong></td><td>Angular 20.3 + TypeScript 5.9</td><td>Interfaz Freelancer, Portal Cliente (<code>/portal</code>) y Superadmin (<code>/admin</code>)</td><td><code>frontend/package.json</code>, <code>frontend/src/app.routes.ts</code></td></tr>
+              <tr><td><strong>Proxy / Web</strong></td><td>Nginx 1.27-alpine</td><td>Sirve SPA, inyecta <code>/assets/env.js</code>, proxy <code>/api/</code> y <code>/salud</code> hacia backend</td><td><code>frontend/nginx.conf</code>, <code>frontend/Dockerfile</code></td></tr>
+              <tr><td><strong>Backend API</strong></td><td>Node 22-alpine + Express 5.1 + Zod 4</td><td>Lógica de negocio, Auth JWT, TOTP MFA, multitenancy, streaming de fotos</td><td><code>src/aplicacion.ts</code>, <code>src/servidor.ts</code></td></tr>
+              <tr><td><strong>ORM / BD</strong></td><td>Prisma 6.16.1 + PostgreSQL 16-alpine</td><td>23 modelos de dominio, FK compuestas multitenant, 11 migraciones SQL</td><td><code>prisma/schema.prisma</code>, <code>prisma/migrations/</code></td></tr>
+              <tr><td><strong>Contenedores</strong></td><td>Docker Compose v2</td><td>2 stacks aislados (<code>equinox-staging</code> <code>:8081</code>, <code>equinox-prod</code> <code>:8082</code>)</td><td><code>compose.yml</code>, <code>compose.prod.yml</code></td></tr>
+              <tr><td><strong>CI / Firma</strong></td><td>GitHub Actions + Gitleaks + Cosign</td><td>6 jobs de validación, publicación en GHCR y firma keyless OIDC</td><td><code>.github/workflows/ci.yml</code>, <code>cd-*.yml</code></td></tr>
+              <tr><td><strong>CD Pull-Based</strong></td><td><code>systemd</code> timer + <code>equinox-cd-pull.sh</code></td><td>Pull cada 2 min sin SSH inbound, verificación Cosign y rollback automático</td><td><code>deploy/cd/equinox-cd-pull.sh</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 02 DIAGRAMA INTERACTIVO -->
+      <section class="doc-sec" id="diagrama">
+        <div class="sec-header">
+          <h2><span class="sec-tag">02</span>Diagrama Explicativo Interactivo</h2>
+          <span class="pill pill-info">Haz clic en cualquier bloque para inspeccionar</span>
+        </div>
+        <p>Evolución explicativa de <code>docs/infraestructura-equinox.html</code>. Cambia de vista para explorar la topología completa, el recorrido de una petición HTTP o el ciclo de despliegue desde un commit hasta los contenedores en el servidor Ubuntu LAN (<code>192.168.50.142</code>).</p>
+
+        <div class="tabs" role="tablist">
+          <button class="tab-btn active" data-view="all" type="button">1. Topología Completa</button>
+          <button class="tab-btn" data-view="req" type="button">2. Flujo de Petición HTTP</button>
+          <button class="tab-btn" data-view="cd" type="button">3. Flujo Commit → Contenedor (Pull CD)</button>
+        </div>
+
+        <div class="diagram-box">
+          <svg class="arch" viewBox="0 0 1160 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama interactivo de arquitectura Equinox">
+            <defs>
+              <marker id="arr-impl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#0f766e"/>
+              </marker>
+              <marker id="arr-plan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#b45309"/>
+              </marker>
+              <marker id="arr-sec" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#be123c"/>
+              </marker>
+            </defs>
+
+            <!-- ZONAS -->
+            <rect x="14" y="14" width="210" height="390" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6 4"/>
+            <text x="26" y="35" font-size="11" font-weight="700" fill="#334155">ZONA 1 · INTERNET</text>
+
+            <rect x="242" y="14" width="205" height="390" rx="12" fill="#fffbeb" stroke="#be123c" stroke-dasharray="4 4"/>
+            <text x="254" y="35" font-size="11" font-weight="700" fill="#be123c">ZONA 2 · BORDE TLS</text>
+
+            <rect x="465" y="14" width="680" height="390" rx="12" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+            <text x="480" y="35" font-size="11" font-weight="700" fill="#0f172a">ZONA 3 · UBUNTU LAN (192.168.50.142) · 2 STACKS × 4 SERVICIOS = 8 CONTENEDORES</text>
+
+            <rect x="14" y="422" width="1131" height="224" rx="12" fill="#f8fafc" stroke="#64748b"/>
+            <text x="28" y="444" font-size="11" font-weight="700" fill="#334155">ZONA 4 · GITHUB, CI SECURITY, GHCR &amp; COSIGN OIDC</text>
+
+            <!-- NODOS INTERACTIVOS -->
+            <g class="svg-node" data-node="browser" data-layer="req">
+              <rect class="node-bg" x="28" y="52" width="182" height="145" rx="9" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+              <rect x="36" y="60" width="88" height="16" rx="8" fill="#0f766e"/>
+              <text x="80" y="71" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+              <text x="38" y="94" font-size="12.5" font-weight="700" fill="#0f172a">Usuario (Web/Mobile)</text>
+              <text x="38" y="112" font-size="10.5" fill="#334155">• Freelancer / CRM</text>
+              <text x="38" y="128" font-size="10.5" fill="#334155">• Cliente (/portal)</text>
+              <text x="38" y="144" font-size="10.5" fill="#334155">• Superadmin (/admin)</text>
+              <text x="38" y="164" font-size="10" fill="#475569">JWT en sessionStorage</text>
+              <text x="38" y="180" font-size="10" fill="#475569">Fotos vía Blob + ObjectURL</text>
+            </g>
+
+            <g class="svg-node" data-node="smtp" data-layer="req">
+              <rect class="node-bg" x="28" y="258" width="182" height="128" rx="9" fill="#fffbeb" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4"/>
+              <rect x="36" y="266" width="74" height="16" rx="8" fill="#b45309"/>
+              <text x="73" y="277" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">PENDIENTE</text>
+              <text x="38" y="300" font-size="12.5" font-weight="700" fill="#0f172a">Proveedor SMTP</text>
+              <text x="38" y="318" font-size="10.5" fill="#334155">Recuperación contraseña</text>
+              <text x="38" y="335" font-size="10" fill="#475569">Nodemailer listo en API;</text>
+              <text x="38" y="351" font-size="10" fill="#b45309">SMTP_HOST vacío → 503</text>
+            </g>
+
+            <g class="svg-node" data-node="cloudflare" data-layer="req">
+              <rect class="node-bg" x="254" y="52" width="181" height="165" rx="9" fill="#ffffff" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4"/>
+              <rect x="262" y="60" width="74" height="16" rx="8" fill="#b45309"/>
+              <text x="299" y="71" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">PENDIENTE</text>
+              <text x="264" y="94" font-size="12.5" font-weight="700" fill="#0f172a">Cloudflare Tunnel</text>
+              <text x="264" y="112" font-size="10.5" fill="#334155">equinox.mena.date → :8082</text>
+              <text x="264" y="129" font-size="10.5" fill="#be123c" font-weight="600">mena.date intacto (:8080)</text>
+              <text x="264" y="147" font-size="10" fill="#475569">Sin puertos en router</text>
+              <text x="264" y="163" font-size="10" fill="#475569">Sin SSH inbound</text>
+              <text x="264" y="179" font-size="10" fill="#475569">X-Forwarded-For/Proto</text>
+            </g>
+
+            <g class="svg-node" data-node="network" data-layer="req">
+              <rect class="node-bg" x="254" y="236" width="181" height="150" rx="9" fill="#fff1f2" stroke="#be123c" stroke-width="1.8" stroke-dasharray="4 3"/>
+              <text x="264" y="258" font-size="12" font-weight="700" fill="#be123c">Límites de Red y Secretos</text>
+              <text x="264" y="278" font-size="10" fill="#334155">• :8080 mena.date (intacto)</text>
+              <text x="264" y="294" font-size="10" fill="#334155">• :8081 Staging (develop)</text>
+              <text x="264" y="310" font-size="10" fill="#334155">• :8082 Prod (main)</text>
+              <text x="264" y="326" font-size="10" fill="#334155">• backend:3000 / db:5432</text>
+              <text x="264" y="342" font-size="10" fill="#334155">  aislados en equinox_net</text>
+              <text x="264" y="358" font-size="10" fill="#334155">• .env fuera de Git</text>
+            </g>
+
+            <g class="svg-node" data-node="frontend" data-layer="req">
+              <rect class="node-bg" x="480" y="52" width="196" height="155" rx="9" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+              <rect x="488" y="60" width="88" height="16" rx="8" fill="#0f766e"/>
+              <text x="532" y="71" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+              <text x="490" y="94" font-size="12.5" font-weight="700" fill="#0f172a">frontend (Nginx+Angular)</text>
+              <text x="490" y="112" font-size="10.5" fill="#334155">Prod :8082 | Staging :8081</text>
+              <text x="490" y="128" font-size="10.5" fill="#334155">env.js dinámico same-origin</text>
+              <text x="490" y="144" font-size="10.5" fill="#334155">Proxy /api/, /salud → :3000</text>
+              <text x="490" y="160" font-size="10.5" fill="#334155">client_max_body_size 55M</text>
+              <text x="490" y="178" font-size="10" fill="#0f766e">Health: GET /nginx-salud</text>
+            </g>
+
+            <g class="svg-node" data-node="backend" data-layer="req">
+              <rect class="node-bg" x="480" y="230" width="196" height="156" rx="9" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+              <rect x="488" y="238" width="88" height="16" rx="8" fill="#0f766e"/>
+              <text x="532" y="249" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+              <text x="490" y="272" font-size="12.5" font-weight="700" fill="#0f172a">backend (Express 5)</text>
+              <text x="490" y="290" font-size="10.5" fill="#334155">Target runner (sin Prisma CLI)</text>
+              <text x="490" y="306" font-size="10.5" fill="#334155">Puerto 3000, CONFIAR_PROXY</text>
+              <text x="490" y="322" font-size="10.5" fill="#334155">Helmet + CORS + JWT + MFA</text>
+              <text x="490" y="338" font-size="10.5" fill="#334155">Espera db + migrator exit 0</text>
+              <text x="490" y="356" font-size="10" fill="#0f766e">Health: GET /salud/listo</text>
+            </g>
+
+            <g class="svg-node" data-node="db" data-layer="req">
+              <rect class="node-bg" x="706" y="52" width="196" height="104" rx="9" fill="#ffffff" stroke="#0f766e" stroke-width="2"/>
+              <rect x="714" y="60" width="84" height="15" rx="7" fill="#0f766e"/>
+              <text x="756" y="70" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">COMPOSE LISTO</text>
+              <rect x="802" y="60" width="90" height="15" rx="7" fill="#b45309"/>
+              <text x="847" y="70" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">BD VACÍA PROD</text>
+              <text x="716" y="92" font-size="12.5" font-weight="700" fill="#0f172a">db (PostgreSQL 16)</text>
+              <text x="716" y="110" font-size="10.5" fill="#334155">Volumen: equinox_pgdata</text>
+              <text x="716" y="126" font-size="10.5" fill="#334155">11 migraciones + pg_isready</text>
+              <text x="716" y="142" font-size="10" fill="#b45309">Pendiente: admin:bootstrap</text>
+            </g>
+
+            <g class="svg-node" data-node="migrator" data-layer="cd">
+              <rect class="node-bg" x="706" y="170" width="196" height="92" rx="9" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+              <rect x="714" y="178" width="88" height="15" rx="7" fill="#0f766e"/>
+              <text x="758" y="188" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">ONE-SHOT</text>
+              <text x="716" y="210" font-size="12.5" font-weight="700" fill="#0f172a">migrator (Exited 0)</text>
+              <text x="716" y="227" font-size="10.5" fill="#334155">restart: "no" · Prisma CLI</text>
+              <text x="716" y="243" font-size="10.5" fill="#0f766e">prisma migrate deploy → 0</text>
+            </g>
+
+            <g class="svg-node" data-node="volumes" data-layer="req">
+              <rect class="node-bg" x="706" y="276" width="196" height="110" rx="9" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+              <rect x="714" y="284" width="88" height="15" rx="7" fill="#0f766e"/>
+              <text x="758" y="294" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+              <text x="716" y="315" font-size="12.5" font-weight="700" fill="#0f172a">Volúmenes Privados</text>
+              <text x="716" y="332" font-size="10" fill="#334155">equinox_archivos (/data/archivos)</text>
+              <text x="716" y="348" font-size="10" fill="#334155">equinox_fotos (/data/fotos)</text>
+              <text x="716" y="364" font-size="10" fill="#334155">Fuera de webroot · UUID v4</text>
+            </g>
+
+            <g class="svg-node" data-node="backups" data-layer="cd">
+              <rect class="node-bg" x="928" y="52" width="202" height="130" rx="9" fill="#fffbeb" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4"/>
+              <rect x="936" y="60" width="74" height="15" rx="7" fill="#b45309"/>
+              <text x="973" y="70" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">PENDIENTE</text>
+              <text x="938" y="92" font-size="12.5" font-weight="700" fill="#0f172a">Backups Automáticos</text>
+              <text x="938" y="110" font-size="10" fill="#334155">pg_dump -Fc doc. manual</text>
+              <text x="938" y="126" font-size="10" fill="#334155">Snapshot pgdata/fotos/archivos</text>
+              <text x="938" y="142" font-size="10" fill="#b45309">Pendiente cron + copia externa</text>
+            </g>
+
+            <g class="svg-node" data-node="systemd" data-layer="cd">
+              <rect class="node-bg" x="928" y="200" width="202" height="186" rx="9" fill="#ffffff" stroke="#0f766e" stroke-width="2"/>
+              <rect x="936" y="208" width="90" height="15" rx="7" fill="#0f766e"/>
+              <text x="981" y="218" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">SCRIPTS LISTOS</text>
+              <rect x="1032" y="208" width="88" height="15" rx="7" fill="#b45309"/>
+              <text x="1076" y="218" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">TIMER PEND.</text>
+              <text x="938" y="240" font-size="12.5" font-weight="700" fill="#0f172a">Pull CD (systemd)</text>
+              <text x="938" y="258" font-size="10" fill="#334155">equinox-cd@.timer (c/ 2 min)</text>
+              <text x="938" y="274" font-size="10" fill="#334155">equinox-cd-pull.sh (flock)</text>
+              <text x="938" y="290" font-size="10" fill="#0f766e" font-weight="600">cosign verify OIDC keyless</text>
+              <text x="938" y="306" font-size="10" fill="#334155">Pinning @sha256 + up -d</text>
+              <text x="938" y="322" font-size="10" fill="#334155">Rollback si falla /salud/listo</text>
+              <text x="938" y="346" font-size="10" fill="#b45309">Pendiente instalar en Ubuntu</text>
+              <text x="938" y="362" font-size="10" fill="#be123c">Sin inbound SSH ni runner</text>
+            </g>
+
+            <g class="svg-node" data-node="github" data-layer="cd">
+              <rect class="node-bg" x="28" y="460" width="240" height="168" rx="9" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+              <rect x="36" y="468" width="88" height="15" rx="7" fill="#0f766e"/>
+              <text x="80" y="478" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+              <text x="38" y="500" font-size="12.5" font-weight="700" fill="#0f172a">GitHub: develop / main</text>
+              <text x="38" y="518" font-size="10.5" fill="#334155">• develop → Staging (:8081)</text>
+              <text x="38" y="534" font-size="10.5" fill="#334155">• main → Prod (:8082) + ruleset</text>
+              <text x="38" y="550" font-size="10.5" fill="#334155">• Env production: reviewer manual</text>
+              <text x="38" y="572" font-size="10" fill="#b45309">Pendiente: CD_IMAGES_ENABLED</text>
+            </g>
+
+            <g class="svg-node" data-node="ci" data-layer="cd">
+              <rect class="node-bg" x="304" y="460" width="380" height="168" rx="9" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+              <rect x="312" y="468" width="88" height="15" rx="7" fill="#0f766e"/>
+              <text x="356" y="478" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+              <text x="314" y="500" font-size="12.5" font-weight="700" fill="#0f172a">CI Gate (ci.yml · 6 Jobs)</text>
+              <text x="314" y="518" font-size="10.5" fill="#334155">1. YAML/Compose validate · 2. Gitleaks (--redact)</text>
+              <text x="314" y="534" font-size="10.5" fill="#334155">3. npm audit (--omit=dev critical) · 4. Prisma + tsc + tests</text>
+              <text x="314" y="550" font-size="10.5" fill="#334155">5. ng build + 11 suites node --test · 6. Docker build verify</text>
+              <text x="314" y="576" font-size="10" fill="#0f766e">Termina tras validar y no hospeda la app</text>
+            </g>
+
+            <g class="svg-node" data-node="ghcr" data-layer="cd">
+              <rect class="node-bg" x="720" y="460" width="410" height="168" rx="9" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+              <rect x="728" y="468" width="88" height="15" rx="7" fill="#0f766e"/>
+              <text x="772" y="478" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+              <rect x="822" y="468" width="126" height="15" rx="7" fill="#b45309"/>
+              <text x="885" y="478" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">MIGRAR A PULL-ONLY</text>
+              <text x="730" y="500" font-size="12.5" font-weight="700" fill="#0f172a">GHCR + Cosign OIDC (cd-staging / cd-production)</text>
+              <text x="730" y="518" font-size="10.5" fill="#334155">• Publica backend, migrator, frontend (staging / prod / sha)</text>
+              <text x="730" y="534" font-size="10.5" fill="#0f766e" font-weight="600">• Firma digests @sha256:... con Cosign keyless (Sigstore)</text>
+              <text x="730" y="554" font-size="10" fill="#b45309">• Jobs SSH legacy siguen deshabilitados por defecto</text>
+            </g>
+
+            <!-- FLECHAS -->
+            <path class="svg-flow" data-layer="req" d="M 210 125 L 252 125" stroke="#b45309" stroke-width="2.2" stroke-dasharray="5 4" marker-end="url(#arr-plan)"/>
+            <path class="svg-flow" data-layer="req" d="M 435 125 L 478 125" stroke="#b45309" stroke-width="2.2" stroke-dasharray="5 4" marker-end="url(#arr-plan)"/>
+            <path class="svg-flow" data-layer="req" d="M 578 207 L 578 228" stroke="#0f766e" stroke-width="2.2" marker-start="url(#arr-impl)" marker-end="url(#arr-impl)"/>
+            <path class="svg-flow" data-layer="req" d="M 480 320 L 212 320" stroke="#b45309" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arr-plan)"/>
+            <path class="svg-flow" data-layer="req" d="M 676 260 L 692 260 L 692 104 L 704 104" fill="none" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arr-impl)"/>
+            <path class="svg-flow" data-layer="req" d="M 676 330 L 704 330" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arr-impl)"/>
+
+            <path class="svg-flow" data-layer="cd" d="M 804 156 L 804 168" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arr-impl)"/>
+            <path class="svg-flow" data-layer="cd" d="M 706 216 L 692 216 L 692 285 L 678 285" fill="none" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arr-impl)"/>
+            <path class="svg-flow" data-layer="cd" d="M 268 544 L 302 544" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arr-impl)"/>
+            <path class="svg-flow" data-layer="cd" d="M 684 544 L 718 544" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arr-impl)"/>
+            <path class="svg-flow" data-layer="cd" d="M 1029 388 L 1029 458" stroke="#0f766e" stroke-width="2.4" stroke-dasharray="6 4" marker-start="url(#arr-impl)"/>
+            <path class="svg-flow" data-layer="cd" d="M 902 104 L 926 104" stroke="#b45309" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arr-plan)"/>
+          </svg>
+        </div>
+
+        <div class="inspector" id="nodeInspector">
+          <div class="inspector-title">Inspector de Nodo: Selecciona un componente en el diagrama</div>
+          <p style="margin:0;font-size:13.5px;">Haz clic en cualquier caja del diagrama SVG para ver su estado (Implementado/Pendiente), puertos, políticas de seguridad y archivos exactos del repositorio.</p>
+        </div>
+      </section>
+
+      <!-- 03 FLUJOS PASO A PASO -->
+      <section class="doc-sec" id="flujos">
+        <div class="sec-header">
+          <h2><span class="sec-tag">03</span>Flujos Paso a Paso</h2>
+          <span class="pill pill-impl">Verificado en código</span>
+        </div>
+
+        <h3>A. Recorrido de una Petición de Usuario (HTTPS → PostgreSQL / Archivos)</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div>
+              <h4>Navegador / Móvil (SPA Angular 20)</h4>
+              <p>El usuario accede a <code>https://equinox.mena.date</code>. Angular carga <code>/assets/env.js</code> (generado al iniciar el contenedor por <code>frontend/docker-entrypoint.sh</code>), que fija <code>window.__EQUINOX_API_ORIGIN__ = window.location.origin</code> cuando <code>EQUINOX_API_ORIGIN=same-origin</code>. El interceptor HTTP adjunta <code>Authorization: Bearer &lt;token&gt;</code> desde <code>sessionStorage</code> (clave <code>equinox_sesion_token</code>).</p>
+            </div>
+          </div>
+          <div class="step plan">
+            <div class="step-num">2</div>
+            <div>
+              <h4>Cloudflare Tunnel + Terminación TLS (Pendiente activar dominio)</h4>
+              <p><code>cloudflared</code> en el servidor Ubuntu mantiene un túnel saliente hacia Cloudflare sin abrir puertos en el router. Enruta <code>equinox.mena.date</code> hacia <code>http://127.0.0.1:8082</code> (producción), dejando intacto <code>mena.date</code> en <code>:8080</code>, e inyecta <code>X-Forwarded-For</code> y <code>X-Forwarded-Proto</code>.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div>
+              <h4>Nginx Contenedor Frontend (<code>frontend/nginx.conf</code>)</h4>
+              <p>Escucha en <code>:80</code> dentro del contenedor (mapeado a <code>127.0.0.1:8082</code> en prod o <code>:8081</code> en staging). Si la ruta es de SPA, aplica <code>try_files $uri $uri/ /index.html</code>. Si empieza con <code>/api/</code> o <code>/salud</code>, hace <code>proxy_pass http://backend:3000</code> por la red bridge interna <code>equinox_net</code>, con <code>client_max_body_size 55M</code> y <code>proxy_request_buffering off</code> para streaming de fotos.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div>
+              <h4>Express 5 API (<code>src/aplicacion.ts</code>) y Middlewares</h4>
+              <p>La petición pasa por <code>helmet()</code>, <code>cors()</code> (lista explícita <code>ORIGENES_PERMITIDOS</code>, rechaza <code>*</code>), <code>express.json({ limit: "2mb" })</code>, <code>trust proxy</code> validado por <code>parsearConfiarProxy</code> y <code>morgan</code> con redacción automática de tokens en URLs/Referers e IPs en rutas de invitación.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div>
+              <h4>Validación de Sesión, Rol y Aislamiento Multitenant (<code>src/middleware/autenticacion.ts</code>)</h4>
+              <p><code>exigirAutenticacion</code> verifica firma JWT, valida la estructura con Zod y consulta la tabla <code>sesiones</code> en PostgreSQL (comparando <code>token_hash</code> SHA-256, <code>revocada_en IS NULL</code> y <code>expira_en</code>). Luego revalida en BD el rol real y verifica que <code>organizacion.suspendidaEn === null</code>.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">6</div>
+            <div>
+              <h4>Persistencia PostgreSQL 16 o Volúmenes Privados</h4>
+              <p>Prisma consulta PostgreSQL filtrando siempre por <code>organizacionId</code> (y <code>clienteId</code> en <code>/api/portal</code>). Si es descarga de archivo o foto, Express lee el binario desde <code>/data/archivos</code> o <code>/data/fotos</code> mediante <code>path.resolve</code> estricto (nunca servido como estático por Nginx).</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>B. Flujo de Inicio de Sesión (Estándar, Multicontexto y Superadmin MFA)</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div>
+              <h4><code>POST /api/autenticacion/inicio-sesion</code> con Rate Limiting Dual</h4>
+              <p>Protegido por <code>limitadorLoginIp</code> (20 intentos / 15 min por IP) y <code>limitadorLoginCuenta</code> (5 intentos fallidos / 15 min por hash de correo). Compara contraseña con <code>bcryptjs</code> (incluye hash ficticio <code>HASH_FICTICIO_BCRYPT</code> para evitar enumeración por tiempo de respuesta).</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div>
+              <h4>Resolución de Contexto (<code>ORGANIZACION</code>, <code>CLIENTE</code> o <code>ADMIN_GLOBAL</code>)</h4>
+              <p>Un mismo usuario puede tener membresía en organizaciones y acceso a portales de cliente. Si tiene múltiples contextos y no envió <code>seleccion</code>, la API devuelve la lista de contextos disponibles sin emitir JWT aún. Si tiene un único contexto (o envió <code>seleccion</code>), crea el registro en <code>sesiones</code> con <code>tokenHash</code> SHA-256 y devuelve el JWT (<code>7d</code> para org/cliente).</p>
+            </div>
+          </div>
+          <div class="step sec">
+            <div class="step-num">3</div>
+            <div>
+              <h4>Flujo Obligatorio MFA TOTP para <code>ADMIN_GLOBAL</code> (<code>/admin/acceso</code>)</h4>
+              <p>Si el usuario tiene <code>rolPlataforma === "ADMIN_GLOBAL"</code> y selecciona <code>ADMIN_GLOBAL</code>, el login no entrega JWT de sesión sino un token temporal <code>DESAFIO_MFA_ADMIN</code> (expira en 10 min) con propósito <code>CONFIGURAR</code> (primer ingreso: genera secreto Base32 + QR + códigos de recuperación) o <code>VERIFICAR</code> (código TOTP de 6 dígitos o código de recuperación). Solo tras verificar TOTP se emite el JWT administrativo (<code>VENCIMIENTO_JWT_ADMIN=8h</code>) con <code>mfaVerificado: true</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>C. Flujo de Despliegue: Desde Commit hasta Contenedor en Ejecución</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div>
+              <h4>Push / PR a <code>develop</code> o <code>main</code> en GitHub</h4>
+              <p><code>main</code> está protegida por ruleset (<code>Proteccion de main (Equinox)</code>) que exige PR y los 6 checks de <code>ci.yml</code>. <code>cd-staging.yml</code> dispara en <code>develop</code>; <code>cd-production.yml</code> dispara solo en <code>refs/heads/main</code>.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div>
+              <h4>CI Gate (<code>.github/workflows/ci.yml</code> — 6 jobs)</h4>
+              <p>Valida YAML/Compose, escanea secretos con Gitleaks, audita dependencias (<code>npm audit --omit=dev --audit-level=critical</code>), levanta <code>postgres:16-alpine</code> y ejecuta <code>prisma migrate deploy</code> + <code>tsc</code> + tests backend, compila Angular + 11 suites frontend, y verifica build Docker sin push.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div>
+              <h4>Publicación en GHCR y Firma Cosign OIDC</h4>
+              <p>Si <code>vars.CD_IMAGES_ENABLED == 'true'</code> (y en producción tras aprobación manual del reviewer <code>Kevin2523</code> en <code>environment: production</code>), construye <code>equinox-backend</code> (target <code>runner</code>), <code>equinox-migrator</code> (target <code>migrator</code>) y <code>equinox-frontend</code>, los sube a <code>ghcr.io</code> y firma cada digest <code>@sha256:...</code> con Cosign OIDC keyless (Sigstore).</p>
+            </div>
+          </div>
+          <div class="step plan">
+            <div class="step-num">4</div>
+            <div>
+              <h4>Agente Pull-Based en Ubuntu (<code>equinox-cd@.timer</code> → <code>equinox-cd-pull.sh</code>)</h4>
+              <p>Cada ~2 minutos el timer ejecuta el script con <code>flock</code>. Consulta los digests en GHCR; si cambiaron, verifica la firma Cosign exigiendo issuer <code>https://token.actions.githubusercontent.com</code> y el <code>ALLOWED_WORKFLOW_REF</code> exacto. Descarga por digest inmutable, corre <code>run --rm migrator</code>, levanta <code>up -d --remove-orphans</code>, valida <code>/salud/listo</code> y <code>/nginx-salud</code>, y si algo falla ejecuta rollback automático a los digests previos.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 POR QUE 8 CONTENEDORES / MIGRATOR / GITHUB ACTIONS -->
+      <section class="doc-sec" id="preguntas">
+        <div class="sec-header">
+          <h2><span class="sec-tag">04</span>Tres Preguntas Clave de Operación</h2>
+          <span class="pill pill-info">Explicación técnica directa</span>
+        </div>
+        <div class="grid-3">
+          <div class="card impl">
+            <h4>1. ¿Por qué hay 8 contenedores?</h4>
+            <p>Porque coexisten <strong>2 stacks completamente aislados</strong> en el mismo servidor Ubuntu, cada uno definido por <code>compose.yml</code> con <strong>4 servicios</strong> (<code>2 × 4 = 8</code>):</p>
+            <ul>
+              <li><strong>Stack Staging</strong> (<code>COMPOSE_PROJECT_NAME=equinox-staging</code>, rama <code>develop</code>, puerto <code>127.0.0.1:8081</code>): <code>db</code> + <code>migrator</code> + <code>backend</code> + <code>frontend</code>.</li>
+              <li><strong>Stack Producción</strong> (<code>COMPOSE_PROJECT_NAME=equinox-prod</code>, rama <code>main</code>, puerto <code>127.0.0.1:8082</code>): <code>db</code> + <code>migrator</code> + <code>backend</code> + <code>frontend</code>.</li>
+            </ul>
+            <p>Cada stack tiene su propia red interna, sus propios volúmenes (<code>pgdata</code>, <code>archivos</code>, <code>fotos</code>) y su propia base de datos, sin interferir con el sitio raíz <code>mena.date</code> en <code>:8080</code>.</p>
+          </div>
+          <div class="card impl">
+            <h4>2. ¿Por qué <code>migrator</code> aparece como <code>Exited (0)</code>?</h4>
+            <p><strong>Es su comportamiento normal y esperado.</strong> En <code>compose.yml</code>, el servicio <code>migrator</code> tiene <code>restart: "no"</code> y ejecuta un único comando <em>one-shot</em> (<code>node node_modules/prisma/build/index.js migrate deploy</code>).</p>
+            <p>Una vez que <code>db</code> pasa su healthcheck (<code>pg_isready</code>), <code>migrator</code> aplica las migraciones pendientes, termina con código de salida <code>0</code> y se detiene. El servicio <code>backend</code> tiene <code>depends_on: migrator: condition: service_completed_successfully</code>, por lo que <strong>solo arranca cuando <code>migrator</code> ya terminó con éxito (exit 0)</strong>. Además, esto permite que la imagen final de <code>backend</code> (target <code>runner</code>) no incluya la CLI de Prisma.</p>
+          </div>
+          <div class="card impl">
+            <h4>3. ¿Por qué la app sigue accesible cuando GitHub Actions terminó o parece no correr?</h4>
+            <p><strong>GitHub Actions no hospeda ni ejecuta la aplicación en producción.</strong> GitHub Actions únicamente valida el código, corre pruebas, construye las imágenes Docker y las publica en <code>ghcr.io</code>; al terminar, sus runners efímeros se destruyen.</p>
+            <p>Quien atiende a los usuarios 24/7 es el servidor Ubuntu LAN mediante los contenedores Docker con <code>restart: unless-stopped</code> (<code>frontend</code> + <code>backend</code> + <code>db</code>) y el túnel saliente de Cloudflare. Incluso si GitHub o GHCR estuvieran temporalmente inaccesibles, los contenedores ya descargados siguen sirviendo la aplicación normalmente.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 05 FRONTEND -->
+      <section class="doc-sec" id="frontend">
+        <div class="sec-header">
+          <h2><span class="sec-tag">05</span>Frontend Angular 20 y Nginx</h2>
+          <span class="pill pill-impl">Implementado</span>
+        </div>
+        <p>El frontend es una Single Page Application (SPA) en Angular 20.3 compilada en build multi-etapa (<code>frontend/Dockerfile</code>) y servida por <code>nginx:1.27-alpine</code>. Soporta viewports desde <code>320px</code> (<code>viewport-fit=cover</code>).</p>
+        <div class="grid-2">
+          <div class="card">
+            <h4>Rutas y Guards (<code>frontend/src/app.routes.ts</code>)</h4>
+            <ul>
+              <li><strong>Públicas:</strong> <code>/inicio-sesion</code>, <code>/registro</code>, <code>/recuperar-contrasena/:token</code>, <code>/invitacion/:token</code>, <code>/cerrar-sesion</code>.</li>
+              <li><strong>Freelancer (<code>guardOrganizacion</code>):</strong> <code>/dashboard</code>, <code>/clientes</code>, <code>/proyectos</code>, <code>/tareas</code>, <code>/finanzas</code>, <code>/configuracion</code>, <code>/vista-previa-portal</code>. Si <code>tipoFreelance === 'FOTOGRAFIA'</code>, <code>guardNoFotografia</code> oculta dashboard/proyectos/tareas generales.</li>
+              <li><strong>Cliente (<code>guardCliente</code>):</strong> <code>/portal</code> (<code>ClientShellComponent</code> + <code>ClientHomeComponent</code>).</li>
+              <li><strong>Superadmin (<code>guardAdminGlobal</code>):</strong> <code>/admin/acceso</code>, <code>/admin/resumen</code>, <code>/admin/organizaciones</code>, <code>/admin/usuarios</code>, <code>/admin/suscripciones</code>, <code>/admin/auditoria</code>.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Configuración Runtime y Proxy Nginx</h4>
+            <ul>
+              <li><strong><code>/assets/env.js</code>:</strong> Generado en arranque por <code>40-equinox-env.sh</code> con <code>Cache-Control: no-store</code>. Por defecto usa <code>window.location.origin</code> (<code>EQUINOX_API_ORIGIN=same-origin</code>).</li>
+              <li><strong>Proxy inverso (<code>frontend/nginx.conf</code>):</strong> Reenvía <code>/api/</code>, <code>/salud</code> y <code>/salud/listo</code> a <code>http://backend:3000</code> preservando <code>Host</code>, <code>X-Real-IP</code>, <code>X-Forwarded-For</code> y <code>X-Forwarded-Proto</code>.</li>
+              <li><strong>Cabeceras de seguridad:</strong> <code>server_tokens off</code>, <code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: SAMEORIGIN</code>, <code>Referrer-Policy: no-referrer</code>.</li>
+              <li><strong>Subida de fotos:</strong> <code>client_max_body_size 55M</code> y <code>proxy_request_buffering off</code> para transmitir binarios sin buffering en disco de Nginx.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 06 BACKEND, AUTH, MFA, MULTITENANCY -->
+      <section class="doc-sec" id="backend">
+        <div class="sec-header">
+          <h2><span class="sec-tag">06</span>Backend API, Autenticación, MFA y Multitenancy</h2>
+          <span class="pill pill-impl">Implementado</span>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h4>Seguridad de Plataforma (<code>src/aplicacion.ts</code>)</h4>
+            <ul>
+              <li><strong>CORS estricto:</strong> En producción exige <code>ORIGENES_PERMITIDOS</code> explícito; prohíbe comodín <code>*</code> y orígenes vacíos.</li>
+              <li><strong><code>CONFIAR_PROXY</code>:</strong> Validado por <code>parsearConfiarProxy()</code>; acepta únicamente <code>false</code>, <code>0</code> o entero de <code>1</code> a <code>10</code> (<code>1</code> con Nginx, <code>2</code> con Cloudflare + Nginx).</li>
+              <li><strong>Logs sanitizados (Morgan):</strong> Redacta tokens en rutas <code>/invitacion/*</code>, <code>/api/portal/*</code>, <code>/recuperar-contrasena/*</code>, <code>?token=</code> y encabezados <code>Referer</code>, además de redactar IPs en rutas públicas de invitación.</li>
+              <li><strong>Rate Limiting (<code>src/middleware/rate-limit.ts</code>):</strong> Almacén en memoria acotado (límite 5000 claves) con soporte opcional para Redis/Valkey vía <code>REDIS_URL</code>.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Sesiones, Roles y Multitenancy</h4>
+            <ul>
+              <li><strong>3 Contextos de Sesión:</strong> <code>ORGANIZACION</code> (<code>PROPIETARIO</code> / <code>COLABORADOR</code>), <code>CLIENTE</code> (<code>TITULAR</code> / <code>COLABORADOR</code>) y <code>ADMIN_GLOBAL</code> (con MFA TOTP obligatorio).</li>
+              <li><strong>Sesiones revocables en BD:</strong> Cada JWT contiene <code>sesionId</code> y se valida en cada request contra la tabla <code>sesiones</code> (<code>tokenHash</code> SHA-256, <code>revocadaEn</code>, <code>expiraEn</code>).</li>
+              <li><strong>Aislamiento en BD:</strong> Todas las entidades de negocio incluyen <code>organizacionId</code>. Las tablas <code>accesos_cliente</code> e <code>invitaciones_cliente</code> usan FK compuestas <code>(cliente_id, organizacion_id)</code> hacia <code>clientes(id, organizacion_id)</code>.</li>
+              <li><strong>Suspensión de organización:</strong> Si <code>organizacion.suspendidaEn !== null</code>, <code>exigirAutenticacion</code> bloquea el acceso con HTTP <code>403</code> tanto a miembros como a clientes.</li>
+            </ul>
+          </div>
+        </div>
+        <h3>Principales Grupos de Rutas API</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Prefijo</th><th>Guard / Middleware</th><th>Propósito</th></tr></thead>
+            <tbody>
+              <tr><td><code>/salud</code>, <code>/salud/listo</code></td><td>Público</td><td>Liveness de Express y readiness con <code>SELECT 1</code> a PostgreSQL (503 si falla)</td></tr>
+              <tr><td><code>/api/autenticacion/*</code></td><td>Público / JWT / Rate Limit</td><td>Registro, login, selección de contexto, desafío/verificación MFA, recuperación contraseña/MFA</td></tr>
+              <tr><td><code>/api/invitaciones/*</code></td><td>Público</td><td>Consulta y aceptación de invitaciones de clientes mediante token</td></tr>
+              <tr><td><code>/api/organizacion/*</code></td><td><code>exigirOrganizacion</code></td><td>Perfil del estudio, branding del portal, tipo de freelance y miembros</td></tr>
+              <tr><td><code>/api/clientes/*</code></td><td><code>exigirOrganizacion</code></td><td>CRUD de clientes, invitaciones y sesiones fotográficas/fotos (<code>rutasFotografia</code>)</td></tr>
+              <tr><td><code>/api/proyectos/*</code>, <code>/api/facturas/*</code></td><td><code>exigirOrganizacion</code></td><td>Proyectos, hitos, tareas, archivos, comentarios, facturas, pagos e historial</td></tr>
+              <tr><td><code>/api/portal/*</code></td><td><code>exigirCliente</code></td><td>Portal del cliente: proyectos, hitos visibles, comentarios, facturas opt-in y galerías publicadas</td></tr>
+              <tr><td><code>/api/admin/*</code></td><td><code>exigirSuperadmin</code></td><td>Consola global: organizaciones (suspender/reactivar), usuarios, planes, suscripciones y auditoría</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 07 PORTAL Y ARCHIVOS -->
+      <section class="doc-sec" id="portal-archivos">
+        <div class="sec-header">
+          <h2><span class="sec-tag">07</span>Portal del Cliente y Almacenamiento Privado</h2>
+          <span class="pill pill-impl">Implementado</span>
+        </div>
+        <div class="grid-2">
+          <div class="card impl">
+            <h4>Archivos de Proyecto (<code>src/almacenamiento/archivos.ts</code>)</h4>
+            <ul>
+              <li><strong>Volumen:</strong> <code>equinox_archivos</code> montado en <code>/data/archivos</code> (<code>EQUINOX_ARCHIVOS_DIR</code>). En producción falla con <code>503</code> si no está definido.</li>
+              <li><strong>Validación estricta:</strong> Límite de <strong>8 MB</strong>, validación de <em>magic bytes</em> para PDF, PNG, JPG, WEBP, GIF y UTF-8 válido para TXT.</li>
+              <li><strong>Claves y descarga:</strong> Se guardan como <code>&lt;uuid&gt;.&lt;ext&gt;</code> con permisos <code>0600</code> y referencia <code>local:&lt;clave&gt;</code> en BD; se sirven únicamente tras validar sesión y pertenencia al proyecto.</li>
+            </ul>
+          </div>
+          <div class="card impl">
+            <h4>Fotografía en Streaming (<code>src/servicios/almacenamiento-fotos.ts</code>)</h4>
+            <ul>
+              <li><strong>Volumen:</strong> <code>equinox_fotos</code> montado en <code>/data/fotos</code> (<code>ALMACENAMIENTO_FOTOS_DIR</code>).</li>
+              <li><strong>Streaming sin Base64:</strong> Límite configurable <code>ALMACENAMIENTO_MAX_BYTES</code> (por defecto <strong>50 MB</strong>). Lee cabecera (primeros 32 bytes) para detectar MIME real (JPEG, PNG, GIF, WEBP, TIFF, AVIF) y escribe archivo temporal antes de renombrar a <code>&lt;uuid&gt;.bin</code>.</li>
+              <li><strong>Sin URLs públicas:</strong> El frontend descarga las fotos mediante <code>fetch</code> autenticado con JWT como <code>Blob</code> y genera <code>URL.createObjectURL()</code>.</li>
+            </ul>
+          </div>
+        </div>
+        <p style="margin-top:10px;">En el portal (<code>/api/portal</code>), el cliente solo visualiza proyectos propios, hitos con <code>visibleEnPortal: true</code>, archivos con <code>visibilidad: 'CLIENTE'</code>, facturas cuando la organización tiene <code>portalMostrarFinanzas: true</code> (expuesto en cabecera <code>X-Portal-Finanzas</code>) y sesiones fotográficas en estado <code>PUBLICADA</code>.</p>
+      </section>
+
+      <!-- 08 DATOS Y PRISMA -->
+      <section class="doc-sec" id="datos">
+        <div class="sec-header">
+          <h2><span class="sec-tag">08</span>Base de Datos PostgreSQL 16 y Prisma (11 Migraciones)</h2>
+          <span class="pill pill-impl">Implementado</span>
+        </div>
+        <p>El esquema en <code>prisma/schema.prisma</code> define <strong>23 modelos</strong> y <strong>14 enums</strong> respaldados por <strong>11 migraciones SQL</strong> en <code>prisma/migrations/</code> (desde <code>20260928160137_inicial</code> hasta <code>20261117101500_suspension_acceso_organizacion</code>).</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Dominio</th><th>Modelos Prisma</th><th>Detalles Clave</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Identidad y Acceso</strong></td><td><code>Usuario</code>, <code>Sesion</code>, <code>SolicitudRecuperacion</code>, <code>CodigoRecuperacionMfa</code>, <code>SolicitudRecuperacionMfa</code></td><td><code>rolPlataforma</code> (<code>USUARIO</code>/<code>ADMIN_GLOBAL</code>), secreto TOTP cifrado, hashes SHA-256 de sesión/tokens.</td></tr>
+              <tr><td><strong>Multitenancy</strong></td><td><code>Organizacion</code>, <code>MiembroOrganizacion</code>, <code>Cliente</code>, <code>AccesoCliente</code>, <code>InvitacionCliente</code>, <code>AccesoPortal</code></td><td>FK compuestas <code>(cliente_id, organizacion_id)</code>; <code>AccesoPortal</code> conservado como legado sin emisión activa de tokens.</td></tr>
+              <tr><td><strong>Gestión y Trabajo</strong></td><td><code>Proyecto</code>, <code>Tarea</code>, <code>Hito</code>, <code>Archivo</code>, <code>Comentario</code>, <code>Actividad</code></td><td>Hitos privados por defecto (<code>visibleEnPortal: false</code>), visibilidad de archivos <code>INTERNA</code>/<code>CLIENTE</code>.</td></tr>
+              <tr><td><strong>Finanzas</strong></td><td><code>Factura</code>, <code>HistorialFactura</code>, <code>Pago</code>, <code>SecuenciaFactura</code></td><td>Numeración secuencial por organización, historial de cambios de estado y registro de pagos parciales/totales.</td></tr>
+              <tr><td><strong>Fotografía</strong></td><td><code>SesionFotografica</code>, <code>FotoSesion</code></td><td>Estados <code>BORRADOR</code>/<code>PUBLICADA</code>, clave UUID <code>almacenamientoKey</code>, orden y foto de portada.</td></tr>
+              <tr><td><strong>Gobierno SaaS</strong></td><td><code>PlanSuscripcion</code>, <code>SuscripcionOrganizacion</code>, <code>HistorialSuscripcion</code>, <code>AuditoriaAdmin</code></td><td>Planes de prueba/activos, historial de suscripciones y bitácora inmutable de acciones de superadmin.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 09 INFRAESTRUCTURA Y CI/CD -->
+      <section class="doc-sec" id="infra-cicd">
+        <div class="sec-header">
+          <h2><span class="sec-tag">09</span>Docker Compose, CI/CD, GHCR, Cosign y Pull CD</h2>
+          <span class="pill pill-impl">Workflows y scripts listos</span>
+        </div>
+        <p>El repositorio combina <code>compose.yml</code> (definición base de los 4 servicios, red <code>equinox_net</code> y 3 volúmenes) con <code>compose.prod.yml</code> (referencias de imagen inmutables <code>*_IMAGE_REF</code>, <code>pull_policy: always</code> y obligatoriedad de <code>URL_BASE</code> y <code>ORIGENES_PERMITIDOS</code>).</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Componente</th><th>Configuración en Repo</th><th>Estado</th></tr></thead>
+            <tbody>
+              <tr><td><strong>CI (<code>ci.yml</code>)</strong></td><td>6 jobs: YAML/Compose, Gitleaks, <code>npm audit</code>, Prisma+Postgres+Backend, Angular+11 suites DOM, Docker Buildx</td><td><span class="pill pill-impl">Implementado</span></td></tr>
+              <tr><td><strong>CD Imágenes (<code>cd-staging.yml</code>, <code>cd-production.yml</code>)</strong></td><td>Push a <code>ghcr.io/&lt;owner&gt;/equinox-{backend,migrator,frontend}</code> + firma <code>cosign sign --yes</code> OIDC keyless</td><td><span class="pill pill-impl">Implementado</span> (requiere <code>CD_IMAGES_ENABLED=true</code>)</td></tr>
+              <tr><td><strong>Jobs SSH Legacy</strong></td><td><code>deploy-staging</code> / <code>deploy-production</code> en workflows</td><td><span class="pill pill-plan">Deshabilitados</span> (migrar a pull-only)</td></tr>
+              <tr><td><strong>Agente Pull (<code>deploy/cd/</code>)</strong></td><td><code>equinox-cd@.timer</code> (cada 2 min) → <code>equinox-cd-pull.sh</code> con <code>flock</code>, <code>cosign verify</code>, pinning <code>@sha256</code> y rollback</td><td><span class="pill pill-impl">Scripts listos</span> / <span class="pill pill-plan">Timer pendiente en host</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout callout-sec">
+          <strong>Seguridad Zero-Inbound:</strong> El servidor Ubuntu (<code>192.168.50.142</code>) opera tras NAT sin puertos entrantes en el router, sin SSH inbound y sin self-hosted runner. Solo realiza conexiones salientes HTTPS hacia <code>ghcr.io</code>, Rekor/Sigstore y Cloudflare Tunnel.
+        </div>
+      </section>
+
+      <!-- 10 IMPLEMENTADO VS PENDIENTE -->
+      <section class="doc-sec" id="estado">
+        <div class="sec-header">
+          <h2><span class="sec-tag">10</span>Matriz Explícita: Implementado vs. Pendiente</h2>
+        </div>
+        <div class="grid-2">
+          <div class="card impl">
+            <h4>IMPLEMENTADO (Verificado en el repositorio y GitHub)</h4>
+            <ul>
+              <li>Backend Express 5, Auth JWT, MFA TOTP, recuperación, multitenancy, portal y streaming de fotos.</li>
+              <li>Frontend Angular 20 responsive, <code>env.js</code> runtime y <code>nginx.conf</code> con proxy <code>/api/</code> y <code>55M</code>.</li>
+              <li>Esquema Prisma con 23 modelos y 11 migraciones SQL aplicadas y validadas en CI.</li>
+              <li><code>Dockerfile.backend</code> (multi-stage <code>builder</code>, <code>migrator</code>, <code>runner</code>) y <code>frontend/Dockerfile</code>.</li>
+              <li><code>compose.yml</code> + <code>compose.prod.yml</code> con aislamiento de puertos (<code>127.0.0.1:8081/8082</code>).</li>
+              <li><code>.github/workflows/ci.yml</code>, <code>cd-staging.yml</code>, <code>cd-production.yml</code> con Cosign OIDC.</li>
+              <li>Scripts Pull-Based CD en <code>deploy/cd/</code> (<code>equinox-cd-pull.sh</code>, <code>equinox-cd@.service</code>, <code>equinox-cd@.timer</code>).</li>
+              <li>Ruleset de rama <code>main</code> y environments <code>staging</code> / <code>production</code> documentados en <code>docs/OPERACION_CICD.md</code>.</li>
+            </ul>
+          </div>
+          <div class="card plan">
+            <h4>PENDIENTE (Activar fuera del código o en servidor/host)</h4>
+            <ul>
+              <li><strong>Integración Git de <code>deploy/cd/*</code>:</strong> Commit/push de los artefactos de Pull CD si aún están en rama de trabajo y limpieza de jobs SSH legacy.</li>
+              <li><strong>Variable GitHub:</strong> Activar <code>CD_IMAGES_ENABLED=true</code> en <em>Repository Variables</em> cuando se desee publicar a GHCR.</li>
+              <li><strong>Instalación Pull CD en Ubuntu:</strong> Instalar <code>cosign</code>, copiar script a <code>/usr/local/sbin/</code>, units a <code>/etc/systemd/system/</code>, crear <code>/etc/equinox-cd/{staging,production}.env</code> y habilitar timers.</li>
+              <li><strong>Archivo <code>.env</code> de Producción:</strong> Crear <code>/opt/equinox-prod/.env</code> (<code>POSTGRES_PASSWORD</code>, <code>SECRETO_JWT</code>, <code>URL_BASE</code>, <code>ORIGENES_PERMITIDOS</code>, <code>FRONTEND_PORT=8082</code>).</li>
+              <li><strong>Cloudflare Tunnel:</strong> Configurar <code>equinox.mena.date → http://127.0.0.1:8082</code> en <code>cloudflared</code> (manteniendo <code>mena.date</code> en <code>:8080</code>).</li>
+              <li><strong>Bootstrap inicial de BD:</strong> Primer arranque en producción y ejecución única de <code>npm run admin:bootstrap -- --correo &lt;email&gt; --confirmar</code>.</li>
+              <li><strong>Backups automatizados y SMTP:</strong> Programar cron de <code>pg_dump -Fc</code> + snapshot de volúmenes; configurar <code>SMTP_HOST</code> (actualmente vacío, recuperación devuelve <code>503</code>).</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 OPERACION Y RECUPERACION -->
+      <section class="doc-sec" id="operacion">
+        <div class="sec-header">
+          <h2><span class="sec-tag">11</span>Operación, Backups y Recuperación ante Fallos</h2>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h4>Observabilidad y Verificación</h4>
+            <ul>
+              <li><strong>Logs CD:</strong> <code>sudo journalctl -u equinox-cd@production -n 100 --no-pager</code></li>
+              <li><strong>Estado de contenedores:</strong> <code>docker compose -p equinox-prod ps</code> (<code>migrator</code> debe figurar <code>Exited (0)</code>; <code>db</code>, <code>backend</code>, <code>frontend</code> en <code>Up (healthy)</code>).</li>
+              <li><strong>Salud local:</strong> <code>curl -fsS http://127.0.0.1:8082/nginx-salud</code> y <code>http://127.0.0.1:8082/salud/listo</code>.</li>
+              <li><strong>Estado Pull CD:</strong> <code>/var/lib/equinox-cd/&lt;env&gt;.state</code> guarda <code>CURRENT_*_DIGEST</code>, <code>PREV_*_DIGEST</code> y <code>FAILED_*_DIGEST</code> (evita bucles de rollback).</li>
+            </ul>
+          </div>
+          <div class="card sec">
+            <h4>Backups y Recuperación</h4>
+            <ul>
+              <li><strong>Respaldo BD (<code>docs/MIGRACIONES.md</code>):</strong> <code>pg_dump -Fc -v -f equinox_backup.dump</code> ejecutado dentro o contra el contenedor <code>db</code> antes de migraciones mayores.</li>
+              <li><strong>Respaldo de volúmenes:</strong> Snapshot o tar de <code>equinox_pgdata</code>, <code>equinox_archivos</code> y <code>equinox_fotos</code>.</li>
+              <li><strong>Rollback de aplicación vs BD:</strong> <code>equinox-cd-pull.sh</code> revierte automáticamente las imágenes de contenedores al digest anterior si falla el healthcheck, pero Prisma es <em>forward-only</em> (no hace <code>migrate down</code>).</li>
+              <li><strong>Fallo de migración:</strong> Consultar <code>npx prisma migrate status</code> y seguir protocolo de <code>docs/MIGRACIONES.md</code> (rollback transaccional o <code>prisma migrate resolve</code>).</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 GLOSARIO Y REFERENCIAS -->
+      <section class="doc-sec" id="glosario">
+        <div class="sec-header">
+          <h2><span class="sec-tag">12</span>Glosario Técnico y Referencias del Repositorio</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Término</th><th>Definición en el contexto de Equinox</th></tr></thead>
+            <tbody>
+              <tr><td><strong>One-shot (<code>migrator</code>)</strong></td><td>Contenedor con <code>restart: "no"</code> que ejecuta una tarea finita (<code>prisma migrate deploy</code>) y finaliza con código <code>0</code>.</td></tr>
+              <tr><td><strong>Digest Pinning (<code>@sha256:...</code>)</strong></td><td>Fijación de una imagen Docker por su hash SHA-256 inmutable en lugar de un tag mutable como <code>:latest</code>.</td></tr>
+              <tr><td><strong>Cosign OIDC Keyless</strong></td><td>Firma criptográfica de imágenes OCI mediante identidad efímera OIDC de GitHub Actions y registro público Sigstore/Rekor, sin claves privadas estáticas.</td></tr>
+              <tr><td><strong>Pull-Based CD</strong></td><td>Modelo donde el servidor destino consulta periódicamente el registro (<code>ghcr.io</code>) y descarga cambios, eliminando acceso SSH entrante desde CI.</td></tr>
+              <tr><td><strong>Multitenancy por FK Compuesta</strong></td><td>Aislamiento entre organizaciones reforzado en PostgreSQL mediante claves foráneas compuestas <code>(cliente_id, organizacion_id)</code>.</td></tr>
+              <tr><td><strong>Same-Origin (<code>env.js</code>)</strong></td><td>Patrón donde el frontend Angular consulta <code>/api/</code> sobre el mismo dominio que lo sirvió, delegando el enrutamiento al proxy Nginx.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Referencias Exactas de Archivos</h3>
+        <ul>
+          <li><code>compose.yml</code>, <code>compose.prod.yml</code>, <code>Dockerfile.backend</code>, <code>docker/backend-entrypoint.sh</code></li>
+          <li><code>frontend/Dockerfile</code>, <code>frontend/nginx.conf</code>, <code>frontend/docker-entrypoint.sh</code>, <code>frontend/src/app.routes.ts</code>, <code>frontend/src/auth/auth.service.ts</code></li>
+          <li><code>src/aplicacion.ts</code>, <code>src/servidor.ts</code>, <code>src/middleware/autenticacion.ts</code>, <code>src/middleware/rate-limit.ts</code>, <code>src/rutas/autenticacion.ts</code></li>
+          <li><code>src/almacenamiento/archivos.ts</code>, <code>src/servicios/almacenamiento-fotos.ts</code>, <code>src/servicios/correo.ts</code>, <code>src/cli/bootstrap-admin.ts</code></li>
+          <li><code>prisma/schema.prisma</code>, <code>prisma/migrations/*</code>, <code>.github/workflows/ci.yml</code>, <code>.github/workflows/cd-staging.yml</code>, <code>.github/workflows/cd-production.yml</code></li>
+          <li><code>deploy/cd/equinox-cd-pull.sh</code>, <code>deploy/cd/equinox-cd.env.example</code>, <code>deploy/cd/systemd/equinox-cd@.service</code>, <code>deploy/cd/systemd/equinox-cd@.timer</code></li>
+          <li><code>docs/infraestructura-equinox.html</code>, <code>docs/OPERACION_CICD.md</code>, <code>docs/MIGRACIONES.md</code></li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const nodeDetails = {
+        browser: {
+          title: "Usuario (Navegador / Mobile)",
+          status: "IMPLEMENTADO",
+          statusClass: "pill-impl",
+          desc: "SPA Angular 20 responsive (320px+). Guarda JWT en sessionStorage (clave equinox_sesion_token) y descarga fotos autenticadas vía Blob + ObjectURL.",
+          files: "frontend/src/app.routes.ts, frontend/src/auth/auth.service.ts"
+        },
+        smtp: {
+          title: "Proveedor SMTP Externo",
+          status: "PENDIENTE",
+          statusClass: "pill-plan",
+          desc: "Nodemailer está integrado en src/servicios/correo.ts, pero SMTP_HOST está vacío por defecto. Sin SMTP configurado, la recuperación responde 503.",
+          files: "src/servicios/correo.ts, .env.production.example"
+        },
+        cloudflare: {
+          title: "Cloudflare Tunnel + TLS",
+          status: "PENDIENTE EN SERVIDOR",
+          statusClass: "pill-plan",
+          desc: "Túnel saliente sin abrir puertos en el router. Enrutará equinox.mena.date hacia 127.0.0.1:8082 dejando intacto mena.date en :8080.",
+          files: "docs/OPERACION_CICD.md, docs/infraestructura-equinox.html"
+        },
+        network: {
+          title: "Límites de Red y Secretos",
+          status: "SEGURIDAD",
+          statusClass: "pill-sec",
+          desc: "Solo frontend publica puerto en loopback (8081 staging, 8082 prod). backend:3000 y db:5432 quedan aislados en equinox_net. Secretos fuera de Git.",
+          files: "compose.yml, .gitignore, .gitleaks.toml"
+        },
+        frontend: {
+          title: "frontend (Nginx 1.27 + Angular 20)",
+          status: "IMPLEMENTADO",
+          statusClass: "pill-impl",
+          desc: "Sirve archivos estáticos, genera /assets/env.js en arranque, proxia /api/ y /salud a backend:3000 con client_max_body_size 55M y proxy_request_buffering off.",
+          files: "frontend/Dockerfile, frontend/nginx.conf, frontend/docker-entrypoint.sh"
+        },
+        backend: {
+          title: "backend (Node 22 + Express 5)",
+          status: "IMPLEMENTADO",
+          statusClass: "pill-impl",
+          desc: "Target runner sin Prisma CLI. Ejecuta Helmet, CORS estricto, trust proxy validado, Morgan redactado, JWT + sesiones en BD, TOTP MFA y streaming de fotos.",
+          files: "Dockerfile.backend, src/aplicacion.ts, src/middleware/autenticacion.ts"
+        },
+        db: {
+          title: "db (PostgreSQL 16-alpine)",
+          status: "COMPOSE LISTO · BD VACÍA EN PROD",
+          statusClass: "pill-plan",
+          desc: "Almacena 23 modelos Prisma en volumen equinox_pgdata. Salud validada con pg_isready. Pendiente primer arranque en prod y admin:bootstrap.",
+          files: "compose.yml, prisma/schema.prisma, src/cli/bootstrap-admin.ts"
+        },
+        migrator: {
+          title: "migrator (One-Shot Prisma CLI)",
+          status: "IMPLEMENTADO",
+          statusClass: "pill-impl",
+          desc: "Contenedor con restart: 'no'. Espera db healthy, ejecuta prisma migrate deploy y termina con Exited (0) para desbloquear el arranque de backend.",
+          files: "compose.yml, Dockerfile.backend, prisma/migrations/*"
+        },
+        volumes: {
+          title: "Volúmenes Privados Docker",
+          status: "IMPLEMENTADO",
+          statusClass: "pill-impl",
+          desc: "equinox_archivos (/data/archivos, máx 8 MB) y equinox_fotos (/data/fotos, máx 50 MB). Fuera del webroot, nombres UUID v4 y validación path.resolve.",
+          files: "src/almacenamiento/archivos.ts, src/servicios/almacenamiento-fotos.ts"
+        },
+        backups: {
+          title: "Backups y Retención",
+          status: "PENDIENTE AUTOMATIZAR",
+          statusClass: "pill-plan",
+          desc: "Procedimiento manual pg_dump -Fc documentado en docs/MIGRACIONES.md. Pendiente cron diario y copia externa cifrada de pgdata, archivos y fotos.",
+          files: "docs/MIGRACIONES.md"
+        },
+        systemd: {
+          title: "Agente Pull CD (systemd + Cosign)",
+          status: "SCRIPTS LISTOS · TIMER PENDIENTE",
+          statusClass: "pill-plan",
+          desc: "equinox-cd@.timer consulta GHCR cada 2 min, verifica firma Cosign OIDC, fija digests @sha256, migra, levanta contenedores y hace rollback si falla /salud/listo.",
+          files: "deploy/cd/equinox-cd-pull.sh, deploy/cd/systemd/equinox-cd@.service, deploy/cd/systemd/equinox-cd@.timer"
+        },
+        github: {
+          title: "GitHub (develop / main)",
+          status: "IMPLEMENTADO",
+          statusClass: "pill-impl",
+          desc: "Rama main protegida con ruleset y environment production (reviewer manual). Rama develop apunta a staging.",
+          files: "docs/OPERACION_CICD.md"
+        },
+        ci: {
+          title: "CI Gate (.github/workflows/ci.yml)",
+          status: "IMPLEMENTADO",
+          statusClass: "pill-impl",
+          desc: "6 jobs obligatorios: YAML/Compose, Gitleaks, npm audit, Prisma+PostgreSQL+tsc+tests, Angular build+11 suites DOM, y Docker build verify.",
+          files: ".github/workflows/ci.yml"
+        },
+        ghcr: {
+          title: "GHCR + Cosign OIDC",
+          status: "IMPLEMENTADO",
+          statusClass: "pill-impl",
+          desc: "Publica backend, migrator y frontend en ghcr.io y firma los digests con Cosign OIDC keyless. Requiere vars.CD_IMAGES_ENABLED == 'true'.",
+          files: ".github/workflows/cd-staging.yml, .github/workflows/cd-production.yml"
+        }
+      };
+
+      const inspector = document.getElementById("nodeInspector");
+      const nodes = document.querySelectorAll(".svg-node");
+      const flows = document.querySelectorAll(".svg-flow");
+      const tabBtns = document.querySelectorAll(".tab-btn");
+
+      nodes.forEach((node) => {
+        node.addEventListener("click", () => {
+          nodes.forEach((n) => n.classList.remove("selected"));
+          node.classList.add("selected");
+          const info = nodeDetails[node.dataset.node];
+          if (!info) return;
+          inspector.innerHTML = `
+            <div class="inspector-title">
+              <span>${info.title}</span>
+              <span class="pill ${info.statusClass}">${info.status}</span>
+            </div>
+            <p style="margin:0 0 6px;font-size:13.5px;color:var(--ink);">${info.desc}</p>
+            <div style="font-size:12.5px;color:var(--muted);"><strong>Archivos:</strong> <code>${info.files}</code></div>
+          `;
+        });
+      });
+
+      tabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          tabBtns.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const view = btn.dataset.view;
+          nodes.forEach((n) => {
+            n.style.opacity = view === "all" || n.dataset.layer === view ? "1" : "0.22";
+          });
+          flows.forEach((f) => {
+            f.style.opacity = view === "all" || f.dataset.layer === view ? "1" : "0.14";
+          });
+        });
+      });
+
+      // Mobile menu
+      const sidebar = document.getElementById("sidebar");
+      const menuToggle = document.getElementById("menuToggle");
+      const menuClose = document.getElementById("menuClose");
+      const navLinks = document.querySelectorAll("#navList a");
+
+      function closeMenu() { sidebar.classList.remove("open"); }
+      if (menuToggle) {
+        menuToggle.addEventListener("click", () => {
+          sidebar.classList.add("open");
+          if (menuClose) menuClose.style.display = "inline-block";
+        });
+      }
+      if (menuClose) menuClose.addEventListener("click", closeMenu);
+      navLinks.forEach((a) => {
+        a.addEventListener("click", () => {
+          navLinks.forEach((l) => l.classList.remove("active"));
+          a.classList.add("active");
+          if (window.innerWidth <= 960) closeMenu();
+        });
+      });
+
+      // Filter sections
+      const searchInput = document.getElementById("searchInput");
+      const sections = document.querySelectorAll("section.doc-sec");
+      searchInput.addEventListener("input", () => {
+        const q = searchInput.value.trim().toLowerCase();
+        sections.forEach((sec) => {
+          if (!q) {
+            sec.classList.remove("hidden-by-filter");
+          } else {
+            const match = sec.textContent.toLowerCase().includes(q);
+            sec.classList.toggle("hidden-by-filter", !match);
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

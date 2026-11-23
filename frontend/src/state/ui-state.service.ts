@@ -371,6 +371,7 @@ export class UiStateService {
 
   selectCreateType(type: 'Cliente' | 'Proyecto' | 'Tarea' | 'Factura') {
     this.activeCreateType = type;
+    this.createError = '';
     if (type === 'Factura') {
       this.nuevaFactura.proyectoId = '';
       if (!this.clientes.some((cliente) => cliente.id === this.nuevaFactura.clienteId)) {
@@ -402,19 +403,34 @@ export class UiStateService {
 
   async submitCreate() {
     if (this.activeCreateType === 'Cliente') {
-      if (!this.nuevoCliente.nombre) return;
+      const nombre = this.nuevoCliente.nombre.trim();
+      if (nombre.length < 2) {
+        this.createError = 'Escribe el nombre del contacto (mínimo 2 caracteres).';
+        return;
+      }
       this.crearLoading = true; this.createError = '';
       try {
-        await this.clientesProyectosApi.crearCliente({ nombre: this.nuevoCliente.nombre.trim(), empresa: this.nuevoCliente.empresa || null, correo: this.nuevoCliente.correo || null, telefono: this.nuevoCliente.telefono || null, notasInternas: this.nuevoCliente.notas || null });
+        await this.clientesProyectosApi.crearCliente({
+          nombre,
+          empresa: this.nuevoCliente.empresa.trim() || null,
+          correo: this.nuevoCliente.correo.trim() || null,
+          telefono: this.nuevoCliente.telefono.trim() || null,
+          notasInternas: this.nuevoCliente.notas.trim() || null
+        });
         this.nuevoCliente = { nombre: '', empresa: '', correo: '', telefono: '', notas: '' };
+        this.equinox.mostrarToast('Cliente creado con éxito');
       } catch (error: any) { this.createError = error?.status === 422 ? 'Revisa los datos ingresados.' : 'No se pudo guardar el cliente.'; this.crearLoading = false; return; }
       this.crearLoading = false;
     } else if (this.activeCreateType === 'Proyecto') {
-      if (!this.nuevoProyecto.nombre) return;
+      const nombre = this.nuevoProyecto.nombre.trim();
+      if (nombre.length < 2) {
+        this.createError = 'Escribe el nombre del proyecto (mínimo 2 caracteres).';
+        return;
+      }
       if (!this.nuevoProyecto.clienteId) { this.createError = 'Selecciona un cliente de tu organización.'; return; }
       this.crearLoading = true; this.createError = '';
       try {
-        await this.clientesProyectosApi.crearProyecto({ nombre: this.nuevoProyecto.nombre.trim(), clienteId: this.nuevoProyecto.clienteId, descripcion: this.nuevoProyecto.descripcion || null, estado: this.nuevoProyecto.estado, presupuesto: Number(this.nuevoProyecto.presupuesto) || 0, moneda: this.nuevoProyecto.moneda || 'PAB', fechaInicio: this.nuevoProyecto.fechaInicio || null, fechaEntrega: this.nuevoProyecto.fechaEntrega || null });
+        await this.clientesProyectosApi.crearProyecto({ nombre, clienteId: this.nuevoProyecto.clienteId, descripcion: this.nuevoProyecto.descripcion || null, estado: this.nuevoProyecto.estado, presupuesto: Number(this.nuevoProyecto.presupuesto) || 0, moneda: this.nuevoProyecto.moneda || 'PAB', fechaInicio: this.nuevoProyecto.fechaInicio || null, fechaEntrega: this.nuevoProyecto.fechaEntrega || null });
         this.nuevoProyecto = { nombre: '', clienteId: this.clientes[0]?.id || '', descripcion: '', estado: 'BORRADOR', presupuesto: 0, moneda: 'PAB', fechaInicio: '', fechaEntrega: '' };
       } catch (error: any) { this.createError = error?.status === 422 ? 'El cliente seleccionado o los datos no son válidos.' : 'No se pudo guardar el proyecto.'; this.crearLoading = false; return; }
       this.crearLoading = false;

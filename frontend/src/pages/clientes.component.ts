@@ -629,6 +629,10 @@ export class ClientesComponent implements OnInit, OnDestroy {
   async guardar(form: NgForm, crearSesion = false): Promise<void> {
     this.enviado = true;
     if (form.invalid || this.guardando) return;
+    if (this.formulario.nombre.trim().length < 2) {
+      this.errorGuardar = 'El nombre del cliente debe tener al menos 2 caracteres.';
+      return;
+    }
     const esAltaFotografia = this.esFotografia && !this.editandoId;
     const sitioIngresado = esAltaFotografia ? '' : this.formulario.sitioWeb.trim();
     let sitioWeb: string | null = null;
