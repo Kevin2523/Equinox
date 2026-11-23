@@ -1,0 +1,12 @@
+[Unit]
+Description=Equinox Pull-Based CD Timer (%i)
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+RandomizedDelaySec=15s
+Persistent=true
+Unit=equinox-cd@%i.service
+
+[Install]
+WantedBy=timers.target
