@@ -11,7 +11,11 @@ const { spawn } = require('node:child_process');
 const bundle = path.resolve(__dirname, '../dist/equinox/browser');
 const chrome = process.env.EQUINOX_TEST_BROWSER || [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/snap/bin/chromium'
 ].find(fs.existsSync);
 
 const cliente1 = { id: 'c1', nombre: 'Cliente Alfa S.A.', empresa: 'Alfa Corp', estado: 'ACTIVO' };
@@ -324,16 +328,14 @@ test('DOM: cambio rápido de proyecto invalida respuesta tardía del proyecto an
   // Cambiar rápidamente al Proyecto 2 antes de responder p1
   await click('.portal-project-list .btn-tab-project:last-child');
 
-  // Tomar las solicitudes de p2
+  // Tomar y responder las solicitudes de p2 sin exceder el límite de 6 conexiones HTTP/1.1 mientras p1 sigue abierto
   const reqHitosP2 = await take('GET', '/api/proyectos/p2/hitos');
-  const reqArchivosP2 = await take('GET', '/api/proyectos/p2/archivos');
-  const reqComentariosP2 = await take('GET', '/api/proyectos/p2/comentarios');
-
-  // Responder primero p2 exitosamente con sus datos
   await finish(reqHitosP2, 200, [
     { id: 'h2', proyectoId: 'p2', titulo: 'Hito Vigente de Proyecto Beta', estado: 'EN_PROGRESO', visibleEnPortal: true }
   ]);
+  const reqArchivosP2 = await take('GET', '/api/proyectos/p2/archivos');
   await finish(reqArchivosP2, 200, []);
+  const reqComentariosP2 = await take('GET', '/api/proyectos/p2/comentarios');
   await finish(reqComentariosP2, 200, []);
 
   // Verificar que el DOM de p2 muestre su propio hito vigente
@@ -401,15 +403,14 @@ test('DOM: fallo de carga de un proyecto anterior no contamina el proyecto vigen
   await waitDOM(visible('.portal-project-list .btn-tab-project'));
   await click('.portal-project-list .btn-tab-project:last-child');
 
-  // Interceptar y responder con éxito p2
+  // Interceptar y responder con éxito p2 sin exceder el límite de 6 conexiones HTTP/1.1 mientras p1 sigue abierto
   const reqHitosP2 = await take('GET', '/api/proyectos/p2/hitos');
-  const reqArchivosP2 = await take('GET', '/api/proyectos/p2/archivos');
-  const reqComentariosP2 = await take('GET', '/api/proyectos/p2/comentarios');
-
   await finish(reqHitosP2, 200, [
     { id: 'h2-ok', proyectoId: 'p2', titulo: 'Hito Exitoso de P2', estado: 'EN_PROGRESO', visibleEnPortal: true }
   ]);
+  const reqArchivosP2 = await take('GET', '/api/proyectos/p2/archivos');
   await finish(reqArchivosP2, 200, []);
+  const reqComentariosP2 = await take('GET', '/api/proyectos/p2/comentarios');
   await finish(reqComentariosP2, 200, []);
 
   // Confirmar que p2 se renderizó correctamente

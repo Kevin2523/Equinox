@@ -8,7 +8,14 @@ const os = require('node:os');
 const { spawn } = require('node:child_process');
 
 const bundle = path.resolve(__dirname, '../dist/equinox/browser');
-const chrome = process.env.EQUINOX_TEST_BROWSER || ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(fs.existsSync);
+const chrome = process.env.EQUINOX_TEST_BROWSER || [
+  'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/snap/bin/chromium'
+].find(fs.existsSync);
 const client = { id: 'c1', nombre: 'Cliente Ficticio', empresa: 'Empresa de Prueba', estado: 'ACTIVO' };
 const project = { id: 'p1', clienteId: 'c1', nombre: 'San Carlos Surf Resort', estado: 'ACTIVO', descripcion: 'Proyecto QA', cliente: client };
 let hitosStatus = 200;
@@ -16,6 +23,7 @@ let hitosPayload = [];
 let demorarHitos = false;
 const hitosEnEspera = [];
 let resolverSolicitudHitos;
+let onLoadEvent;
 let server, origin, browser, socket, sessionId, profile, nextId = 0;
 const pending = new Map();
 const exceptions = [];
@@ -49,7 +57,18 @@ async function key(keyName, modifiers = 0) {
 }
 async function go(route, width = 1280, height = 800) {
   await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+  const loaded = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      onLoadEvent = undefined;
+      reject(new Error(`Timeout cargando ruta ${route}`));
+    }, 10000);
+    onLoadEvent = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+  });
   await send('Page.navigate', { url: origin + route });
+  await loaded;
   await wait('document.querySelector("#openSearch") || document.querySelector(".portal-custom-header")');
 }
 async function viewport(width, height = 800) {
@@ -86,7 +105,7 @@ before(async () => {
       return res.end(fs.readFileSync(file));
     }
     const html = fs.readFileSync(path.join(bundle, 'index.html'), 'utf8').replace('<head>', `<head><script>window.__EQUINOX_API_ORIGIN__=location.origin;sessionStorage.setItem('equinox_sesion_token','sesion-ficticia-org');</script>`);
-    res.setHeader('Content-Type', 'text/html'); res.end(html);
+    res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' }); res.end(html);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   origin = `http://localhost:${server.address().port}`;
@@ -108,6 +127,9 @@ before(async () => {
       exceptions.push(event.params.exceptionDetails.exception?.description || event.params.exceptionDetails.text);
     } else if (event.method === 'Log.entryAdded' && event.params.entry.level === 'error' && event.params.entry.source === 'javascript') {
       exceptions.push(event.params.entry.text);
+    } else if (event.method === 'Page.loadEventFired') {
+      onLoadEvent?.();
+      onLoadEvent = undefined;
     } else if (event.method === 'Fetch.requestPaused') {
       const own = new URL(event.params.request.url).origin === origin;
       void send(own ? 'Fetch.continueRequest' : 'Fetch.failRequest', { requestId: event.params.requestId, ...(!own ? { errorReason: 'BlockedByClient' } : {}) }).catch(error => exceptions.push(String(error)));
@@ -123,39 +145,38 @@ afterEach(() => {
   for (const res of hitosEnEspera.splice(0)) {
     if (!res.writableEnded) { res.writeHead(503, { 'Content-Type': 'application/json' }); res.end('{}'); }
   }
-  hitosStatus = 200; hitosPayload = []; demorarHitos = false; resolverSolicitudHitos = undefined;
+  hitosStatus = 200; hitosPayload = []; demorarHitos = false; resolverSolicitudHitos = undefined; onLoadEvent = undefined;
 });
 
 test('Hoy: la consulta pendiente muestra carga sin afirmar que no hay hitos', { timeout: 15000 }, async () => {
   demorarHitos = true;
   const solicitudRecibida = new Promise(resolve => { resolverSolicitudHitos = resolve; });
   await go('/hoy');
-  await wait('document.querySelector(".v-timeline-section [role=status]")');
+  await wait('document.querySelector(".milestones-block [role=status]")');
   await solicitudRecibida;
   assert.ok(hitosEnEspera.length > 0);
-  assert.equal(await evalDOM('!!document.querySelector(".v-timeline-empty")'), false);
-  assert.equal(await evalDOM('!!document.querySelector(".vtb-progress-box")'), false);
+  assert.match(await evalDOM('document.querySelector(".milestones-block [role=status]")?.textContent || ""'), /cargando hitos/i);
+  assert.equal(await evalDOM('document.querySelector(".milestones-block")?.textContent.includes("Sin hitos registrados")'), false);
+  demorarHitos = false;
   for (const res of hitosEnEspera.splice(0)) {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end('[]');
   }
-  demorarHitos = false;
-  await wait('document.querySelector(".v-timeline-empty")');
+  await wait('!document.querySelector(".milestones-block [role=status]") && document.querySelector(".milestones-block")?.textContent.includes("Sin hitos registrados")');
 });
 
 test('Hoy: proyecto ACTIVO sin hitos ni tareas muestra estado vacío y ningún avance inventado', { timeout: 15000 }, async () => {
   await go('/hoy');
-  await wait('document.querySelector(".v-timeline-banner") && document.querySelector(".v-timeline-empty")');
+  await wait('document.querySelector(".project-headline") && !document.querySelector(".milestones-block [role=status]") && document.querySelector(".milestones-block .empty-block-hint:not([role=status])")');
   const vista = await evalDOM(`({
-    titulo: document.querySelector('.v-timeline-banner h2')?.textContent?.trim(),
-    texto: document.querySelector('.v-timeline-section')?.innerText || '',
-    hitos: document.querySelectorAll('.v-timeline-track .v-timeline-item').length,
-    vacio: document.querySelector('.v-timeline-empty')?.innerText || '',
-    progreso: document.querySelector('.vtb-progress-box')?.innerText || ''
+    titulo: document.querySelector('.project-headline')?.textContent?.trim(),
+    texto: document.querySelector('.milestones-block')?.innerText || '',
+    hitos: document.querySelectorAll('.milestones-list .milestone-item').length,
+    vacio: document.querySelector('.milestones-block .empty-block-hint:not([role=status])')?.innerText || '',
+    progreso: document.querySelector('.progress-percentage')?.innerText || ''
   })`);
   assert.equal(vista.titulo, 'San Carlos Surf Resort');
   assert.equal(vista.hitos, 0, 'No debe representar fases como hitos registrados');
-  assert.match(vista.vacio, /no hay hitos registrados/i);
-  assert.match(vista.vacio, /primer hito/i);
+  assert.match(vista.vacio, /sin hitos registrados/i);
   assert.equal(vista.progreso.includes('50%'), false);
   assert.equal(/Apertura y vinculación|Validación y aprobación|Entrega final y cierre/.test(vista.texto), false);
 });
@@ -164,14 +185,14 @@ test('Hoy: fallo al consultar hitos muestra error y reintento, no estado vacío'
   hitosStatus = 503;
   hitosPayload = { error: 'Fallo ficticio' };
   await go('/hoy');
-  await wait('document.querySelector(".v-timeline-error")');
-  assert.equal(await evalDOM('!!document.querySelector(".v-timeline-empty")'), false);
-  assert.equal(await evalDOM('document.querySelectorAll(".v-timeline-track .v-timeline-item").length'), 0);
+  await wait('document.querySelector(".milestones-error")');
+  assert.equal(await evalDOM('document.querySelector(".milestones-block")?.textContent.includes("Sin hitos registrados")'), false);
+  assert.equal(await evalDOM('document.querySelectorAll(".milestones-list .milestone-item").length'), 0);
   hitosStatus = 200;
   hitosPayload = [{ id: 'h1', proyectoId: 'p1', titulo: 'Entrega real', descripcion: null, estado: 'COMPLETADO', visibleEnPortal: false, fechaObjetivo: null }];
-  await click('.v-timeline-error button');
-  await wait('document.querySelector(".v-timeline-track")?.textContent.includes("Entrega real")');
-  assert.equal(await evalDOM('!!document.querySelector(".v-timeline-error")'), false);
+  await click('.milestones-error button');
+  await wait('document.querySelector(".milestones-list")?.textContent.includes("Entrega real")');
+  assert.equal(await evalDOM('!!document.querySelector(".milestones-error")'), false);
 });
 
 test('Hoy: solo los hitos de la API determinan el porcentaje y las tarjetas', { timeout: 15000 }, async () => {
@@ -180,19 +201,19 @@ test('Hoy: solo los hitos de la API determinan el porcentaje y las tarjetas', { 
     { id: 'h2', proyectoId: 'p1', titulo: 'Entrega pendiente', descripcion: null, estado: 'PENDIENTE', visibleEnPortal: false, fechaObjetivo: null }
   ];
   await go('/hoy');
-  await wait('document.querySelector(".v-timeline-track")?.textContent.includes("Entrega pendiente")');
-  const vista = await evalDOM(`({ titulos: [...document.querySelectorAll('.v-timeline-track .v-timeline-item h3')].map(e => e.textContent.trim()), progreso: document.querySelector('.vtb-progress-box')?.textContent || '' })`);
+  await wait('document.querySelector(".milestones-list")?.textContent.includes("Entrega pendiente")');
+  const vista = await evalDOM(`({ titulos: [...document.querySelectorAll('.milestones-list .milestone-item h3')].map(e => e.textContent.trim()), progreso: document.querySelector('.progress-percentage')?.textContent || '' })`);
   assert.deepEqual(vista.titulos, ['Boceto aprobado', 'Entrega pendiente']);
   assert.match(vista.progreso, /50%/);
 });
 
 test('modales de páginas: cliente y proyecto retienen y restauran foco con Escape y overlay', { timeout: 30000 }, async () => {
-  for (const [route, opener, modal] of [
-    ['/clientes', '.page-title button', '.overlay .quick-modal'],
-    ['/proyectos', '.page-title button', '.overlay .modal-formulario-amplio']
+  for (const [route, opener, modal, backdrop] of [
+    ['/clientes', '.btn-new-client', '.modal-backdrop .modal-card', '.modal-backdrop'],
+    ['/proyectos', '.btn-nuevo', '.overlay .quick-modal', '.overlay']
   ]) {
     await go(route);
-    await wait(`document.querySelector(${JSON.stringify(opener)}) && !document.querySelector(${JSON.stringify(opener)}).disabled && !document.querySelector('.overlay')`);
+    await wait(`document.querySelector(${JSON.stringify(opener)}) && !document.querySelector(${JSON.stringify(opener)}).disabled && !document.querySelector(${JSON.stringify(backdrop)})`);
     for (const closeBy of ['Escape', 'overlay']) {
       await evalDOM(`document.querySelector(${JSON.stringify(opener)}).focus()`);
       await click(opener);
@@ -201,7 +222,7 @@ test('modales de páginas: cliente y proyecto retienen y restauran foco con Esca
       await evalDOM(`document.querySelector(${JSON.stringify(modal)} + ' button:last-of-type').focus()`);
       await key('Tab');
       assert.equal(await evalDOM(`document.querySelector(${JSON.stringify(modal)}).contains(document.activeElement)`), true, `${route}: Tab contenido`);
-      if (closeBy === 'Escape') await key('Escape'); else await click('.overlay');
+      if (closeBy === 'Escape') await key('Escape'); else await click(backdrop);
       await wait(`!document.querySelector(${JSON.stringify(modal)})`);
       assert.equal(await evalDOM(`document.activeElement === document.querySelector(${JSON.stringify(opener)})`), true, `${route}: foco restaurado tras ${closeBy}`);
     }
@@ -210,8 +231,8 @@ test('modales de páginas: cliente y proyecto retienen y restauran foco con Esca
 
 test('cliente: sitio web opcional no bloquea un dominio sin protocolo', async () => {
   await go('/clientes');
-  await wait('document.querySelector(".page-title button") && !document.querySelector(".page-title button").disabled');
-  await click('.page-title button');
+  await wait('document.querySelector(".btn-new-client") && !document.querySelector(".btn-new-client").disabled');
+  await click('.btn-new-client');
   await wait('document.querySelector("#cliente-web")');
   const input = await evalDOM(`(() => {
     const web = document.querySelector('#cliente-web');
@@ -254,11 +275,15 @@ test('búsqueda: Tab y Shift+Tab quedan dentro, Enter abre resultado y cierre re
 
 test('creación: trampa de foco y restauración; acciones alcanzables a 390×560', { timeout: 20000 }, async () => {
   await go('/hoy', 390, 560);
-  await wait('document.querySelector("#createBtn")');
-  await evalDOM('document.querySelector("#createBtn").focus()');
-  await click('#createBtn');
+  await wait('document.querySelector(".mobile-hoy-dock__create-btn")?.offsetParent !== null');
+  await evalDOM('document.querySelector(".mobile-hoy-dock__create-btn").focus()');
+  await click('.mobile-hoy-dock__create-btn');
   await wait('document.querySelector(".quick-modal")');
   assert.equal(await evalDOM('document.querySelector(".quick-modal").contains(document.activeElement)'), true);
+  if (await evalDOM('!!document.querySelector(".quick-modal .back-link")')) {
+    await click('.quick-modal .back-link');
+    await wait('document.querySelector(".quick-modal .modal-choices button:last-child")');
+  }
   await evalDOM('document.querySelector(".quick-modal .modal-choices button:last-child").focus()');
   await key('Tab');
   assert.equal(await evalDOM('document.querySelector(".quick-modal").contains(document.activeElement)'), true);
@@ -281,15 +306,25 @@ test('creación: trampa de foco y restauración; acciones alcanzables a 390×560
   }
   await key('Escape');
   await wait('!document.querySelector(".quick-modal")');
+  assert.equal(await evalDOM('document.activeElement === document.querySelector(".mobile-hoy-dock__create-btn")'), true);
+
+  await go('/hoy', 1280, 800);
+  await wait('document.querySelector("#createBtn")?.offsetParent !== null');
+  await evalDOM('document.querySelector("#createBtn").focus()');
+  await click('#createBtn');
+  await wait('document.querySelector(".quick-modal")');
+  assert.equal(await evalDOM('document.querySelector(".quick-modal").contains(document.activeElement)'), true);
+  await key('Escape');
+  await wait('!document.querySelector(".quick-modal")');
   assert.equal(await evalDOM('document.activeElement?.id'), 'createBtn');
 });
 
-test('vistas principales: 390, 768, 1280 sin overflow horizontal ni excepciones JS', { timeout: 60000 }, async () => {
+test('vistas principales: 390, 768, 820, 1024, 1280 sin overflow horizontal ni excepciones JS', { timeout: 60000 }, async () => {
   const findings = [];
   for (const route of ['/hoy', '/clientes', '/proyectos', '/tareas', '/finanzas', '/vista-previa-portal']) {
     await go(route);
     await frame();
-    for (const width of [390, 768, 1280]) {
+    for (const width of [390, 768, 820, 1024, 1280]) {
       await viewport(width, width === 390 ? 560 : 800);
       const result = await evalDOM('({ width: document.documentElement.scrollWidth, viewport: innerWidth, path: location.pathname, content: document.body.innerText.length })');
       assert.ok(result.path === route || (route === '/hoy' && result.path === '/dashboard'), `Ruta inesperada: ${route} -> ${result.path}`);

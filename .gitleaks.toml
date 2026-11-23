@@ -1,0 +1,17 @@
+title = "Gitleaks config for Equinox"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow specific non-secret test fixtures and example templates only"
+regexes = [
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.e30\.tampered_signature''',
+  '''secreto-pruebas-[a-z0-9-]+-32chars''',
+  '''secreto-mfa-[a-z0-9-]+-32chars''',
+  '''secreto1234567890abcdef''',
+  '''JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP''',
+  '''cambia-esto-por-un-secreto[a-z0-9-]*''',
+  '''VENCIMIENTO_JWT=7d''',
+  '''equinox_ci_password'''
+]

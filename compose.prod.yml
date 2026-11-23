@@ -1,0 +1,15 @@
+services:
+  migrator:
+    image: ${MIGRATOR_IMAGE_REF:-${MIGRATOR_IMAGE:?Definir MIGRATOR_IMAGE}:${IMAGE_TAG:-latest}}
+    pull_policy: always
+
+  backend:
+    image: ${BACKEND_IMAGE_REF:-${BACKEND_IMAGE:?Definir BACKEND_IMAGE}:${IMAGE_TAG:-latest}}
+    pull_policy: always
+    environment:
+      URL_BASE: ${URL_BASE:?Definir URL_BASE}
+      ORIGENES_PERMITIDOS: ${ORIGENES_PERMITIDOS:?Definir ORIGENES_PERMITIDOS}
+
+  frontend:
+    image: ${FRONTEND_IMAGE_REF:-${FRONTEND_IMAGE:?Definir FRONTEND_IMAGE}:${IMAGE_TAG:-latest}}
+    pull_policy: always

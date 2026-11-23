@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Subscription, distinctUntilChanged } from 'rxjs';
 import { UiStateService } from '../state/ui-state.service';
 import { ClientesProyectosApiService, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import { TrabajoApiService, HitoApi, ComentarioApi } from '../services/trabajo-api.service';
@@ -72,14 +72,16 @@ export class PortalComponent implements OnInit, OnDestroy {
     }
 
     this.subs.add(
-      this.api.proyectoSeleccionado$.subscribe((proyecto) => {
-        if (this.destruido) return;
-        if (proyecto) {
-          void this.cargarDetalleProyecto(proyecto.id);
-        } else {
-          this.limpiarDetalle();
-        }
-      })
+      this.api.proyectoSeleccionado$
+        .pipe(distinctUntilChanged((a, b) => (a?.id ?? null) === (b?.id ?? null)))
+        .subscribe((proyecto) => {
+          if (this.destruido) return;
+          if (proyecto) {
+            void this.cargarDetalleProyecto(proyecto.id);
+          } else {
+            this.limpiarDetalle();
+          }
+        })
     );
   }
 

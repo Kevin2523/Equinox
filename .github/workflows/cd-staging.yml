@@ -1,0 +1,227 @@
+name: Equinox CD - Staging (develop)
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: cd-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  BACKEND_DOCKERFILE: Dockerfile.backend
+  BACKEND_CONTEXT: .
+  FRONTEND_DOCKERFILE: frontend/Dockerfile
+  FRONTEND_CONTEXT: frontend
+  REGISTRY: ghcr.io
+
+jobs:
+  ci:
+    name: CI Gate (Staging)
+    if: github.ref == 'refs/heads/develop'
+    uses: ./.github/workflows/ci.yml
+
+  publish-images:
+    name: Build, Push y Firma Cosign GHCR (Staging)
+    needs: [ci]
+    if: github.ref == 'refs/heads/develop' && (vars.CD_IMAGES_ENABLED == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    outputs:
+      backend_image: ${{ steps.meta_backend.outputs.tags }}
+      frontend_image: ${{ steps.meta_frontend.outputs.tags }}
+      backend_digest: ${{ steps.build_backend.outputs.digest }}
+      frontend_digest: ${{ steps.build_frontend.outputs.digest }}
+      image_tag: sha-${{ github.sha }}
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Instalar Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Iniciar sesión en GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Metadatos imagen Backend
+        id: meta_backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/equinox-backend
+          tags: |
+            type=raw,value=staging
+            type=raw,value=sha-${{ github.sha }}
+
+      - name: Build y Push imagen Backend
+        id: build_backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BACKEND_CONTEXT }}
+          file: ${{ env.BACKEND_DOCKERFILE }}
+          target: runner
+          push: true
+          tags: ${{ steps.meta_backend.outputs.tags }}
+          labels: ${{ steps.meta_backend.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Metadatos imagen Migrator
+        id: meta_migrator
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/equinox-migrator
+          tags: |
+            type=raw,value=staging
+            type=raw,value=sha-${{ github.sha }}
+
+      - name: Build y Push imagen Migrator
+        id: build_migrator
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BACKEND_CONTEXT }}
+          file: ${{ env.BACKEND_DOCKERFILE }}
+          target: migrator
+          push: true
+          tags: ${{ steps.meta_migrator.outputs.tags }}
+          labels: ${{ steps.meta_migrator.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Metadatos imagen Frontend
+        id: meta_frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/equinox-frontend
+          tags: |
+            type=raw,value=staging
+            type=raw,value=sha-${{ github.sha }}
+
+      - name: Build y Push imagen Frontend
+        id: build_frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.FRONTEND_CONTEXT }}
+          file: ${{ env.FRONTEND_DOCKERFILE }}
+          push: true
+          tags: ${{ steps.meta_frontend.outputs.tags }}
+          labels: ${{ steps.meta_frontend.outputs.labels }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Firmar digests con Cosign (OIDC keyless)
+        env:
+          BACKEND_DIGEST: ${{ steps.build_backend.outputs.digest }}
+          MIGRATOR_DIGEST: ${{ steps.build_migrator.outputs.digest }}
+          FRONTEND_DIGEST: ${{ steps.build_frontend.outputs.digest }}
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          BACKEND_REF="${{ env.REGISTRY }}/${OWNER_LC}/equinox-backend@${BACKEND_DIGEST}"
+          MIGRATOR_REF="${{ env.REGISTRY }}/${OWNER_LC}/equinox-migrator@${MIGRATOR_DIGEST}"
+          FRONTEND_REF="${{ env.REGISTRY }}/${OWNER_LC}/equinox-frontend@${FRONTEND_DIGEST}"
+          cosign sign --yes "$BACKEND_REF"
+          cosign sign --yes "$MIGRATOR_REF"
+          cosign sign --yes "$FRONTEND_REF"
+          {
+            echo "## Imágenes Staging publicadas y firmadas (Cosign OIDC)"
+            echo "- Backend: \`${BACKEND_REF}\`"
+            echo "- Migrator: \`${MIGRATOR_REF}\`"
+            echo "- Frontend: \`${FRONTEND_REF}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-staging:
+    name: Despliegue SSH a Staging
+    needs: [ci, publish-images]
+    environment: staging
+    runs-on: ${{ vars.STAGING_RUNNER || 'ubuntu-latest' }}
+    if: github.ref == 'refs/heads/develop' && vars.STAGING_DEPLOY_ENABLED == 'true'
+    env:
+      SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+      SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+      SSH_PORT: ${{ secrets.STAGING_SSH_PORT || '22' }}
+      SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+      APP_DIR: ${{ secrets.STAGING_APP_DIR }}
+      BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/equinox-backend
+      MIGRATOR_IMAGE: ghcr.io/${{ github.repository_owner }}/equinox-migrator
+      FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/equinox-frontend
+      IMAGE_TAG: sha-${{ github.sha }}
+      GHCR_USER: ${{ secrets.GHCR_READ_USER || github.actor }}
+      GHCR_TOKEN: ${{ secrets.GHCR_READ_TOKEN || secrets.GITHUB_TOKEN }}
+      FRONTEND_BIND_IP: ${{ vars.STAGING_FRONTEND_BIND_IP || '' }}
+      FRONTEND_PORT: ${{ vars.STAGING_FRONTEND_PORT || '' }}
+    steps:
+      - name: Validar secretos obligatorios de Staging
+        run: |
+          missing=0
+          for var in SSH_HOST SSH_USER APP_DIR; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Falta el secret obligatorio para staging: $var"
+              missing=1
+            fi
+          done
+          if [ -z "${{ secrets.STAGING_SSH_KEY }}" ]; then
+            echo "::error::Falta el secret obligatorio: STAGING_SSH_KEY"
+            missing=1
+          fi
+          exit "$missing"
+
+      - name: Configurar agente SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+
+      - name: Configurar known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          if [ -n "$SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+            chmod 644 ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          fi
+
+      - name: Desplegar contenedores y ejecutar migraciones en Staging
+        run: |
+          ssh -p "$SSH_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "${SSH_USER}@${SSH_HOST}" \
+            "APP_DIR='${APP_DIR}' BACKEND_IMAGE='${BACKEND_IMAGE}' MIGRATOR_IMAGE='${MIGRATOR_IMAGE}' FRONTEND_IMAGE='${FRONTEND_IMAGE}' IMAGE_TAG='${IMAGE_TAG}' GHCR_USER='${GHCR_USER}' GHCR_TOKEN='${GHCR_TOKEN}' FRONTEND_BIND_IP='${FRONTEND_BIND_IP}' FRONTEND_PORT='${FRONTEND_PORT}' bash -s" <<'EOF'
+          set -euo pipefail
+          cd "$APP_DIR"
+          BACKEND_IMAGE=$(printf '%s' "$BACKEND_IMAGE" | tr '[:upper:]' '[:lower:]')
+          MIGRATOR_IMAGE=$(printf '%s' "$MIGRATOR_IMAGE" | tr '[:upper:]' '[:lower:]')
+          FRONTEND_IMAGE=$(printf '%s' "$FRONTEND_IMAGE" | tr '[:upper:]' '[:lower:]')
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          export BACKEND_IMAGE MIGRATOR_IMAGE FRONTEND_IMAGE IMAGE_TAG
+          ENV_BIND_IP=""
+          ENV_PORT=""
+          if [ -f .env ]; then
+            ENV_BIND_IP=$(grep -E '^FRONTEND_BIND_IP=' .env | tail -n1 | cut -d= -f2- | tr -d '\r"' | xargs || true)
+            ENV_PORT=$(grep -E '^FRONTEND_PORT=' .env | tail -n1 | cut -d= -f2- | tr -d '\r"' | xargs || true)
+          fi
+          CHECK_BIND_IP="${FRONTEND_BIND_IP:-${ENV_BIND_IP:-127.0.0.1}}"
+          CHECK_PORT="${FRONTEND_PORT:-${ENV_PORT:-8081}}"
+          if [ -n "$FRONTEND_BIND_IP" ]; then export FRONTEND_BIND_IP; fi
+          if [ -n "$FRONTEND_PORT" ]; then export FRONTEND_PORT; fi
+          CHECK_HOST="$CHECK_BIND_IP"
+          if [ "$CHECK_HOST" = "0.0.0.0" ] || [ -z "$CHECK_HOST" ]; then
+            CHECK_HOST="127.0.0.1"
+          fi
+          docker compose -f compose.yml -f compose.prod.yml pull
+          docker compose -f compose.yml -f compose.prod.yml run --rm migrator
+          docker compose -f compose.yml -f compose.prod.yml up -d --remove-orphans
+          docker compose -f compose.yml -f compose.prod.yml exec -T backend node -e "fetch('http://127.0.0.1:3000/salud/listo').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+          curl -fsS "http://${CHECK_HOST}:${CHECK_PORT}/nginx-salud" >/dev/null
+          curl -fsS "http://${CHECK_HOST}:${CHECK_PORT}/salud/listo" >/dev/null
+          EOF

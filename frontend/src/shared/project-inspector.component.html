@@ -1,208 +1,177 @@
-<aside class="inspector">
-  <ng-container *ngIf="api.proyectos.length; else sinProyectos">
-    <ng-container *ngIf="api.proyectoSeleccionado as proyecto; else seleccionaProyecto">
-    <div class="inspector-panel">
+<!-- ==========================================================================
+     INSPECTOR LATERAL DE PROYECTO SELECCIONADO
+     Fiel a la referencia: Tipografía editorial, progreso lineal, hitos conectados,
+     tareas pendientes con casillas interactivas y botón negro de apertura.
+     ========================================================================== -->
+<aside class="inspector-sidebar">
+  <ng-container *ngIf="api.proyectoSeleccionado as proyecto; else seleccionaProyecto">
+    <div class="inspector-content">
 
-      <!-- Hero Header -->
-      <div class="inspector-hero">
-        <div class="hero-pattern"></div>
-        <div class="hero-glow"></div>
+      <!-- Header Section -->
+      <div class="inspector-top-meta">
+        <span class="eyebrow-selection">PROYECTO SELECCIONADO / {{ proyectoIndex }}</span>
+      </div>
 
-        <div class="hero-top">
-          <div class="client-chip" *ngIf="proyecto.cliente?.nombre" (click)="verCliente(proyecto.clienteId)" role="button" title="Ver cliente">
-            <span class="client-avatar">{{ obtenerIniciales(proyecto.cliente?.nombre) }}</span>
-            <span class="client-chip-name">{{ proyecto.cliente?.nombre }}</span>
-          </div>
-          <div class="client-chip" *ngIf="!proyecto.cliente?.nombre">
-            <span class="client-avatar">P</span>
-            <span class="client-chip-name">Proyecto</span>
-          </div>
+      <h2 class="project-headline">{{ proyecto.nombre }}</h2>
+      <p class="project-tagline">{{ subtitulo }}</p>
 
-          <button class="btn-hero-icon" aria-label="Editar proyecto" title="Editar proyecto" (click)="editar(proyecto.id)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20h9"/>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-            </svg>
-          </button>
+      <div class="project-status-row">
+        <span class="status-outline-badge">
+          {{ estadoLegible(proyecto.estado) }}
+        </span>
+        <span class="client-pill-badge" *ngIf="proyecto.cliente?.empresa || proyecto.cliente?.nombre">
+          {{ proyecto.cliente?.empresa || proyecto.cliente?.nombre }}
+        </span>
+      </div>
+
+      <!-- Progress Section -->
+      <div class="progress-section">
+        <div class="progress-labels">
+          <span class="progress-title">Progreso</span>
+          <span class="progress-percentage">{{ progresoCalculado }}%</span>
         </div>
-
-        <div class="hero-content">
-          <h2 class="project-title-large">{{ proyecto.nombre }}</h2>
-          <div class="hero-footer">
-            <span class="status-pill" [ngClass]="claseEstado(proyecto.estado)">
-              <span class="status-dot"></span>
-              {{ proyecto.estado }}
-            </span>
-            <span class="timing-pill" *ngIf="diasRestantes(proyecto.fechaEntrega)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              {{ diasRestantes(proyecto.fechaEntrega) }}
-            </span>
-          </div>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="progresoCalculado"></div>
         </div>
       </div>
 
-      <!-- Quick Metrics Grid -->
-      <div class="inspector-stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon icon-blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23"/>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-          </div>
-          <div class="stat-info">
-            <span class="stat-label">Presupuesto</span>
-            <span class="stat-value budget-amount" *ngIf="proyecto.presupuesto !== null">
-              {{ proyecto.moneda }} {{ proyecto.presupuesto | number:'1.2-2' }}
-            </span>
-            <span class="stat-value" *ngIf="proyecto.presupuesto === null">Sin asignar</span>
-            <span class="stat-sub">{{ proyecto.moneda || 'USD' }}</span>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon icon-amber">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
-          <div class="stat-info">
-            <span class="stat-label">Entrega</span>
-            <span class="stat-value">
-              {{ proyecto.fechaEntrega ? (proyecto.fechaEntrega | date:'dd MMM yyyy') : 'No definida' }}
-            </span>
-            <span class="stat-sub">
-              {{ proyecto.fechaInicio ? ('Desde ' + (proyecto.fechaInicio | date:'dd MMM')) : 'Fecha flexible' }}
-            </span>
-          </div>
-        </div>
+      <!-- Delivery Deadline Box -->
+      <div class="delivery-highlight-box" *ngIf="fechaEntregaFormateada">
+        <svg class="delivery-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span>ENTREGA {{ fechaEntregaFormateada }}</span>
+      </div>
+      <div class="delivery-highlight-box delivery-box-muted" *ngIf="!fechaEntregaFormateada">
+        <svg class="delivery-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span>SIN FECHA DE ENTREGA ASIGNADA</span>
       </div>
 
-      <!-- Timeline & Progress (if dates available) -->
-      <div class="inspector-section" *ngIf="proyecto.fechaInicio || proyecto.fechaEntrega">
-        <div class="section-header">
-          <span class="section-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 14 10"/>
-            </svg>
-          </span>
-          <h3>Cronograma</h3>
+      <!-- Milestones Timeline (Hitos del proyecto) -->
+      <div class="milestones-block">
+        <div class="empty-block-hint" role="status" *ngIf="cargandoDetalles">
+          <p>Cargando hitos...</p>
         </div>
+        <div class="empty-block-hint milestones-error" role="alert" *ngIf="!cargandoDetalles && errorHitos">
+          <p>{{ errorHitos }}</p>
+          <button type="button" class="btn-retry-inline" (click)="reintentarDetalles()">Reintentar</button>
+        </div>
+        <div class="milestones-list" *ngIf="!cargandoDetalles && !errorHitos && hitos.length > 0">
+          <div class="milestone-item" *ngFor="let h of hitos; let last = last">
+            <!-- Step Number -->
+            <span class="step-num">{{ h.numStr }}</span>
 
-        <div class="dates-row">
-          <div class="date-node">
-            <span class="date-tag">Inicio</span>
-            <span class="date-val">{{ proyecto.fechaInicio ? (proyecto.fechaInicio | date:'mediumDate') : 'Sin fecha' }}</span>
-          </div>
-          <div class="date-node right">
-            <span class="date-tag">Entrega final</span>
-            <span class="date-val">{{ proyecto.fechaEntrega ? (proyecto.fechaEntrega | date:'mediumDate') : 'Sin fecha' }}</span>
-          </div>
-        </div>
+            <!-- Node on Line -->
+            <div class="step-node-col">
+              <div
+                class="node-circle"
+                [class.node-completed]="h.estado === 'COMPLETADO'"
+                [class.node-in-progress]="h.estado === 'EN_CURSO'"
+                [class.node-pending]="h.estado === 'PENDIENTE'"
+              >
+                <!-- Checkmark for completed -->
+                <svg *ngIf="h.estado === 'COMPLETADO'" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                </svg>
+              </div>
+              <div class="vertical-connector-line" *ngIf="!last"></div>
+            </div>
 
-        <div class="progress-track-wrapper" *ngIf="proyecto.fechaInicio && proyecto.fechaEntrega">
-          <div class="progress-track">
-            <div class="progress-bar-fill" [style.width.%]="calcularPorcentajeTiempo(proyecto)"></div>
-          </div>
-          <div class="progress-caption">{{ calcularPorcentajeTiempo(proyecto) }}% del plazo transcurrido</div>
-        </div>
-      </div>
-
-      <!-- Client Info Card -->
-      <div class="inspector-section" *ngIf="proyecto.cliente">
-        <div class="section-header">
-          <span class="section-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-          </span>
-          <h3>Cliente Asociado</h3>
-        </div>
-        <div class="client-info-box">
-          <div class="client-main-row">
-            <div class="client-badge-avatar">{{ obtenerIniciales(proyecto.cliente.nombre) }}</div>
-            <div class="client-meta">
-              <div class="client-name">{{ proyecto.cliente.nombre }}</div>
-              <div class="client-company" *ngIf="proyecto.cliente.empresa">{{ proyecto.cliente.empresa }}</div>
+            <!-- Title and Meta -->
+            <div class="step-details">
+              <h3 class="step-title" [class.step-title-bold]="h.estado === 'EN_CURSO'">{{ h.titulo }}</h3>
+              <span class="step-meta">{{ h.meta }}</span>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Description Section -->
-      <div class="inspector-section">
-        <div class="section-header">
-          <span class="section-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="8" y1="6" x2="21" y2="6"/>
-              <line x1="8" y1="12" x2="21" y2="12"/>
-              <line x1="8" y1="18" x2="21" y2="18"/>
-              <line x1="3" y1="6" x2="3.01" y2="6"/>
-              <line x1="3" y1="12" x2="3.01" y2="12"/>
-              <line x1="3" y1="18" x2="3.01" y2="18"/>
-            </svg>
-          </span>
-          <h3>Descripción</h3>
+        <div class="empty-block-hint" *ngIf="!cargandoDetalles && !errorHitos && hitos.length === 0">
+          <svg class="empty-hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+            <line x1="4" y1="22" x2="4" y2="15"></line>
+          </svg>
+          <p>Sin hitos registrados para este proyecto.</p>
         </div>
-        <p class="description-text" *ngIf="proyecto.descripcion">{{ proyecto.descripcion }}</p>
-        <p class="description-empty" *ngIf="!proyecto.descripcion">Sin descripción registrada para este proyecto.</p>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="inspector-actions">
-        <button class="btn-primary-action" type="button" (click)="editar(proyecto.id)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 20h9"/>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      <!-- Next Tasks Section ("Lo siguiente") -->
+      <div class="next-tasks-block" *ngIf="tareasMostradas.length > 0 || !cargandoDetalles">
+        <div class="next-tasks-header" *ngIf="tareasMostradas.length > 0">
+          <h3 class="next-tasks-title">Lo siguiente</h3>
+          <span class="tasks-counter">{{ tareasPendientesCount }} pendientes</span>
+        </div>
+        <div class="task-checkbox-list" *ngIf="tareasMostradas.length > 0">
+          <label class="task-checkbox-item" *ngFor="let t of tareasMostradas">
+            <input
+              type="checkbox"
+              class="sr-only-checkbox"
+              [checked]="t.estado === 'COMPLETADA'"
+              (change)="toggleTarea(t)"
+            />
+            <span class="custom-checkbox" [class.checked]="t.estado === 'COMPLETADA'" aria-hidden="true">
+              <svg *ngIf="t.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+              </svg>
+            </span>
+            <span class="task-title-text" [class.done]="t.estado === 'COMPLETADA'">{{ t.titulo }}</span>
+          </label>
+        </div>
+        <div class="empty-block-hint" *ngIf="!cargandoDetalles && tareasMostradas.length === 0">
+          <svg class="empty-hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
           </svg>
-          Editar detalles del proyecto
-        </button>
-        <button class="btn-secondary-action" type="button" (click)="verEnProyectos(proyecto.id)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          Gestionar en Proyectos
-        </button>
+          <p>Sin tareas registradas en este proyecto.</p>
+        </div>
       </div>
+
+      <!-- Action Button (Bottom) -->
+      <button class="open-project-btn" type="button" (click)="abrirProyecto(proyecto.id)">
+        <span>Abrir proyecto</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="7" y1="17" x2="17" y2="7"></line>
+          <polyline points="7 7 17 7 17 17"></polyline>
+        </svg>
+      </button>
 
     </div>
   </ng-container>
 
-    <ng-template #seleccionaProyecto>
-      <div class="empty-inspector">
-        <div class="empty-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
+  <ng-template #seleccionaProyecto>
+    <div class="empty-state">
+      <div class="empty-inspector-card">
+        <div class="empty-inspector-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
         </div>
-        <p>Selecciona un proyecto del mapa de trabajo para ver y gestionar su información detallada.</p>
+        <h3 class="empty-inspector-title">
+          {{ api.proyectos.length === 0 ? 'Sin proyectos en el espacio' : 'Selecciona un proyecto' }}
+        </h3>
+        <p class="empty-inspector-text">
+          {{ api.proyectos.length === 0
+            ? 'No hay proyectos registrados en esta organización. Comienza creando un nuevo proyecto para comenzar.'
+            : 'Haz clic en una carpeta del mapa para inspeccionar sus hitos, tareas pendientes y detalles.' }}
+        </p>
+        <button
+          *ngIf="api.proyectos.length === 0"
+          type="button"
+          class="empty-inspector-btn"
+          (click)="state.openQuickCreate('Proyecto')"
+        >
+          <span>+ Crear proyecto</span>
+        </button>
       </div>
-    </ng-template>
-  </ng-container>
-  <ng-template #sinProyectos>
-    <div class="empty-inspector">
-      <div class="empty-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-      </div>
-      <h3>Comienza con un proyecto</h3>
-      <p>Todavía no tienes proyectos en tu organización. Agrega tu primer cliente y crea un proyecto para visualizarlo aquí.</p>
-      <button class="btn-primary-action" type="button" (click)="nuevoProyecto()">＋ Crear proyecto</button>
     </div>
   </ng-template>
 </aside>

@@ -7,7 +7,18 @@ const ts = require('typescript');
 const { of, firstValueFrom, NEVER, BehaviorSubject } = require('rxjs');
 
 global.window = { location: { hostname: 'localhost', origin: 'http://localhost:4200' } };
-const angular = { Component: () => (target) => target, Directive: () => (target) => target, Injectable: () => (target) => target, HostListener: () => () => {} };
+let services = new Map();
+const angular = {
+  Component: () => (target) => target,
+  Directive: () => (target) => target,
+  Injectable: () => (target) => target,
+  HostListener: () => () => {},
+  Input: () => () => {},
+  Output: () => () => {},
+  ViewChild: () => () => {},
+  EventEmitter: class {},
+  inject: (token) => services.get(token)
+};
 const routeStubs = new Map([
   ['./pages/dashboard.component', 'DashboardComponent'], ['./pages/clientes.component', 'ClientesComponent'],
   ['./pages/proyectos.component', 'ProyectosComponent'], ['./pages/tareas.component', 'TareasComponent'],
@@ -32,6 +43,7 @@ function load(relative) {
     if (id === '@angular/forms') return { FormsModule: class {} };
     if (id === '@angular/router') return { RouterLink: class {}, ActivatedRoute: class {} };
     if (id === '@angular/common/http') return { HttpClient: class {}, HttpParams: class { set() { return this; } } };
+    if (id === 'qrcode') return { toDataURL: async () => '' };
     if (id === 'rxjs') return { ...require('rxjs'), firstValueFrom };
     if (id === './auth/auth.guards') return { guardCliente: () => true, guardOrganizacion: () => true, guardPublico: () => true };
     if (routeStubs.has(id)) return { [routeStubs.get(id)]: class {} };
@@ -108,6 +120,24 @@ test('la ruta de aceptación es pública y separada de los shells autenticados',
   assert.equal(routes.find((item) => item.path === '' && item.children?.some((child) => child.path === 'portal')).component.name, 'ClientShellComponent');
 });
 
+function crearClientesPage(api = {}, inviteApi = {}, auth = null, changeDetector = undefined) {
+  const apiNormalizada = {
+    proyectos: [],
+    clientes: [],
+    listarClientes: async () => [],
+    listarProyectos: async () => [],
+    consultarCliente: async (id) => ({ id }),
+    editarCliente: async (id, datos) => ({ id, ...datos }),
+    crearCliente: async (datos) => ({ id: 'nuevo', ...datos }),
+    ...api
+  };
+  const fotografiaApi = {
+    tipoFreelance$: new BehaviorSubject('GENERAL').asObservable(),
+    obtenerTipoFreelance: async () => 'GENERAL'
+  };
+  return new ClientesComponent(apiNormalizada, inviteApi, auth, {}, fotografiaApi, changeDetector);
+}
+
 test('CRM crea y reenvía invitaciones con enlace efímero, lista estados y requiere confirmar revocación', async () => {
   const client = { id: 'cliente-1', nombre: 'Cliente uno', correo: 'cliente@example.com' };
   const lista = [{ id: 'invite-1', correo: 'cliente@example.com', rol: 'TITULAR', estado: 'PENDIENTE', expiraEn: '2026-12-01', aceptadaEn: null, creadoEn: '2026-10-30', actualizadoEn: '2026-10-30', invitadoPor: { id: 'u1', nombre: 'Freelancer', apellido: null, correo: 'f@example.com' }, aceptadaPor: null }];
@@ -118,7 +148,7 @@ test('CRM crea y reenvía invitaciones con enlace efímero, lista estados y requ
     reenviar: async (id, inviteId) => { calls.push(['reenviar', id, inviteId]); return { invitacion: { id: inviteId }, enlaceInvitacion: 'https://local.test/invitacion/new-secret' }; },
     revocar: async (id, inviteId) => { calls.push(['revocar', id, inviteId]); return { mensaje: 'Revocada', invitacion: { id: inviteId, estado: 'REVOCADA' } }; }
   };
-  const page = new ClientesComponent({ proyectos: [], listarClientes: async () => [], listarProyectos: async () => [] }, inviteApi);
+  const page = crearClientesPage({ proyectos: [], listarClientes: async () => [], listarProyectos: async () => [] }, inviteApi);
   page.abrirInvitaciones(client); await page.cargarInvitaciones();
   assert.equal(page.invitaciones[0].estado, 'PENDIENTE');
   page.formularioInvitacion.correo = '  nuevo@example.com ';
@@ -137,7 +167,7 @@ test('CRM crea y reenvía invitaciones con enlace efímero, lista estados y requ
 test('CRM muestra error recuperable de lista y de creación, bloquea formulario inválido y permite reintentar', async () => {
   let fallarLista = true;
   let llamadasCrear = 0;
-  const page = new ClientesComponent({}, {
+  const page = crearClientesPage({}, {
     listar: async () => { if (fallarLista) throw { status: 503 }; return []; },
     crear: async () => { llamadasCrear++; throw { status: 422 }; }
   });
@@ -160,9 +190,9 @@ test('la carga de clientes no espera el contador de proyectos y guarda cliente s
     clientes: lista,
     listarClientes: () => { lecturasLista++; return new Promise((resolve) => { resolverClientes = resolve; }); },
     listarProyectos: () => proyectos,
-    crearCliente: async () => { api.clientes = lista; }
+    crearCliente: async () => { api.clientes = lista; return lista[0]; }
   };
-  const page = new ClientesComponent(api, {});
+  const page = crearClientesPage(api, {});
   const carga = page.cargar();
   resolverClientes(lista); await carga;
   assert.equal(page.cargando, false);
@@ -183,6 +213,7 @@ test('regresión login→/clientes: la instancia de ruta refresca la vista al co
     removeItem: (key) => storage.delete(key)
   };
   const { AuthService } = load('auth/auth.service.ts');
+  const { OrganizacionService } = load('auth/organizacion.service.ts');
   const { LoginComponent } = load('pages/login.component.ts');
   const usuario = { id: 'user-test', correo: 'test@example.invalid', nombre: 'Usuario de prueba' };
   const sesion = { tipoAcceso: 'ORGANIZACION', organizacionId: 'org-test', rolOrganizacion: 'PROPIETARIO' };
@@ -197,7 +228,9 @@ test('regresión login→/clientes: la instancia de ruta refresca la vista al co
     }
   };
   const router = { url: '/inicio-sesion', navigateByUrl: async (url) => { router.url = url; return true; }, parseUrl: (url) => ({ redirect: url }) };
+  services = new Map([[OrganizacionService, { cargarOrganizacion: async () => {}, limpiar: () => {}, tipoFreelance: null }]]);
   const auth = new AuthService(http, router);
+  services.set(AuthService, auth);
   const login = new LoginComponent(auth, router);
   login.correo = 'test@example.invalid'; login.contrasena = 'no-se-usa';
   await login.entrar({ invalid: false });
@@ -209,7 +242,7 @@ test('regresión login→/clientes: la instancia de ruta refresca la vista al co
   router.url = '/clientes'; // navegación interna sin recargar; permanece el mismo AuthService.
   const api = { proyectos: [], listarClientes: async () => listaFicticia, listarProyectos: async () => [] };
   let avisosCambio = 0;
-  const component = new ClientesComponent(api, {}, auth, { markForCheck: () => { avisosCambio++; } });
+  const component = crearClientesPage(api, {}, auth, { markForCheck: () => { avisosCambio++; } });
   component.ngOnInit();
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(llamadas.filter((call) => call.url.endsWith('/autenticacion/yo')).length, 1);
@@ -226,7 +259,7 @@ test('la lista de clientes se consulta automáticamente cuando la sesión de org
   const sesion = new BehaviorSubject(null);
   let llamadasClientes = 0;
   let terminarCarga;
-  const page = new ClientesComponent({
+  const page = crearClientesPage({
     proyectos: [],
     listarClientes: () => { llamadasClientes++; return new Promise((resolve) => { terminarCarga = resolve; }); },
     listarProyectos: async () => []
@@ -245,14 +278,14 @@ test('la lista de clientes se consulta automáticamente cuando la sesión de org
 test('el detalle de cliente y la lista de invitaciones ignoran respuestas de una selección anterior', async () => {
   const detalleViejo = deferred(); const detalleNuevo = deferred();
   const listaVieja = deferred(); const listaNueva = deferred(); const pendientesLista = [listaVieja, listaNueva];
-  const page = new ClientesComponent({ consultarCliente: (id) => id === 'viejo' ? detalleViejo.promise : detalleNuevo.promise }, {
+  const page = crearClientesPage({ consultarCliente: (id) => id === 'viejo' ? detalleViejo.promise : detalleNuevo.promise }, {
     listar: () => pendientesLista.shift().promise
   });
-  const abrirViejo = page.verDetalle({ id: 'viejo' });
-  const abrirNuevo = page.verDetalle({ id: 'nuevo' });
-  detalleNuevo.resolve({ id: 'nuevo', nombre: 'Cliente nuevo' }); await abrirNuevo;
-  detalleViejo.resolve({ id: 'viejo', nombre: 'Cliente anterior' }); await abrirViejo;
-  assert.equal(page.clienteDetalle.nombre, 'Cliente nuevo');
+  page.seleccionarCliente({ id: 'viejo' });
+  page.seleccionarCliente({ id: 'nuevo' });
+  detalleNuevo.resolve({ id: 'nuevo', nombre: 'Cliente nuevo' }); await new Promise((resolve) => setImmediate(resolve));
+  detalleViejo.resolve({ id: 'viejo', nombre: 'Cliente anterior' }); await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(page.clienteSeleccionadoDetalle.nombre, 'Cliente nuevo');
 
   page.abrirInvitaciones({ id: 'c-viejo', nombre: 'Anterior' });
   page.abrirInvitaciones({ id: 'c-nuevo', nombre: 'Nuevo' });
@@ -269,7 +302,7 @@ test('crear invitación libera el envío al recibir el POST sin esperar el refre
     listar: async () => { if (++listas === 1) return []; return new Promise((resolve) => { resolverRefresco = resolve; }); },
     crear: async () => ({ invitacion: { id: 'i2' }, enlaceInvitacion: 'https://local.test/invitacion/fake-token' })
   };
-  const page = new ClientesComponent({}, api);
+  const page = crearClientesPage({}, api);
   page.clienteInvitaciones = { id: 'c4', nombre: 'Cliente cuatro' };
   await page.cargarInvitaciones();
   page.formularioInvitacion = { correo: 'invitado@example.com', rol: 'COLABORADOR' };

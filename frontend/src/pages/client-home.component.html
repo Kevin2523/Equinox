@@ -1,162 +1,471 @@
-<main class="portal-page" [style.fontFamily]="identidad?.estudio?.tipografia || null"
-  [style.--portal-primary]="identidad?.estudio?.colorPrimario || '#3568f6'">
+<main class="portal-root"
+  [style.fontFamily]="fontFamilyPortal"
+  [style.--portal-primary]="colorPrimarioPortal"
+  [style.--portal-primary-ink]="contrastePortal.textoSobrePrimario"
+  [style.--portal-primary-ink-on-light]="contrastePortal.textoPrimarioSobreClaro"
+  [style.--portal-primary-soft]="contrastePortal.fondoSuavePrimario"
+  [style.--portal-primary-border]="contrastePortal.bordeSuavePrimario"
+  [style.--portal-secondary]="colorSecundarioPortal"
+  [style.--hero-ink]="contrastePortal.textoSobreSecundario"
+  [style.--hero-muted]="contrastePortal.textoMutedSobreSecundario">
 
-  <div class="portal-hero-surface">
-    <section class="portal-banner" aria-labelledby="portal-heading">
-      <div class="portal-brand" *ngIf="identidad as cuenta">
-        <img *ngIf="cuenta.estudio.logoUrl && !logoFallido" [src]="cuenta.estudio.logoUrl" [alt]="'Marca de ' + cuenta.estudio.nombre" (error)="logoFallido = true">
-        <span class="portal-brand-fallback" *ngIf="!cuenta.estudio.logoUrl || logoFallido" aria-hidden="true"
-          [style.backgroundColor]="cuenta.estudio.colorPrimario || 'var(--blue)'">{{ cuenta.estudio.nombre.slice(0, 1).toUpperCase() }}</span>
-        <div><p class="eyebrow">PORTAL DEL CLIENTE</p><strong>{{ cuenta.estudio.nombre }}</strong></div>
-      </div>
-      <div class="portal-banner-loading" *ngIf="cargandoIdentidad" role="status" aria-live="polite">Cargando la identidad del portal…</div>
-      <div class="portal-banner-error" *ngIf="errorIdentidad" role="alert">
-        <span>{{ errorIdentidad }}</span><button type="button" class="btn-secondary" (click)="cargarIdentidad()">Reintentar</button>
-      </div>
-      <div class="portal-banner-center" *ngIf="identidad as cuenta">
-        <span class="portal-secure-badge">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
-          Canal seguro
-        </span>
-      </div>
-      <div class="portal-client-identity" *ngIf="identidad as cuenta">
-        <div class="client-avatar-badge" aria-hidden="true">{{ cuenta.cliente.nombre.slice(0, 1).toUpperCase() }}</div>
-        <div class="client-text-block">
-          <span>Cuenta de cliente</span><strong>{{ cuenta.cliente.nombre }}</strong><small *ngIf="cuenta.cliente.empresa">{{ cuenta.cliente.empresa }}</small>
-        </div>
-      </div>
-    </section>
+  <!-- HERO BANNER EDITORIAL COMPARTIDO -->
+  <app-portal-hero
+    [nombreEstudio]="nombreEstudio"
+    [esFotografia]="esFotografia"
+    [colorPrimario]="colorPrimarioPortal"
+    [colorSecundario]="colorSecundarioPortal"
+    [heroInk]="contrastePortal.textoSobreSecundario"
+    [heroMuted]="contrastePortal.textoMutedSobreSecundario"
+  ></app-portal-hero>
 
-    <header class="portal-welcome" *ngIf="identidad as cuenta">
-      <div class="portal-welcome-copy">
-        <p class="eyebrow">ESPACIO COMPARTIDO</p>
-        <h1 id="portal-heading">Hola, {{ cuenta.cliente.nombre }}</h1>
-        <p>Consulta los proyectos, entregables y conversaciones que el equipo ha compartido contigo.</p>
-      </div>
-      <div class="portal-welcome-stats" aria-label="Resumen de tu portal">
-        <div class="portal-stat-pill">
-          <span class="stat-label">Avance de hitos</span>
-          <strong>{{ cargandoDetalle || errorDetalle || !proyecto ? '—' : avanceHitos !== null ? (avanceHitos + '%') : 'Sin hitos' }}</strong>
-          <small>{{ cargandoDetalle ? 'Consultando…' : errorDetalle || !proyecto ? 'Sin datos disponibles' : hitos.length + (hitos.length === 1 ? ' hito visible' : ' hitos visibles') }}</small>
-        </div>
-        <div class="portal-stat-pill">
-          <span class="stat-label">Entregables</span>
-          <strong>{{ cargandoDetalle || errorDetalle || !proyecto ? '—' : archivos.length }}</strong>
-          <small>{{ cargandoDetalle ? 'Consultando…' : errorDetalle || !proyecto ? 'Sin datos disponibles' : archivos.length === 1 ? 'Archivo compartido' : 'Archivos compartidos' }}</small>
-        </div>
-        <div class="portal-stat-pill">
-          <span class="stat-label">Facturación</span>
-          <strong>{{ cargandoFacturas || errorFacturas ? '—' : facturas.length }}</strong>
-          <small>{{ cargandoFacturas ? 'Consultando…' : errorFacturas ? 'Sin datos disponibles' : facturas.length === 1 ? 'Factura autorizada' : 'Facturas autorizadas' }}</small>
-        </div>
-      </div>
-    </header>
+  <!-- MENSAJE DE ESTADO DE IDENTIDAD SI FALLA -->
+  <div class="portal-error-card banner-alert" *ngIf="errorIdentidad" role="alert">
+    <span>{{ errorIdentidad }}</span>
+    <button type="button" class="btn-editorial-retry" (click)="reintentarIdentidad()">Reintentar</button>
   </div>
 
-  <section class="portal-projects" aria-labelledby="projects-heading">
-    <div class="portal-section-heading portal-projects-heading" [class.sr-only-heading]="proyectos.length <= 1">
-      <div><p class="eyebrow">SEGUIMIENTO</p><h2 id="projects-heading">Tus proyectos</h2></div>
-    </div>
-    <p class="portal-state" *ngIf="cargandoProyectos" role="status" aria-live="polite">Cargando tus proyectos…</p>
-    <div class="portal-state portal-error" *ngIf="errorProyectos" role="alert">{{ errorProyectos }} <button type="button" class="btn-secondary" (click)="cargarProyectos()">Reintentar</button></div>
-    <p class="portal-state" *ngIf="!cargandoProyectos && !errorProyectos && proyectos.length === 0">Todavía no hay proyectos compartidos contigo.</p>
-    <div class="portal-workspace" [class.single-project]="proyectos.length === 1" *ngIf="!errorProyectos && proyectos.length">
-      <nav class="portal-project-list" aria-label="Seleccionar proyecto" *ngIf="proyectos.length > 1">
-        <button *ngFor="let item of proyectos" type="button" [class.selected]="proyectoId === item.id"
-          [attr.aria-pressed]="proyectoId === item.id" (click)="seleccionarProyecto(item.id)">
-          <strong>{{ item.nombre }}</strong><span>{{ item.estado }}</span>
-        </button>
-      </nav>
+  <!-- SECCIÓN DE SALUDO Y MENSAJE CONTEXTUAL -->
+  <section class="editorial-greeting" aria-labelledby="saludo-portal">
+    <h2 id="saludo-portal" class="greeting-heading">Hola, {{ nombreCliente }}.</h2>
+    <p class="greeting-subtext">{{ mensajeContextual }}</p>
+  </section>
 
-      <article class="portal-project-detail" aria-live="polite">
-        <p class="portal-state" *ngIf="cargandoDetalle" role="status">Cargando el proyecto…</p>
-        <div class="portal-state portal-error" *ngIf="errorDetalle" role="alert">{{ errorDetalle }} <button type="button" class="btn-secondary" (click)="reintentarDetalle()">Reintentar</button></div>
-        <ng-container *ngIf="proyecto as actual">
-          <div class="project-top-bar">
-            <header class="project-heading">
-              <div><p class="eyebrow">PROYECTO</p><h3>{{ actual.nombre }}</h3><p *ngIf="actual.descripcion">{{ actual.descripcion }}</p></div>
-              <span class="project-status">{{ actual.estado }}</span>
+  <!-- CUADRÍCULA EDITORIAL DE DOS COLUMNAS -->
+  <div class="editorial-grid">
+
+    <!-- COLUMNA 1: SESIONES (O PROYECTOS PARA MODALIDAD GENERAL) -->
+    <section class="editorial-column" [attr.aria-labelledby]="esFotografia ? 'heading-sesiones' : 'heading-proyectos'">
+      <div class="editorial-col-header">
+        <h3 [id]="esFotografia ? 'heading-sesiones' : 'heading-proyectos'" class="editorial-col-title">
+          {{ esFotografia ? 'TUS SESIONES' : 'TUS PROYECTOS' }}
+        </h3>
+        <span class="editorial-counter-badge" [attr.aria-label]="(esFotografia ? sesiones.length : proyectos.length) + ' disponibles'">
+          {{ esFotografia ? sesiones.length : proyectos.length }}
+        </span>
+      </div>
+      <hr class="editorial-divider" />
+
+      <!-- CONTENIDO PARA MODALIDAD FOTOGRAFIA -->
+      <ng-container *ngIf="esFotografia">
+        <!-- Estado de carga -->
+        <p class="portal-loading-state" *ngIf="cargandoSesiones" role="status" aria-live="polite">
+          <span class="spinner-editorial"></span> Cargando tus sesiones fotográficas…
+        </p>
+
+        <!-- Estado de error -->
+        <div class="portal-error-card" *ngIf="errorSesiones" role="alert">
+          <span>{{ errorSesiones }}</span>
+          <button type="button" class="btn-editorial-retry" (click)="cargarSesiones()">Reintentar</button>
+        </div>
+
+        <!-- Estado vacío elegante -->
+        <div class="editorial-empty-state" *ngIf="!cargandoSesiones && !errorSesiones && sesiones.length === 0">
+          <div class="empty-icon-wrapper" aria-hidden="true">
+            <svg viewBox="0 0 100 86" width="92" height="80" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g transform="rotate(8 50 40)">
+                <rect x="25" y="6" width="56" height="66" rx="4" stroke="#a8a29e" />
+              </g>
+              <g transform="rotate(-6 42 45)">
+                <rect x="14" y="10" width="56" height="66" rx="4" fill="#faf8f5" stroke="#78716c" />
+                <circle cx="52" cy="28" r="5" stroke="#78716c" />
+                <path d="M22 58 L36 44 L48 56 L56 48 L64 56" stroke="#78716c" />
+              </g>
+            </svg>
+          </div>
+          <h4 class="empty-state-title">Aún no hay sesiones compartidas</h4>
+          <p class="empty-state-desc">
+            Cuando {{ nombreEstudio }} publique una sesión para ti, aparecerá aquí.
+          </p>
+        </div>
+
+        <!-- Sesiones con datos reales (sesiones.length > 0) -->
+        <div class="editorial-sessions-container" *ngIf="!cargandoSesiones && !errorSesiones && sesiones.length > 0">
+          <!-- Selector de sesión si hay múltiples -->
+          <nav class="session-selector-list" *ngIf="sesiones.length > 1" aria-label="Seleccionar sesión fotográfica">
+            <button *ngFor="let s of sesiones" type="button" class="session-tab-card"
+              [class.active]="sesionId === s.id"
+              [attr.aria-pressed]="sesionId === s.id"
+              (click)="seleccionarSesion(s.id)">
+              <div class="session-tab-thumb">
+                <img *ngIf="portadasSesionesUrls.get(s.id) as cover" [src]="cover" [alt]="'Portada de ' + nombreSesion(s)" />
+                <span *ngIf="!portadasSesionesUrls.get(s.id)" class="session-tab-placeholder">📸</span>
+              </div>
+              <div class="session-tab-info">
+                <strong>{{ nombreSesion(s) }}</strong>
+                <small>{{ fechaSesion(s) | date:'mediumDate' }} · {{ (s.totalFotos || s.cantidadFotos || 0) }} fotos</small>
+              </div>
+            </button>
+          </nav>
+
+          <!-- Vista de la sesión activa -->
+          <article class="session-detail-view" *ngIf="sesionSeleccionada as actual" aria-live="polite">
+            <header class="session-view-header">
+              <div>
+                <span class="session-view-eyebrow">SESIÓN FOTOGRÁFICA</span>
+                <h4 class="session-view-title">{{ nombreSesion(actual) }}</h4>
+                <p class="session-view-desc" *ngIf="actual.descripcion">{{ actual.descripcion }}</p>
+              </div>
+              <div class="session-view-meta">
+                <span class="session-date-pill" *ngIf="fechaSesion(actual)">{{ fechaSesion(actual) | date:'mediumDate' }}</span>
+                <span class="session-count-pill">{{ (totalFotos || actual.cantidadFotos || 0) }} {{ (totalFotos || actual.cantidadFotos) === 1 ? 'foto' : 'fotos' }}</span>
+              </div>
             </header>
-            <div class="project-dates" *ngIf="actual.fechaInicio || actual.fechaEntrega">
-              <p *ngIf="actual.fechaInicio"><span>Inicio</span><strong>{{ actual.fechaInicio | date:'mediumDate' }}</strong></p>
-              <p *ngIf="actual.fechaEntrega"><span>Entrega</span><strong>{{ actual.fechaEntrega | date:'mediumDate' }}</strong></p>
+
+            <p class="session-location-tag" *ngIf="actual.lugar || actual.ubicacion">
+              📍 {{ actual.lugar || actual.ubicacion }}
+            </p>
+
+            <!-- Carga y errores de fotos -->
+            <p class="portal-loading-state" *ngIf="cargandoFotos" role="status" aria-live="polite">
+              <span class="spinner-editorial"></span> Cargando fotografías…
+            </p>
+            <div class="portal-error-card" *ngIf="errorFotos" role="alert">
+              <span>{{ errorFotos }}</span>
+              <button type="button" class="btn-editorial-retry" (click)="reintentarFotos()">Reintentar</button>
             </div>
-          </div>
+            <p class="empty-inline-state" *ngIf="!cargandoFotos && !errorFotos && fotos.length === 0">
+              Esta sesión fotográfica todavía no tiene fotos disponibles.
+            </p>
 
-          <div class="portal-detail-grid">
-          <section class="portal-content-section" aria-labelledby="milestones-heading">
-            <div class="portal-section-heading"><h4 id="milestones-heading">Hitos compartidos</h4>
-              <span *ngIf="avanceHitos !== null">{{ avanceHitos }}% completado</span></div>
-            <div class="portal-progress" *ngIf="avanceHitos !== null" role="progressbar" aria-label="Avance de hitos compartidos"
-              aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="avanceHitos">
-              <span [style.width.%]="avanceHitos" [style.backgroundColor]="identidad?.estudio?.colorPrimario || 'var(--blue)'"></span>
+            <!-- Cuadrícula de fotos con visor ampliado -->
+            <div class="gallery-wrapper" *ngIf="!cargandoFotos && !errorFotos && fotos.length > 0">
+              <div class="photo-grid" role="grid" aria-label="Galería de fotografías">
+                <div *ngFor="let foto of fotos; let i = index" class="photo-card" role="gridcell">
+                  <button type="button" class="photo-button"
+                    (click)="abrirVisor(foto, i)"
+                    [attr.aria-label]="'Ver ' + nombreFoto(foto, i) + ' en tamaño ampliado'">
+                    <div class="photo-thumb-box">
+                      <img *ngIf="miniaturasUrls.get(foto.id) as src"
+                        [src]="src"
+                        [alt]="nombreFoto(foto, i)"
+                        class="photo-img"
+                        loading="lazy" />
+                      <div *ngIf="cargandoMiniatura.get(foto.id) && !miniaturasUrls.get(foto.id)" class="photo-loading-box" aria-hidden="true">
+                        <span class="spinner-editorial"></span>
+                      </div>
+                      <div *ngIf="errorMiniatura.get(foto.id) && !miniaturasUrls.get(foto.id)" class="photo-error-box" aria-hidden="true">
+                        <span>!</span>
+                      </div>
+                      <div class="photo-hover-overlay" aria-hidden="true">
+                        <span class="photo-zoom-badge">🔍 Ampliar</span>
+                      </div>
+                    </div>
+                    <span class="photo-caption-text">{{ nombreFoto(foto, i) }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Paginación de la galería -->
+              <nav class="gallery-pagination" *ngIf="totalPaginas > 1" aria-label="Paginación de la galería">
+                <button type="button" class="pagination-btn" [disabled]="paginaFotos <= 1" (click)="paginaAnterior()">
+                  ← Anterior
+                </button>
+                <span class="pagination-status">
+                  Página {{ paginaFotos }} de {{ totalPaginas }} ({{ totalFotos }} fotos)
+                </span>
+                <button type="button" class="pagination-btn" [disabled]="paginaFotos >= totalPaginas" (click)="paginaSiguiente()">
+                  Siguiente →
+                </button>
+              </nav>
             </div>
-            <p class="portal-inline-empty" *ngIf="hitos.length === 0">No hay hitos visibles para este proyecto.</p>
-            <ol class="portal-milestones" *ngIf="hitos.length">
-              <li *ngFor="let hito of hitos" [class.completed]="hito.estado === 'COMPLETADO'">
-                <span class="milestone-indicator" aria-hidden="true">{{ hito.estado === 'COMPLETADO' ? '✓' : '•' }}</span>
-                <div><strong>{{ hito.titulo }}</strong><p *ngIf="hito.descripcion">{{ hito.descripcion }}</p>
-                  <small>{{ estadoHito(hito.estado) }}<span *ngIf="hito.fechaObjetivo"> · Objetivo {{ hito.fechaObjetivo | date:'mediumDate' }}</span></small></div>
-              </li>
-            </ol>
-          </section>
+          </article>
+        </div>
+      </ng-container>
 
-          <section class="portal-content-section" aria-labelledby="files-heading">
-            <div class="portal-section-heading"><h4 id="files-heading">Archivos compartidos</h4>
-              <span *ngIf="archivos.length">{{ archivos.length }} {{ archivos.length === 1 ? 'archivo' : 'archivos' }}</span></div>
-            <p class="portal-inline-empty" *ngIf="archivos.length === 0">No hay archivos disponibles para este proyecto.</p>
-            <ul class="portal-files" *ngIf="archivos.length">
-              <li *ngFor="let archivo of archivos"><div><strong>{{ archivo.nombre }}</strong>
-                <p *ngIf="archivo.descripcion">{{ archivo.descripcion }}</p><small>{{ archivo.tipo }} · {{ tamanoArchivo(archivo.tamanoBytes) }}</small></div>
-                <button type="button" class="btn-secondary" [disabled]="!!descargandoId" (click)="descargarArchivo(archivo)" [attr.aria-label]="'Descargar archivo ' + archivo.nombre">{{ descargandoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
-              </li>
-            </ul>
-            <p class="portal-error-text" *ngIf="errorDescarga" role="alert">{{ errorDescarga }}</p>
-          </section>
+      <!-- CONTENIDO PARA OTRAS MODALIDADES (GENERAL, DESARROLLO, DISEÑO) -->
+      <ng-container *ngIf="!esFotografia">
+        <p class="portal-loading-state" *ngIf="cargandoProyectos" role="status" aria-live="polite">
+          <span class="spinner-editorial"></span> Cargando tus proyectos…
+        </p>
+        <div class="portal-error-card" *ngIf="errorProyectos" role="alert">
+          <span>{{ errorProyectos }}</span>
+          <button type="button" class="btn-editorial-retry" (click)="cargarProyectos()">Reintentar</button>
+        </div>
+
+        <div class="editorial-empty-state" *ngIf="!cargandoProyectos && !errorProyectos && proyectos.length === 0">
+          <div class="empty-icon-wrapper" aria-hidden="true">
+            <svg viewBox="0 0 88 80" width="80" height="72" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 24 C12 20.7 14.7 18 18 18 H36 L44 26 H70 C73.3 26 76 28.7 76 32 V62 C76 65.3 73.3 68 70 68 H18 C14.7 68 12 65.3 12 62 Z" fill="#faf8f5" stroke="#78716c" />
+              <line x1="24" y1="42" x2="52" y2="42" stroke="#78716c" />
+              <line x1="24" y1="52" x2="64" y2="52" stroke="#78716c" />
+            </svg>
           </div>
+          <h4 class="empty-state-title">Aún no hay proyectos compartidos</h4>
+          <p class="empty-state-desc">
+            Cuando {{ nombreEstudio }} publique un proyecto para ti, aparecerá aquí.
+          </p>
+        </div>
 
-          <section class="portal-content-section portal-conversation" aria-labelledby="comments-heading">
-            <div class="portal-section-heading"><h4 id="comments-heading">Conversación del proyecto</h4>
-              <span>{{ comentarios.length }} {{ comentarios.length === 1 ? 'mensaje' : 'mensajes' }}</span></div>
-            <div class="portal-conversation-grid">
-              <div class="portal-conversation-feed">
-                <p class="portal-inline-empty" *ngIf="comentarios.length === 0">Todavía no hay comentarios en este proyecto.</p>
-                <ol class="portal-comments" *ngIf="comentarios.length">
-                  <li *ngFor="let mensaje of comentarios" [class.from-client]="mensaje.autor === 'CLIENTE'">
-                    <div><strong>{{ autorComentario(mensaje) }}</strong><time [attr.datetime]="mensaje.creadoEn">{{ mensaje.creadoEn | date:'medium' }}</time></div>
-                    <p>{{ mensaje.contenido }}</p>
+        <!-- Proyectos con datos reales -->
+        <div class="editorial-projects-container" *ngIf="!errorProyectos && proyectos.length > 0">
+          <nav class="project-selector-list" *ngIf="proyectos.length > 1" aria-label="Seleccionar proyecto">
+            <button *ngFor="let item of proyectos" type="button" class="project-tab-card"
+              [class.active]="proyectoId === item.id"
+              [attr.aria-pressed]="proyectoId === item.id"
+              (click)="seleccionarProyecto(item.id)">
+              <strong>{{ item.nombre }}</strong>
+              <span>{{ item.estado }}</span>
+            </button>
+          </nav>
+
+          <article class="project-detail-view" aria-live="polite">
+            <p class="portal-loading-state" *ngIf="cargandoDetalle" role="status">Cargando el proyecto…</p>
+            <div class="portal-error-card" *ngIf="errorDetalle" role="alert">
+              <span>{{ errorDetalle }}</span>
+              <button type="button" class="btn-editorial-retry" (click)="reintentarDetalle()">Reintentar</button>
+            </div>
+
+            <ng-container *ngIf="proyecto as actual">
+              <header class="project-view-header">
+                <div>
+                  <span class="project-view-eyebrow">PROYECTO</span>
+                  <h4 class="project-view-title">{{ actual.nombre }}</h4>
+                  <p class="project-view-desc" *ngIf="actual.descripcion">{{ actual.descripcion }}</p>
+                </div>
+                <span class="project-status-pill">{{ actual.estado }}</span>
+              </header>
+
+              <div class="project-meta-dates">
+                <span *ngIf="actual.fechaInicio">Inicio: {{ actual.fechaInicio | date:'mediumDate' }}</span>
+                <span *ngIf="actual.fechaEntrega"> · Entrega: {{ actual.fechaEntrega | date:'mediumDate' }}</span>
+              </div>
+
+              <!-- Hitos -->
+              <div class="project-section-block">
+                <div class="project-subheading">
+                  <h5>Hitos compartidos</h5>
+                  <span *ngIf="avanceHitos !== null">{{ avanceHitos }}% completado</span>
+                </div>
+                <div class="progress-bar-track" *ngIf="avanceHitos !== null" role="progressbar"
+                  aria-label="Avance de hitos" [attr.aria-valuenow]="avanceHitos" aria-valuemin="0" aria-valuemax="100">
+                  <div class="progress-bar-fill" [style.width.%]="avanceHitos"></div>
+                </div>
+                <p class="empty-inline-state" *ngIf="hitos.length === 0">No hay hitos visibles para este proyecto.</p>
+                <ol class="milestones-list" *ngIf="hitos.length">
+                  <li *ngFor="let hito of hitos" [class.done]="hito.estado === 'COMPLETADO'">
+                    <span class="milestone-bullet" aria-hidden="true">{{ hito.estado === 'COMPLETADO' ? '✓' : '•' }}</span>
+                    <div>
+                      <strong>{{ hito.titulo }}</strong>
+                      <p *ngIf="hito.descripcion">{{ hito.descripcion }}</p>
+                      <small>{{ estadoHito(hito.estado) }}<span *ngIf="hito.fechaObjetivo"> · {{ hito.fechaObjetivo | date:'mediumDate' }}</span></small>
+                    </div>
                   </li>
                 </ol>
               </div>
-              <form class="portal-comment-form" (ngSubmit)="enviarComentario()">
-                <label for="portal-comment">Enviar un comentario</label>
-                <textarea id="portal-comment" name="contenido" [(ngModel)]="comentario" maxlength="2000" rows="3"
-                  placeholder="Escribe un mensaje para el equipo" [attr.aria-describedby]="errorComentario ? 'portal-comment-error' : 'portal-comment-help'"></textarea>
-                <div class="portal-comment-footer">
-                  <small id="portal-comment-help">Máximo 2000 caracteres.</small>
-                  <button type="submit" class="btn-primary" [disabled]="enviandoComentario || !comentario.trim()">{{ enviandoComentario ? 'Enviando…' : 'Enviar comentario' }}</button>
-                </div>
-                <p id="portal-comment-error" class="portal-error-text" *ngIf="errorComentario" role="alert">{{ errorComentario }}</p>
-              </form>
-            </div>
-          </section>
-        </ng-container>
-      </article>
-    </div>
-  </section>
 
-  <section class="portal-invoices" aria-labelledby="invoices-heading">
-    <div class="portal-section-heading"><div><p class="eyebrow">CUENTA</p><h2 id="invoices-heading">Facturas compartidas</h2></div>
-      <span *ngIf="facturas.length">{{ facturas.length }} {{ facturas.length === 1 ? 'factura' : 'facturas' }}</span></div>
-    <p class="portal-state" *ngIf="cargandoFacturas" role="status" aria-live="polite">Consultando facturas autorizadas…</p>
-    <div class="portal-state portal-error" *ngIf="errorFacturas" role="alert">{{ errorFacturas }} <button type="button" class="btn-secondary" (click)="cargarFacturas()">Reintentar</button></div>
-    <p class="portal-state" *ngIf="!cargandoFacturas && !errorFacturas && facturas.length === 0">No hay facturas compartidas disponibles.</p>
-    <ul class="portal-invoice-list" *ngIf="!errorFacturas && facturas.length">
-      <li *ngFor="let factura of facturas"><div><strong>{{ factura.numero }} · {{ factura.concepto }}</strong>
-        <small>Emitida {{ factura.fechaEmision | date:'mediumDate' }}<span *ngIf="factura.fechaVencimiento"> · Vence {{ factura.fechaVencimiento | date:'mediumDate' }}</span></small></div>
-        <div class="invoice-amount"><strong>{{ factura.moneda }} {{ factura.monto | number:'1.2-2' }}</strong><span>{{ factura.estado }}</span></div></li>
-    </ul>
-  </section>
+              <!-- Archivos -->
+              <div class="project-section-block">
+                <h5>Archivos y entregables</h5>
+                <p class="empty-inline-state" *ngIf="archivos.length === 0">No hay archivos disponibles para este proyecto.</p>
+                <ul class="files-list" *ngIf="archivos.length">
+                  <li *ngFor="let archivo of archivos">
+                    <div>
+                      <strong>{{ archivo.nombre }}</strong>
+                      <p *ngIf="archivo.descripcion">{{ archivo.descripcion }}</p>
+                      <small>{{ archivo.tipo }} · {{ tamanoArchivo(archivo.tamanoBytes) }}</small>
+                    </div>
+                    <button type="button" class="btn-editorial-download" [disabled]="!!descargandoId" (click)="descargarArchivo(archivo)" [attr.aria-label]="'Descargar archivo ' + archivo.nombre">{{ descargandoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
+                  </li>
+                </ul>
+                <p class="portal-error-text" *ngIf="errorDescarga" role="alert">{{ errorDescarga }}</p>
+              </div>
+
+              <!-- Conversación -->
+              <div class="project-section-block">
+                <h5>Conversación del proyecto</h5>
+                <p class="empty-inline-state" *ngIf="comentarios.length === 0">Todavía no hay mensajes en este proyecto.</p>
+                <ol class="comments-list" *ngIf="comentarios.length">
+                  <li *ngFor="let m of comentarios" [class.is-mine]="m.autor === 'CLIENTE'">
+                    <div class="comment-head">
+                      <strong>{{ autorComentario(m) }}</strong>
+                      <time [attr.datetime]="m.creadoEn">{{ m.creadoEn | date:'short' }}</time>
+                    </div>
+                    <p class="comment-body">{{ m.contenido }}</p>
+                  </li>
+                </ol>
+
+                <form class="comment-form-box" (ngSubmit)="enviarComentario()">
+                  <label for="comentario-input">Enviar un mensaje al equipo</label>
+                  <textarea id="comentario-input" name="contenido" [(ngModel)]="comentario" maxlength="2000" rows="3"
+                    placeholder="Escribe un mensaje para el equipo…"></textarea>
+                  <div class="comment-form-actions">
+                    <small>Máximo 2000 caracteres.</small>
+                    <button type="submit" class="btn-editorial-primary" [disabled]="enviandoComentario || !comentario.trim()">
+                      {{ enviandoComentario ? 'Enviando…' : 'Enviar mensaje' }}
+                    </button>
+                  </div>
+                  <p class="portal-error-text" *ngIf="errorComentario" role="alert">{{ errorComentario }}</p>
+                </form>
+              </div>
+            </ng-container>
+          </article>
+        </div>
+      </ng-container>
+    </section>
+
+    <!-- COLUMNA 2: FACTURAS -->
+    <section class="editorial-column" aria-labelledby="heading-facturas">
+      <div class="editorial-col-header">
+        <h3 id="heading-facturas" class="editorial-col-title">FACTURAS</h3>
+        <span class="editorial-counter-badge" [attr.aria-label]="facturas.length + ' facturas'">
+          {{ facturas.length }}
+        </span>
+      </div>
+      <hr class="editorial-divider" />
+
+      <!-- Estado de carga -->
+      <p class="portal-loading-state" *ngIf="cargandoFacturas" role="status" aria-live="polite">
+        <span class="spinner-editorial"></span> Consultando facturas autorizadas…
+      </p>
+
+      <!-- Estado de error -->
+      <div class="portal-error-card" *ngIf="errorFacturas" role="alert">
+        <span>{{ errorFacturas }}</span>
+        <button type="button" class="btn-editorial-retry" (click)="cargarFacturas()">Reintentar</button>
+      </div>
+
+      <!-- Estado cuando el rol es COLABORADOR sin permiso de facturación -->
+      <div class="editorial-empty-state" *ngIf="!cargandoFacturas && !errorFacturas && esColaboradorSinAcceso">
+        <div class="empty-icon-wrapper" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="60" height="60" fill="none" stroke="#78716c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <h4 class="empty-state-title">Acceso reservado al titular</h4>
+        <p class="empty-state-desc">
+          Solo el contacto titular del cliente puede consultar las facturas de cobro.
+        </p>
+      </div>
+
+      <!-- Estado vacío cuando la visibilidad está desactivada por el estudio -->
+      <div class="editorial-empty-state" *ngIf="!cargandoFacturas && !errorFacturas && !esColaboradorSinAcceso && finanzasDesactivadas">
+        <div class="empty-icon-wrapper" aria-hidden="true">
+          <svg viewBox="0 0 76 90" width="72" height="84" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 12 C16 9.8 17.8 8 20 8 H48 L62 22 V78 C62 80.2 60.2 82 58 82 H20 C17.8 82 16 80.2 16 78 Z" fill="#faf8f5" stroke="#78716c" />
+            <path d="M48 8 V22 H62" stroke="#78716c" />
+            <line x1="26" y1="36" x2="52" y2="36" stroke="#78716c" />
+            <line x1="26" y1="48" x2="52" y2="48" stroke="#78716c" />
+            <line x1="26" y1="60" x2="42" y2="60" stroke="#78716c" />
+            <line x1="18" y1="74" x2="60" y2="16" stroke="#d95247" stroke-width="2.5" />
+          </svg>
+        </div>
+        <h4 class="empty-state-title">Facturación no compartida</h4>
+        <p class="empty-state-desc">
+          El estudio no ha habilitado la visualización de facturas en este portal.
+        </p>
+      </div>
+
+      <!-- Estado vacío cuando finanzas está activado pero el cliente no tiene facturas emitidas -->
+      <div class="editorial-empty-state" *ngIf="!cargandoFacturas && !errorFacturas && !esColaboradorSinAcceso && !finanzasDesactivadas && facturas.length === 0">
+        <div class="empty-icon-wrapper" aria-hidden="true">
+          <svg viewBox="0 0 76 90" width="72" height="84" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 12 C16 9.8 17.8 8 20 8 H48 L62 22 V78 C62 80.2 60.2 82 58 82 H20 C17.8 82 16 80.2 16 78 Z" fill="#faf8f5" stroke="#78716c" />
+            <path d="M48 8 V22 H62" stroke="#78716c" />
+            <line x1="26" y1="36" x2="52" y2="36" stroke="#78716c" />
+            <line x1="26" y1="48" x2="52" y2="48" stroke="#78716c" />
+            <line x1="26" y1="60" x2="42" y2="60" stroke="#78716c" />
+          </svg>
+        </div>
+        <h4 class="empty-state-title">Sin facturas compartidas</h4>
+        <p class="empty-state-desc">
+          Las facturas disponibles se mostrarán en este espacio.
+        </p>
+      </div>
+
+      <!-- Lista de facturas con datos reales -->
+      <ul class="invoices-list" *ngIf="!cargandoFacturas && !errorFacturas && facturas.length > 0">
+        <li *ngFor="let factura of facturas" class="invoice-card">
+          <div class="invoice-main">
+            <div class="invoice-concept-row">
+              <strong class="invoice-number">{{ factura.numero }}</strong>
+              <span class="invoice-separator">·</span>
+              <span class="invoice-concept">{{ factura.concepto }}</span>
+            </div>
+            <div class="invoice-dates-row">
+              <span>Emitida {{ factura.fechaEmision | date:'mediumDate' }}</span>
+              <span *ngIf="factura.fechaVencimiento"> · Vence {{ factura.fechaVencimiento | date:'mediumDate' }}</span>
+            </div>
+          </div>
+          <div class="invoice-status-col">
+            <strong class="invoice-amount">{{ factura.moneda }} {{ factura.monto | number:'1.2-2' }}</strong>
+            <span class="invoice-status-pill" [ngClass]="'status-' + (factura.estado | lowercase)">
+              {{ factura.estado }}
+            </span>
+          </div>
+        </li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- PIE DE PÁGINA EDITORIAL -->
+  <footer class="portal-footer">
+    <p>Portal gestionado con <strong class="footer-brand-name">Equinox</strong></p>
+  </footer>
+
+  <!-- VISOR AMPLIADO ACCESIBLE (LIGHTBOX MODAL) -->
+  <div *ngIf="fotoSeleccionada as actualFoto" class="editorial-lightbox-backdrop"
+    role="dialog" aria-modal="true" aria-labelledby="visor-titulo" (click)="cerrarVisor()">
+    <div class="editorial-lightbox-dialog" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
+
+      <header class="lightbox-header">
+        <div>
+          <h3 id="visor-titulo" class="lightbox-title">{{ nombreFoto(actualFoto, indiceFotoSeleccionada) }}</h3>
+          <p class="lightbox-subtitle" *ngIf="sesionSeleccionada as s">
+            {{ nombreSesion(s) }}<span *ngIf="fechaSesion(s)"> · {{ fechaSesion(s) | date:'mediumDate' }}</span>
+            <span class="lightbox-count"> · Foto {{ indiceFotoSeleccionada + 1 }} de {{ fotos.length }}</span>
+          </p>
+        </div>
+        <button type="button" class="btn-lightbox-close" (click)="cerrarVisor()" aria-label="Cerrar visor ampliado">
+          ✕
+        </button>
+      </header>
+
+      <div class="lightbox-content">
+        <button type="button" class="btn-lightbox-nav btn-lightbox-prev"
+          [disabled]="indiceFotoSeleccionada <= 0"
+          (click)="anteriorFoto()"
+          aria-label="Fotografía anterior">
+          ‹
+        </button>
+
+        <div class="lightbox-image-stage">
+          <div class="lightbox-loading" *ngIf="cargandoFotoOriginal" role="status" aria-live="polite">
+            <span class="spinner-editorial"></span>
+            <span>Cargando en alta resolución…</span>
+          </div>
+
+          <div class="lightbox-error" *ngIf="errorFotoOriginal" role="alert">
+            <span>{{ errorFotoOriginal }}</span>
+            <button type="button" class="btn-editorial-retry" (click)="cargarFotoOriginal(actualFoto)">Reintentar</button>
+          </div>
+
+          <img *ngIf="fotoOriginalUrl"
+            [src]="fotoOriginalUrl"
+            [alt]="nombreFoto(actualFoto, indiceFotoSeleccionada)"
+            class="lightbox-img" />
+
+          <img *ngIf="!fotoOriginalUrl && miniaturasUrls.get(actualFoto.id) as thumb"
+            [src]="thumb"
+            [alt]="nombreFoto(actualFoto, indiceFotoSeleccionada)"
+            class="lightbox-img lightbox-img-preview" />
+        </div>
+
+        <button type="button" class="btn-lightbox-nav btn-lightbox-next"
+          [disabled]="indiceFotoSeleccionada >= fotos.length - 1"
+          (click)="siguienteFoto()"
+          aria-label="Fotografía siguiente">
+          ›
+        </button>
+      </div>
+
+      <footer class="lightbox-footer">
+        <p *ngIf="actualFoto.descripcion" class="lightbox-desc">{{ actualFoto.descripcion }}</p>
+        <small class="lightbox-hint">Usa las flechas ← y → del teclado para navegar, o Escape para cerrar.</small>
+      </footer>
+
+    </div>
+  </div>
+
 </main>

@@ -1,19 +1,45 @@
+import { isDevMode } from '@angular/core';
+
 declare global {
   interface Window { __EQUINOX_API_ORIGIN__?: string }
 }
 
-// En despliegues, el host define window.__EQUINOX_API_ORIGIN__ antes del bundle Angular.
-// Este repositorio no configura un proxy de mismo origen ni un origen de producción.
-export function resolverOrigenApi(host: string, configurado?: string): string | null {
+function esHostLocalDesarrollo(host: string): boolean {
+  if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.local')) {
+    return true;
+  }
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+}
+
+function esOrigenHttpPermitido(url: URL, protocoloPagina?: string): boolean {
+  if (url.protocol !== 'http:') return false;
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]') {
+    return true;
+  }
+  return protocoloPagina !== 'https:' && esHostLocalDesarrollo(url.hostname);
+}
+
+// En despliegues, el host define window.__EQUINOX_API_ORIGIN__ antes del bundle Angular (vía /assets/env.js).
+export function resolverOrigenApi(
+  host: string,
+  configurado?: string,
+  protocoloPagina: string | undefined = typeof window !== 'undefined' ? window.location?.protocol : undefined
+): string | null {
   if (configurado?.trim()) {
     try {
       const url = new URL(configurado);
-      if ((url.protocol !== 'https:' && !(url.protocol === 'http:' && url.hostname === 'localhost')) ||
-          url.username || url.password || url.pathname !== '/' || url.search || url.hash) return null;
+      const protocoloValido = url.protocol === 'https:' || esOrigenHttpPermitido(url, protocoloPagina);
+      if (!protocoloValido || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+        return null;
+      }
       return url.origin;
     } catch { return null; }
   }
-  return host === 'localhost' ? 'http://localhost:3000' : null;
+  if (host === 'localhost') return 'http://localhost:3000';
+  return isDevMode() && esHostLocalDesarrollo(host) ? `http://${host}:3000` : null;
 }
 
 export const API_ORIGIN = resolverOrigenApi(window.location.hostname, window.__EQUINOX_API_ORIGIN__);

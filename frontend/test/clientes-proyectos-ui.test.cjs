@@ -29,6 +29,7 @@ function crearMapa(proyectos, seleccionado = null, falloConsulta = false) {
     proyectos,
     proyectoSeleccionado: seleccionado,
     limpiarProyectoSeleccionado() { this.proyectoSeleccionado = null; },
+    obtenerProyectoGuardadoId() { return null; },
     async listarProyectos() { return this.proyectos; },
     async listarClientes() { return []; },
     async seleccionarProyecto(id) {
@@ -56,7 +57,7 @@ test('el mapa conserva una selección vigente y limpia la selección cuando la l
   await vacio.component.cargar();
   assert.equal(vacio.api.proyectoSeleccionado, null);
   assert.equal(vacio.component.error, '');
-  assert.deepEqual(vacio.component.proyectosMapa, []);
+  assert.deepEqual(vacio.api.proyectos, []);
 });
 
 test('si falla la consulta del proyecto inicial, el mapa muestra un error recuperable sin selección falsa', async () => {
@@ -128,15 +129,15 @@ test('crear proyecto exige elegir cliente, sin asignar automáticamente el prime
 test('las pestañas del detalle cambian con flechas, inicio y fin', async () => {
   const component = new ProyectosComponent({ clientes: [], proyectos: [] }, { snapshot: { queryParamMap: { get: () => null } } });
   const enfocados = [];
-  const tabs = ['hitos', 'archivos', 'bitacora'].map(nombre => ({ focus: () => enfocados.push(nombre) }));
+  const tabs = ['resumen', 'tareas', 'hitos', 'archivos', 'bitacora'].map(nombre => ({ focus: () => enfocados.push(nombre) }));
   const event = key => ({ key, preventDefault() {}, currentTarget: { parentElement: { querySelectorAll: () => tabs } } });
   component.moverPestana(event('ArrowRight'));
-  assert.equal(component.pestanaDetalle, 'archivos');
+  assert.equal(component.pestanaDetalle, 'tareas');
   component.moverPestana(event('End'));
   assert.equal(component.pestanaDetalle, 'bitacora');
   component.moverPestana(event('ArrowRight'));
-  assert.equal(component.pestanaDetalle, 'hitos');
-  assert.deepEqual(enfocados, ['archivos', 'bitacora', 'hitos']);
+  assert.equal(component.pestanaDetalle, 'resumen');
+  assert.deepEqual(enfocados, ['tareas', 'bitacora', 'resumen']);
 });
 
 test('la última selección de proyecto gana aunque la respuesta anterior llegue después', async () => {
@@ -155,13 +156,14 @@ test('la última selección de proyecto gana aunque la respuesta anterior llegue
 
 test('crear un hito no lo publica bajo otro proyecto seleccionado mientras responde la API', async () => {
   let responder;
-  const api = { proyectoSeleccionado: proyecto('a') };
   const trabajo = { crearHito: () => new Promise(resolve => { responder = resolve; }) };
-  const mapa = new WorkMapComponent({ query: '' }, api, trabajo);
-  mapa.nuevoHito.titulo = 'Hito de A';
-  const pendiente = mapa.crearHitoEnMapa();
-  api.proyectoSeleccionado = proyecto('b');
+  const component = new ProyectosComponent({ clientes: [], proyectos: [] }, { snapshot: { queryParamMap: { get: () => null } } }, trabajo);
+  component.modalDetalle = true;
+  component.proyectoDetalle = proyecto('a');
+  component.nuevoHito.titulo = 'Hito de A';
+  const pendiente = component.crearHito();
+  component.proyectoDetalle = proyecto('b');
   responder({ id: 'h-a', titulo: 'Hito de A', estado: 'PENDIENTE' });
   await pendiente;
-  assert.deepEqual(mapa.hitosProyecto, []);
+  assert.deepEqual(component.hitosDetalle, []);
 });

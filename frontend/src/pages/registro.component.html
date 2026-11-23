@@ -1,0 +1,338 @@
+<main class="register-page">
+  <!-- Panel izquierdo: Azul marino oscuro con marca, titular grande y anillos 3D -->
+  <aside class="hero-panel" aria-label="Presentación de Equinox">
+    <div class="hero-header">
+      <div class="hero-brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">equinox</span>
+      </div>
+      <h1 class="hero-title">Dale espacio<br>a tus ideas.</h1>
+      <p class="hero-subtitle">Tu estudio, tus clientes y tu trabajo.<br>Todo conectado.</p>
+    </div>
+
+    <!-- Ilustración de dos grandes anillos metálicos 3D azul y dorado -->
+    <div class="hero-graphic" aria-hidden="true">
+      <svg class="rings-svg" viewBox="45 155 510 325" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Resplandor ambiental de fondo azul noche -->
+          <radialGradient id="registerBgGlow" cx="50%" cy="65%" r="55%">
+            <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.45"/>
+            <stop offset="45%" stop-color="#172554" stop-opacity="0.2"/>
+            <stop offset="100%" stop-color="#091326" stop-opacity="0"/>
+          </radialGradient>
+
+          <!-- Filtros de sombra en suelo -->
+          <filter id="registerFloorShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="22" />
+          </filter>
+          <filter id="registerContactShadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="10" />
+          </filter>
+
+          <!-- Gradientes del anillo azul -->
+          <linearGradient id="regBlueBackOuter" x1="100" y1="120" x2="480" y2="400" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#0a1d47"/>
+            <stop offset="25%" stop-color="#1e40af"/>
+            <stop offset="50%" stop-color="#2563eb"/>
+            <stop offset="75%" stop-color="#3b82f6"/>
+            <stop offset="100%" stop-color="#1d4ed8"/>
+          </linearGradient>
+
+          <linearGradient id="regBlueFrontOuter" x1="80" y1="260" x2="440" y2="480" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#60a5fa"/>
+            <stop offset="18%" stop-color="#38bdf8"/>
+            <stop offset="35%" stop-color="#2563eb"/>
+            <stop offset="70%" stop-color="#1d4ed8"/>
+            <stop offset="90%" stop-color="#172554"/>
+            <stop offset="100%" stop-color="#0b1736"/>
+          </linearGradient>
+
+          <linearGradient id="regBlueRimHighlight" x1="100" y1="240" x2="350" y2="460" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#e0f2fe" stop-opacity="0.95"/>
+            <stop offset="30%" stop-color="#7dd3fc" stop-opacity="0.7"/>
+            <stop offset="70%" stop-color="#38bdf8" stop-opacity="0"/>
+          </linearGradient>
+
+          <!-- Gradientes del anillo dorado champagne -->
+          <linearGradient id="regGoldOuter" x1="100" y1="280" x2="520" y2="420" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#451a03"/>
+            <stop offset="12%" stop-color="#78350f"/>
+            <stop offset="30%" stop-color="#b45309"/>
+            <stop offset="50%" stop-color="#d97706"/>
+            <stop offset="68%" stop-color="#f59e0b"/>
+            <stop offset="82%" stop-color="#fde047"/>
+            <stop offset="90%" stop-color="#eab308"/>
+            <stop offset="100%" stop-color="#78350f"/>
+          </linearGradient>
+
+          <linearGradient id="regGoldBevel" x1="160" y1="360" x2="480" y2="430" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#fffbeb" stop-opacity="0.95"/>
+            <stop offset="25%" stop-color="#fef08a" stop-opacity="0.8"/>
+            <stop offset="55%" stop-color="#f59e0b" stop-opacity="0.4"/>
+            <stop offset="85%" stop-color="#b45309" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Resplandor en el suelo del hero -->
+        <ellipse cx="290" cy="330" rx="260" ry="180" fill="url(#registerBgGlow)" />
+
+        <!-- Sombra proyectada en el piso -->
+        <ellipse cx="300" cy="445" rx="220" ry="28" fill="#000000" opacity="0.75" filter="url(#registerFloorShadow)" />
+        <ellipse cx="270" cy="435" rx="150" ry="16" fill="#000000" opacity="0.6" filter="url(#registerContactShadow)" />
+
+        <!-- 1. Segmento posterior del anillo azul (pasa detrás del anillo dorado) -->
+        <g transform="rotate(-38 290 320)">
+          <path d="M 90 320 A 210 74 0 0 1 490 320" stroke="url(#regBlueBackOuter)" stroke-width="26" stroke-linecap="round"/>
+          <path d="M 102 320 A 198 64 0 0 1 478 320" stroke="#081432" stroke-width="3" opacity="0.6" fill="none"/>
+          <path d="M 110 318 A 190 62 0 0 1 470 318" stroke="#93c5fd" stroke-width="1.5" opacity="0.3" fill="none"/>
+        </g>
+
+        <!-- 2. Anillo dorado metálico completo (cruce tridimensional con el anillo azul) -->
+        <g transform="rotate(16 300 350)">
+          <ellipse cx="300" cy="355" rx="205" ry="76" stroke="#270e02" stroke-width="26" fill="none" opacity="0.5"/>
+          <ellipse cx="300" cy="350" rx="205" ry="75" stroke="url(#regGoldOuter)" stroke-width="24" fill="none"/>
+          <ellipse cx="300" cy="347" rx="212" ry="77" stroke="#fef9c3" stroke-width="1.2" opacity="0.7" fill="none"/>
+          <path d="M 115 352 A 200 72 0 0 0 485 352" stroke="url(#regGoldBevel)" stroke-width="3.5" fill="none"/>
+        </g>
+
+        <!-- 3. Segmento frontal del anillo azul (pasa al frente en el cruce inferior izquierdo) -->
+        <g transform="rotate(-38 290 320)">
+          <path d="M 490 320 A 210 74 0 0 1 90 320" stroke="url(#regBlueFrontOuter)" stroke-width="26" stroke-linecap="round"/>
+          <path d="M 475 322 A 208 72 0 0 1 95 322" stroke="url(#regBlueRimHighlight)" stroke-width="5" fill="none"/>
+          <path d="M 460 317 A 200 68 0 0 1 110 317" stroke="#e0f2fe" stroke-width="2" opacity="0.9" fill="none"/>
+          <path d="M 480 325 A 215 76 0 0 1 90 325" stroke="#1d4ed8" stroke-width="1" opacity="0.5" fill="none"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="hero-footer">
+      <span class="hero-tag">EQUINOX / CRM PARA FREELANCERS</span>
+    </div>
+  </aside>
+
+  <!-- Panel derecho: Fondo claro con símbolo, título, secciones y formulario -->
+  <section class="form-panel" aria-label="Formulario de creación de cuenta">
+    <div class="form-container">
+      <div class="form-top-bar">
+        <div class="form-brand-icon" aria-hidden="true">
+          <span class="brand-mark"></span>
+        </div>
+        <div class="top-nav-bar">
+          <span class="top-nav-text">¿Ya tienes cuenta?</span>
+          <a routerLink="/inicio-sesion" class="top-nav-link">Inicia sesión</a>
+        </div>
+      </div>
+
+      <header class="form-header">
+        <h2 class="form-title">Crea tu cuenta</h2>
+        <p class="form-subtitle">Empieza por ti. Después, dale nombre a tu estudio.</p>
+      </header>
+
+      <p class="auth-error-banner" role="alert" *ngIf="!apiDisponible">
+        La API no está configurada para este entorno. Contacta al administrador de Equinox.
+      </p>
+
+      <form #form="ngForm" (ngSubmit)="registrar(form)" class="register-form" novalidate>
+        <!-- 01 Tus datos -->
+        <div class="form-section-header form-section-first">
+          <span class="section-badge">01</span>
+          <span class="section-title">Tus datos</span>
+          <div class="section-divider-line" aria-hidden="true"></div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="nombre" class="form-label">Nombre</label>
+            <input
+              id="nombre"
+              class="form-input"
+              [class.input-error]="nombreControl.invalid && (nombreControl.touched || enviado)"
+              type="text"
+              name="nombre"
+              [(ngModel)]="datos.nombre"
+              required
+              minlength="2"
+              autocomplete="given-name"
+              placeholder="Tu nombre"
+              #nombreControl="ngModel"
+              [disabled]="cargando"
+            >
+            <small class="auth-validation" *ngIf="nombreControl.invalid && (nombreControl.touched || enviado)">
+              Introduce tu nombre (mínimo 2 caracteres).
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="apellido" class="form-label">Apellido (opcional)</label>
+            <input
+              id="apellido"
+              class="form-input"
+              type="text"
+              name="apellido"
+              [(ngModel)]="datos.apellido"
+              autocomplete="family-name"
+              placeholder="Tu apellido"
+              [disabled]="cargando"
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="correo" class="form-label">Correo electrónico</label>
+          <input
+            id="correo"
+            class="form-input"
+            [class.input-error]="correoControl.invalid && (correoControl.touched || enviado)"
+            type="email"
+            name="correo"
+            [(ngModel)]="datos.correo"
+            required
+            email
+            autocomplete="email"
+            placeholder="tu@correo.com"
+            #correoControl="ngModel"
+            [disabled]="cargando"
+          >
+          <small class="auth-validation" *ngIf="correoControl.invalid && (correoControl.touched || enviado)">
+            Introduce un correo electrónico válido.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="contrasena" class="form-label">Contraseña</label>
+          <div class="password-input-wrapper" [class.input-error]="claveControl.invalid && (claveControl.touched || enviado)">
+            <input
+              id="contrasena"
+              class="form-input password-input"
+              [type]="mostrarContrasena ? 'text' : 'password'"
+              name="contrasena"
+              [(ngModel)]="datos.contrasena"
+              required
+              minlength="8"
+              autocomplete="new-password"
+              placeholder="Crea una contraseña"
+              #claveControl="ngModel"
+              [disabled]="cargando"
+            >
+            <button
+              type="button"
+              class="password-toggle-btn"
+              (click)="alternarMostrarContrasena()"
+              [attr.aria-label]="mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-pressed]="mostrarContrasena"
+            >
+              <svg *ngIf="!mostrarContrasena" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <svg *ngIf="mostrarContrasena" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+              </svg>
+            </button>
+          </div>
+          <span class="form-helper" *ngIf="!claveControl.invalid || (!claveControl.touched && !enviado)">
+            Al menos 8 caracteres.
+          </span>
+          <small class="auth-validation" *ngIf="claveControl.invalid && (claveControl.touched || enviado)">
+            La contraseña debe tener al menos 8 caracteres.
+          </small>
+        </div>
+
+        <!-- 02 Tu estudio -->
+        <div class="form-section-header">
+          <span class="section-badge">02</span>
+          <span class="section-title">Tu estudio</span>
+          <div class="section-divider-line" aria-hidden="true"></div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="nombre-estudio" class="form-label">Nombre del estudio</label>
+            <input
+              id="nombre-estudio"
+              class="form-input"
+              [class.input-error]="estudioControl.invalid && (estudioControl.touched || enviado)"
+              type="text"
+              name="nombreEstudio"
+              [(ngModel)]="datos.nombreEstudio"
+              (input)="onEstudioInput()"
+              required
+              minlength="2"
+              autocomplete="organization"
+              placeholder="Ej. Mena Studios"
+              #estudioControl="ngModel"
+              [disabled]="cargando"
+            >
+            <small class="auth-validation" *ngIf="estudioControl.invalid && (estudioControl.touched || enviado)">
+              Introduce el nombre del estudio (mínimo 2 caracteres).
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="slug" class="form-label">Identificador del estudio</label>
+            <input
+              id="slug"
+              class="form-input"
+              [class.input-error]="slugControl.invalid && (slugControl.touched || enviado)"
+              type="text"
+              name="slug"
+              [(ngModel)]="datos.slug"
+              (input)="onSlugInput()"
+              required
+              minlength="2"
+              pattern="[a-z0-9\-]+"
+              autocomplete="off"
+              placeholder="mena-studios"
+              #slugControl="ngModel"
+              [disabled]="cargando"
+            >
+            <span class="form-helper" *ngIf="!slugControl.invalid || (!slugControl.touched && !enviado)">
+              Minúsculas, números y guiones.
+            </span>
+            <small class="auth-validation" *ngIf="slugControl.invalid && (slugControl.touched || enviado)">
+              Solo minúsculas, números y guiones (mínimo 2 caracteres).
+            </small>
+          </div>
+        </div>
+
+        <div class="form-group form-group-last">
+          <label for="tipo-freelance" class="form-label">Especialidad</label>
+          <div class="select-wrapper">
+            <select
+              id="tipo-freelance"
+              class="form-select"
+              name="tipoFreelance"
+              [(ngModel)]="datos.tipoFreelance"
+              [disabled]="cargando"
+            >
+              <option value="GENERAL">General / Multidisciplinario</option>
+              <option value="DESARROLLO_SOFTWARE">Desarrollo de Software</option>
+              <option value="FOTOGRAFIA">Fotografía</option>
+              <option value="DISENO_GRAFICO">Diseño Gráfico</option>
+            </select>
+            <div class="select-chevron" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+          <span class="form-helper">Adaptaremos tus herramientas a tu área.</span>
+        </div>
+
+        <p class="auth-error" role="alert" *ngIf="error">{{ error }}</p>
+
+        <button class="btn-submit" type="submit" [disabled]="cargando">
+          <span>{{ cargando ? 'Creando cuenta…' : 'Crear cuenta' }}</span>
+          <svg *ngIf="!cargando" class="btn-arrow" viewBox="0 0 20 20" fill="currentColor" width="18" height="18" aria-hidden="true">
+            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+          </svg>
+        </button>
+
+        <div class="mobile-login-prompt">
+          <span>¿Ya tienes cuenta?</span>
+          <a routerLink="/inicio-sesion" class="mobile-login-link">Inicia sesión</a>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>

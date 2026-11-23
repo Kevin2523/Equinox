@@ -4,10 +4,25 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import type { SolicitudAutenticada } from "../tipos.js";
 import { ErrorHttp } from "../utilidades/errores.js";
+import { exigirRolOrganizacion } from "../middleware/autenticacion.js";
 import { registrarActividad } from "../utilidades/actividad.js";
 
 export const rutasFacturas = Router();
 const uuid = z.string().uuid();
+
+const contextoOrg = (req: SolicitudAutenticada) => {
+  const sesion = req.sesion!;
+  if (sesion.tipoAcceso !== "ORGANIZACION") throw new ErrorHttp(403, "Acceso restringido a miembros de la organización");
+  return sesion;
+};
+
+const MONEDAS_VALIDAS = new Set(Intl.supportedValuesOf("currency"));
+const monedaSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]{3}$/, "La moneda debe ser un código ISO 4217 de 3 letras")
+  .refine((val) => MONEDAS_VALIDAS.has(val), "Código de moneda ISO 4217 no válido");
 
 const montoEsquema = z.union([z.number(), z.string()]).transform((val, ctx) => {
   const texto = typeof val === "number" ? String(val) : val.trim();
@@ -32,7 +47,7 @@ const esquemaCrearFactura = z.object({
   numero: z.string().trim().min(1).max(50).optional(),
   concepto: z.string().trim().min(1).max(500),
   monto: montoEsquema,
-  moneda: z.string().trim().length(3).transform((m) => m.toUpperCase()).optional(),
+  moneda: monedaSchema.optional(),
   estado: estadoEsquema.optional(),
   visibleEnPortal: z.boolean().optional(),
   fechaEmision: z.coerce.date().optional(),
@@ -43,36 +58,32 @@ const esquemaCrearFactura = z.object({
 const esquemaEditarFactura = z.object({
   clienteId: uuid.optional(),
   proyectoId: uuid.optional().nullable(),
+  numero: z.string().trim().min(1).max(50).optional(),
   concepto: z.string().trim().min(1).max(500).optional(),
   monto: montoEsquema.optional(),
-  moneda: z.string().trim().length(3).transform((m) => m.toUpperCase()).optional(),
+  moneda: monedaSchema.optional(),
   estado: estadoEsquema.optional(),
   visibleEnPortal: z.boolean().optional(),
   fechaEmision: z.coerce.date().optional(),
   fechaVencimiento: z.coerce.date().optional().nullable(),
+  pagadaEn: z.coerce.date().optional().nullable(),
   notas: z.string().trim().max(2000).optional().nullable(),
   motivo: z.string().trim().max(500).optional(),
 });
 
 const esquemaPago = z.object({
   monto: montoEsquema,
-  moneda: z.string().trim().length(3).transform((m) => m.toUpperCase()).optional(),
+  moneda: monedaSchema.optional(),
   metodo: z.string().trim().max(100).optional().nullable(),
   referencia: z.string().trim().max(100).optional().nullable(),
   notas: z.string().trim().max(1000).optional().nullable(),
 });
 
-function exigirPropietario(req: SolicitudAutenticada) {
-  if (req.sesion?.tipoAcceso !== "ORGANIZACION" || req.sesion.rolOrganizacion !== "PROPIETARIO") {
-    throw new ErrorHttp(403, "Solo el propietario de la organización puede emitir facturas o registrar pagos");
-  }
-}
-
 async function facturaPropia(id: string, organizacionId: string) {
   const f = await prisma.factura.findFirst({
     where: { id, organizacionId },
     include: {
-      cliente: { select: { id: true, nombre: true, empresa: true } },
+      cliente: { select: { id: true, nombre: true, empresa: true, correo: true } },
       proyecto: { select: { id: true, nombre: true } },
       pagos: { orderBy: { creadoEn: "desc" } },
       historial: {
@@ -130,7 +141,7 @@ export async function obtenerSiguienteNumeroFactura(
 // GET /api/facturas/totales
 rutasFacturas.get("/totales", async (req: SolicitudAutenticada, res, next) => {
   try {
-    const organizacionId = req.sesion!.organizacionId;
+    const { organizacionId } = contextoOrg(req);
 
     const facturas = await prisma.factura.findMany({
       where: { organizacionId },
@@ -205,7 +216,7 @@ rutasFacturas.get("/totales", async (req: SolicitudAutenticada, res, next) => {
 // GET /api/facturas
 rutasFacturas.get("/", async (req: SolicitudAutenticada, res, next) => {
   try {
-    const organizacionId = req.sesion!.organizacionId;
+    const { organizacionId } = contextoOrg(req);
     const { clienteId, proyectoId, estado, busqueda } = req.query;
 
     const where: Prisma.FacturaWhereInput = { organizacionId };
@@ -231,7 +242,7 @@ rutasFacturas.get("/", async (req: SolicitudAutenticada, res, next) => {
     const facturas = await prisma.factura.findMany({
       where,
       include: {
-        cliente: { select: { id: true, nombre: true, empresa: true } },
+        cliente: { select: { id: true, nombre: true, empresa: true, correo: true } },
         proyecto: { select: { id: true, nombre: true } },
         pagos: { select: { id: true, monto: true, moneda: true, creadoEn: true } },
       },
@@ -262,7 +273,7 @@ rutasFacturas.get("/", async (req: SolicitudAutenticada, res, next) => {
 rutasFacturas.get("/:id", async (req: SolicitudAutenticada, res, next) => {
   try {
     const facturaId = uuid.parse(req.params.id);
-    const organizacionId = req.sesion!.organizacionId;
+    const { organizacionId } = contextoOrg(req);
     const f = await facturaPropia(facturaId, organizacionId);
 
     const totalPagado = f.pagos.reduce(
@@ -287,11 +298,9 @@ rutasFacturas.get("/:id", async (req: SolicitudAutenticada, res, next) => {
 });
 
 // POST /api/facturas
-rutasFacturas.post("/", async (req: SolicitudAutenticada, res, next) => {
+rutasFacturas.post("/", exigirRolOrganizacion("PROPIETARIO"), async (req: SolicitudAutenticada, res, next) => {
   try {
-    exigirPropietario(req);
-    const organizacionId = req.sesion!.organizacionId;
-    const usuarioId = req.sesion!.usuarioId;
+    const { organizacionId, usuarioId } = contextoOrg(req);
     const datos = esquemaCrearFactura.parse(req.body);
 
     const factura = await prisma.$transaction(async (tx) => {
@@ -349,8 +358,8 @@ rutasFacturas.post("/", async (req: SolicitudAutenticada, res, next) => {
           notas: datos.notas || null,
         },
         include: {
-          cliente: { select: { nombre: true, empresa: true } },
-          proyecto: { select: { nombre: true } },
+          cliente: { select: { id: true, nombre: true, empresa: true, correo: true } },
+          proyecto: { select: { id: true, nombre: true } },
         },
       });
 
@@ -386,12 +395,10 @@ rutasFacturas.post("/", async (req: SolicitudAutenticada, res, next) => {
 });
 
 // PATCH /api/facturas/:id
-rutasFacturas.patch("/:id", async (req: SolicitudAutenticada, res, next) => {
+rutasFacturas.patch("/:id", exigirRolOrganizacion("PROPIETARIO"), async (req: SolicitudAutenticada, res, next) => {
   try {
-    exigirPropietario(req);
     const facturaId = uuid.parse(req.params.id);
-    const organizacionId = req.sesion!.organizacionId;
-    const usuarioId = req.sesion!.usuarioId;
+    const { organizacionId, usuarioId } = contextoOrg(req);
     const datos = esquemaEditarFactura.parse(req.body);
 
     const actualizada = await prisma.$transaction(async (tx) => {
@@ -401,6 +408,16 @@ rutasFacturas.patch("/:id", async (req: SolicitudAutenticada, res, next) => {
       });
       if (!f) throw new ErrorHttp(404, "Factura no encontrada");
 
+      if (datos.numero && datos.numero !== f.numero) {
+        const existente = await tx.factura.findUnique({
+          where: { organizacionId_numero: { organizacionId, numero: datos.numero } },
+          select: { id: true },
+        });
+        if (existente) {
+          throw new ErrorHttp(409, `Ya existe una factura con el número ${datos.numero}`);
+        }
+      }
+
       const pagos = await tx.pago.aggregate({ where: { facturaId: f.id }, _sum: { monto: true }, _count: { id: true } });
       const abonado = pagos._sum.monto ?? new Prisma.Decimal(0);
       const montoFinal = datos.monto ?? f.monto;
@@ -408,6 +425,9 @@ rutasFacturas.patch("/:id", async (req: SolicitudAutenticada, res, next) => {
       const estadoFinal = datos.estado ?? f.estado;
       if (pagos._count.id > 0 && (!montoFinal.equals(f.monto) || monedaFinal !== f.moneda)) {
         throw new ErrorHttp(422, "No se puede cambiar monto ni moneda después de registrar pagos");
+      }
+      if (datos.pagadaEn !== undefined && datos.pagadaEn !== null && estadoFinal !== "PAGADA") {
+        throw new ErrorHttp(422, "Solo las facturas en estado PAGADA pueden tener fecha de pago");
       }
       if (estadoFinal === "PAGADA" && !abonado.equals(montoFinal)) {
         throw new ErrorHttp(422, "El total de pagos debe cubrir exactamente el monto para marcar la factura pagada");
@@ -436,6 +456,7 @@ rutasFacturas.patch("/:id", async (req: SolicitudAutenticada, res, next) => {
       }
 
       const dataParaActualizar: Prisma.FacturaUpdateInput = {};
+      if (datos.numero !== undefined) dataParaActualizar.numero = datos.numero;
       if (datos.concepto !== undefined) dataParaActualizar.concepto = datos.concepto;
       if (datos.monto !== undefined) dataParaActualizar.monto = datos.monto;
       if (datos.moneda !== undefined) dataParaActualizar.moneda = datos.moneda;
@@ -455,18 +476,20 @@ rutasFacturas.patch("/:id", async (req: SolicitudAutenticada, res, next) => {
       if (cambioEstado) {
         dataParaActualizar.estado = datos.estado;
         if (datos.estado === "PAGADA") {
-          dataParaActualizar.pagadaEn = new Date();
+          dataParaActualizar.pagadaEn = datos.pagadaEn ?? f.pagadaEn ?? new Date();
         } else if (f.estado === "PAGADA") {
           dataParaActualizar.pagadaEn = null;
         }
+      } else if (estadoFinal === "PAGADA" && datos.pagadaEn !== undefined) {
+        dataParaActualizar.pagadaEn = datos.pagadaEn ?? f.pagadaEn ?? new Date();
       }
 
       const facturaModificada = await tx.factura.update({
         where: { id: f.id },
         data: dataParaActualizar,
         include: {
-          cliente: { select: { nombre: true, empresa: true } },
-          proyecto: { select: { nombre: true } },
+          cliente: { select: { id: true, nombre: true, empresa: true, correo: true } },
+          proyecto: { select: { id: true, nombre: true } },
         },
       });
 
@@ -509,12 +532,10 @@ rutasFacturas.patch("/:id", async (req: SolicitudAutenticada, res, next) => {
 });
 
 // POST /api/facturas/:id/pagos
-rutasFacturas.post("/:id/pagos", async (req: SolicitudAutenticada, res, next) => {
+rutasFacturas.post("/:id/pagos", exigirRolOrganizacion("PROPIETARIO"), async (req: SolicitudAutenticada, res, next) => {
   try {
-    exigirPropietario(req);
     const facturaId = uuid.parse(req.params.id);
-    const organizacionId = req.sesion!.organizacionId;
-    const usuarioId = req.sesion!.usuarioId;
+    const { organizacionId, usuarioId } = contextoOrg(req);
     const datos = esquemaPago.parse(req.body);
 
     const resultado = await prisma.$transaction(async (tx) => {
@@ -654,12 +675,10 @@ rutasFacturas.post("/:id/pagos", async (req: SolicitudAutenticada, res, next) =>
 });
 
 // DELETE /api/facturas/:id
-rutasFacturas.delete("/:id", async (req: SolicitudAutenticada, res, next) => {
+rutasFacturas.delete("/:id", exigirRolOrganizacion("PROPIETARIO"), async (req: SolicitudAutenticada, res, next) => {
   try {
-    exigirPropietario(req);
     const facturaId = uuid.parse(req.params.id);
-    const organizacionId = req.sesion!.organizacionId;
-    const usuarioId = req.sesion!.usuarioId;
+    const { organizacionId, usuarioId } = contextoOrg(req);
 
     await prisma.$transaction(async (tx) => {
       const f = await tx.factura.findFirst({

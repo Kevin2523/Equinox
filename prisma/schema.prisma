@@ -12,6 +12,18 @@ enum RolMiembro {
   COLABORADOR
 }
 
+enum TipoFreelance {
+  GENERAL
+  DESARROLLO_SOFTWARE
+  FOTOGRAFIA
+  DISENO_GRAFICO
+}
+
+enum EstadoSesionFotografica {
+  BORRADOR
+  PUBLICADA
+}
+
 enum RolCliente {
   TITULAR
   COLABORADOR
@@ -86,6 +98,25 @@ enum EstadoFactura {
   CANCELADA
 }
 
+enum RolPlataforma {
+  USUARIO
+  ADMIN_GLOBAL
+}
+
+enum TipoAccesoSesion {
+  ORGANIZACION
+  CLIENTE
+  ADMIN_GLOBAL
+}
+
+enum EstadoSuscripcion {
+  SIN_SUSCRIPCION
+  PRUEBA
+  ACTIVA
+  SUSPENDIDA
+  CANCELADA
+}
+
 model Usuario {
   id                    String                @id @default(uuid()) @db.Uuid
   correo                String                @unique
@@ -97,6 +128,12 @@ model Usuario {
   avatarUrl             String?               @map("avatar_url")
   correoVerificadoEn    DateTime?             @map("correo_verificado_en")
   ultimoAccesoEn        DateTime?             @map("ultimo_acceso_en")
+  rolPlataforma         RolPlataforma         @default(USUARIO) @map("rol_plataforma")
+  mfaHabilitado         Boolean               @default(false) @map("mfa_habilitado")
+  mfaSecretoCifrado     String?               @map("mfa_secreto_cifrado")
+  mfaPendienteSecretoCifrado String?          @map("mfa_pendiente_secreto_cifrado")
+  mfaVerificadoEn       DateTime?             @map("mfa_verificado_en")
+  mfaUltimoPasoUsado    BigInt?               @map("mfa_ultimo_paso_usado")
   creadoEn              DateTime              @default(now()) @map("creado_en")
   actualizadoEn         DateTime              @updatedAt @map("actualizado_en")
   membresias            MiembroOrganizacion[]
@@ -108,6 +145,15 @@ model Usuario {
   comentarios           Comentario[]
   tareasAsignadas       Tarea[]               @relation("TareasAsignadas")
   creadoPor             Proyecto[]            @relation("ProyectoCreadoPor")
+  solicitudesRecuperacion SolicitudRecuperacion[]
+  codigosRecuperacionMfa CodigoRecuperacionMfa[]
+  solicitudesRecuperacionMfa SolicitudRecuperacionMfa[]
+  auditoriasAdmin       AuditoriaAdmin[]      @relation("AuditoriaActor")
+  planesCreados         PlanSuscripcion[]     @relation("PlanCreadoPor")
+  planesActualizados    PlanSuscripcion[]     @relation("PlanActualizadoPor")
+  suscripcionesAsignadas SuscripcionOrganizacion[] @relation("SuscripcionAsignadaPor")
+  suscripcionesCanceladas SuscripcionOrganizacion[] @relation("SuscripcionCanceladaPor")
+  historialSuscripciones HistorialSuscripcion[] @relation("HistorialSuscripcionUsuario")
   historialFacturas     HistorialFactura[]
   pagosRegistrados      Pago[]
 
@@ -128,8 +174,13 @@ model Organizacion {
   colorPrimario         String                @default("#2563EB") @map("color_primario")
   colorSecundario       String                @default("#0F172A") @map("color_secundario")
   tipografia            String                @default("Inter")
+  portalMensajeBienvenida String?             @map("portal_mensaje_bienvenida")
   dominioPortal         String?               @unique @map("dominio_portal")
   portalMostrarFinanzas Boolean               @default(false) @map("portal_mostrar_finanzas")
+  tipoFreelance         TipoFreelance         @default(GENERAL) @map("tipo_freelance")
+  suspendidaEn          DateTime?             @map("suspendida_en")
+  motivoSuspension      String?               @map("motivo_suspension")
+  suspendidaPorUsuarioId String?              @map("suspendida_por_usuario_id") @db.Uuid
   creadoEn              DateTime              @default(now()) @map("creado_en")
   actualizadoEn         DateTime              @updatedAt @map("actualizado_en")
   miembros              MiembroOrganizacion[]
@@ -140,7 +191,11 @@ model Organizacion {
   facturas              Factura[]
   secuenciaFactura      SecuenciaFactura?
   actividades           Actividad[]
+  sesionesFotograficas  SesionFotografica[]
+  suscripcion           SuscripcionOrganizacion?
+  historialSuscripciones HistorialSuscripcion[]
 
+  @@index([suspendidaEn])
   @@map("organizaciones")
 }
 
@@ -176,6 +231,7 @@ model Cliente {
   proyectos           Proyecto[]
   accesosPortal       AccesoPortal[]
   facturas            Factura[]
+  sesionesFotograficas SesionFotografica[]
 
   @@unique([id, organizacionId])
   @@index([organizacionId, estado])
@@ -448,13 +504,201 @@ model Actividad {
 }
 
 model Sesion {
+  id              String           @id @default(uuid()) @db.Uuid
+  usuarioId       String           @map("usuario_id") @db.Uuid
+  tokenHash       String           @unique @map("token_hash")
+  tipoAcceso      TipoAccesoSesion @default(ORGANIZACION) @map("tipo_acceso")
+  mfaVerificado   Boolean          @default(false) @map("mfa_verificado")
+  mfaVerificadoEn DateTime?        @map("mfa_verificado_en")
+  ipOrigen        String?          @map("ip_origen")
+  userAgent       String?          @map("user_agent")
+  expiraEn        DateTime         @map("expira_en")
+  revocadaEn      DateTime?        @map("revocada_en")
+  creadoEn        DateTime         @default(now()) @map("creado_en")
+  usuario         Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, tipoAcceso, revocadaEn])
+  @@map("sesiones")
+}
+
+model SesionFotografica {
+  id             String                  @id @default(uuid()) @db.Uuid
+  organizacionId String                  @map("organizacion_id") @db.Uuid
+  clienteId      String                  @map("cliente_id") @db.Uuid
+  nombre         String
+  descripcion    String?
+  fecha          DateTime?               @db.Date
+  estado         EstadoSesionFotografica @default(BORRADOR)
+  portadaFotoId  String?                 @map("portada_foto_id") @db.Uuid
+  creadoEn       DateTime                @default(now()) @map("creado_en")
+  actualizadoEn  DateTime                @updatedAt @map("actualizado_en")
+  organizacion   Organizacion            @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  cliente        Cliente                 @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  fotos          FotoSesion[]
+
+  @@index([organizacionId, estado])
+  @@index([clienteId])
+  @@map("sesiones_fotograficas")
+}
+
+model FotoSesion {
+  id                String            @id @default(uuid()) @db.Uuid
+  sesionId          String            @map("sesion_id") @db.Uuid
+  almacenamientoKey String            @unique @map("almacenamiento_key")
+  miniaturaKey      String?           @map("miniatura_key")
+  nombreOriginal    String            @map("nombre_original")
+  tipoMime          String            @map("tipo_mime")
+  tamanoBytes       Int               @map("tamano_bytes")
+  orden             Int               @default(0)
+  creadoEn          DateTime          @default(now()) @map("creado_en")
+  sesion            SesionFotografica @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+
+  @@index([sesionId, orden])
+  @@map("fotos_sesion")
+}
+
+model SolicitudRecuperacion {
+  id        String    @id @default(uuid()) @db.Uuid
+  usuarioId String    @map("usuario_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiraEn  DateTime  @map("expira_en")
+  usadoEn   DateTime? @map("usado_en")
+  creadoEn  DateTime  @default(now()) @map("creado_en")
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([tokenHash])
+  @@index([expiraEn])
+  @@map("solicitudes_recuperacion")
+}
+
+model CodigoRecuperacionMfa {
   id         String    @id @default(uuid()) @db.Uuid
   usuarioId  String    @map("usuario_id") @db.Uuid
-  tokenHash  String    @unique @map("token_hash")
-  expiraEn   DateTime  @map("expira_en")
-  revocadaEn DateTime? @map("revocada_en")
+  codigoHash String    @map("codigo_hash")
+  usadoEn    DateTime? @map("usado_en")
   creadoEn   DateTime  @default(now()) @map("creado_en")
   usuario    Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
-  @@map("sesiones")
+  @@index([usuarioId, usadoEn])
+  @@map("codigos_recuperacion_mfa")
+}
+
+model SolicitudRecuperacionMfa {
+  id        String    @id @default(uuid()) @db.Uuid
+  usuarioId String    @map("usuario_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiraEn  DateTime  @map("expira_en")
+  usadoEn   DateTime? @map("usado_en")
+  creadoEn  DateTime  @default(now()) @map("creado_en")
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([expiraEn])
+  @@map("solicitudes_recuperacion_mfa")
+}
+
+model AuditoriaAdmin {
+  id             String   @id @default(uuid()) @db.Uuid
+  actorUsuarioId String?  @map("actor_usuario_id") @db.Uuid
+  actorCorreo    String?  @map("actor_correo")
+  accion         String
+  entidad        String
+  entidadId      String?  @map("entidad_id")
+  organizacionId String?  @map("organizacion_id") @db.Uuid
+  resultado      String   @default("EXITO")
+  ip             String?
+  userAgent      String?  @map("user_agent")
+  metadatos      Json?
+  creadoEn       DateTime @default(now()) @map("creado_en")
+  actorUsuario   Usuario? @relation("AuditoriaActor", fields: [actorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@index([actorUsuarioId, creadoEn])
+  @@index([accion, creadoEn])
+  @@index([entidad, entidadId])
+  @@index([organizacionId, creadoEn])
+  @@map("auditoria_admin")
+}
+
+model PlanSuscripcion {
+  id                    String                    @id @default(uuid()) @db.Uuid
+  codigo                String                    @unique
+  nombre                String
+  descripcion           String?
+  activo                Boolean                   @default(true)
+  esPlanPrueba          Boolean                   @default(false) @map("es_plan_prueba")
+  duracionSugeridaDias  Int?                      @map("duracion_sugerida_dias")
+  caracteristicas       Json?
+  orden                 Int                       @default(0)
+  creadoPorUsuarioId    String?                   @map("creado_por_usuario_id") @db.Uuid
+  actualizadoPorUsuarioId String?                 @map("actualizado_por_usuario_id") @db.Uuid
+  creadoEn              DateTime                  @default(now()) @map("creado_en")
+  actualizadoEn         DateTime                  @updatedAt @map("actualizado_en")
+  creadoPorUsuario      Usuario?                  @relation("PlanCreadoPor", fields: [creadoPorUsuarioId], references: [id], onDelete: SetNull)
+  actualizadoPorUsuario Usuario?                  @relation("PlanActualizadoPor", fields: [actualizadoPorUsuarioId], references: [id], onDelete: SetNull)
+  suscripciones         SuscripcionOrganizacion[]
+  historialAnterior     HistorialSuscripcion[]    @relation("HistorialPlanAnterior")
+  historialNuevo        HistorialSuscripcion[]    @relation("HistorialPlanNuevo")
+
+  @@index([activo, orden])
+  @@map("planes_suscripcion")
+}
+
+model SuscripcionOrganizacion {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  organizacionId       String                 @unique @map("organizacion_id") @db.Uuid
+  planId               String?                @map("plan_id") @db.Uuid
+  estado               EstadoSuscripcion      @default(SIN_SUSCRIPCION)
+  fechaInicio          DateTime?              @map("fecha_inicio")
+  fechaFin             DateTime?              @map("fecha_fin")
+  motivo               String?
+  notasInternas        String?                @map("notas_internas")
+  referenciaManual     String?                @map("referencia_manual")
+  asignadoPorUsuarioId String?                @map("asignado_por_usuario_id") @db.Uuid
+  asignadoEn           DateTime?              @map("asignado_en")
+  canceladaPorUsuarioId String?               @map("cancelada_por_usuario_id") @db.Uuid
+  canceladaEn          DateTime?              @map("cancelada_en")
+  motivoCancelacion    String?                @map("motivo_cancelacion")
+  creadoEn             DateTime               @default(now()) @map("creado_en")
+  actualizadoEn        DateTime               @updatedAt @map("actualizado_en")
+  organizacion         Organizacion           @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  plan                 PlanSuscripcion?       @relation(fields: [planId], references: [id], onDelete: Restrict)
+  asignadoPorUsuario   Usuario?               @relation("SuscripcionAsignadaPor", fields: [asignadoPorUsuarioId], references: [id], onDelete: SetNull)
+  canceladaPorUsuario  Usuario?               @relation("SuscripcionCanceladaPor", fields: [canceladaPorUsuarioId], references: [id], onDelete: SetNull)
+  historial            HistorialSuscripcion[]
+
+  @@index([estado, fechaFin])
+  @@index([planId])
+  @@map("suscripciones_organizacion")
+}
+
+model HistorialSuscripcion {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  suscripcionId        String                   @map("suscripcion_id") @db.Uuid
+  organizacionId       String                   @map("organizacion_id") @db.Uuid
+  accion               String
+  estadoAnterior       EstadoSuscripcion?       @map("estado_anterior")
+  estadoNuevo          EstadoSuscripcion        @map("estado_nuevo")
+  planAnteriorId       String?                  @map("plan_anterior_id") @db.Uuid
+  planNuevoId          String?                  @map("plan_nuevo_id") @db.Uuid
+  fechaInicioAnterior  DateTime?                @map("fecha_inicio_anterior")
+  fechaInicioNueva     DateTime?                @map("fecha_inicio_nueva")
+  fechaFinAnterior     DateTime?                @map("fecha_fin_anterior")
+  fechaFinNueva        DateTime?                @map("fecha_fin_nueva")
+  motivo               String?
+  notas                String?
+  metadatos            Json?
+  realizadoPorUsuarioId String?                 @map("realizado_por_usuario_id") @db.Uuid
+  realizadoPorCorreo   String?                  @map("realizado_por_correo")
+  creadoEn             DateTime                 @default(now()) @map("creado_en")
+  suscripcion          SuscripcionOrganizacion  @relation(fields: [suscripcionId], references: [id], onDelete: Cascade)
+  organizacion         Organizacion             @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  planAnterior         PlanSuscripcion?         @relation("HistorialPlanAnterior", fields: [planAnteriorId], references: [id], onDelete: SetNull)
+  planNuevo            PlanSuscripcion?         @relation("HistorialPlanNuevo", fields: [planNuevoId], references: [id], onDelete: SetNull)
+  realizadoPorUsuario  Usuario?                 @relation("HistorialSuscripcionUsuario", fields: [realizadoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@index([organizacionId, creadoEn])
+  @@index([suscripcionId, creadoEn])
+  @@index([realizadoPorUsuarioId])
+  @@map("historial_suscripciones")
 }

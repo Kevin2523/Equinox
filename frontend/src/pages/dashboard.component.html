@@ -2,3 +2,47 @@
   <app-work-map></app-work-map>
   <app-project-inspector></app-project-inspector>
 </main>
+
+<nav class="mobile-hoy-dock" aria-label="Acciones rápidas de Hoy">
+  <button
+    type="button"
+    class="mobile-hoy-dock__icon-btn"
+    aria-label="Buscar"
+    title="Buscar"
+    (click)="state.openSearch()"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.8-3.8" />
+    </svg>
+  </button>
+
+  <span class="mobile-hoy-dock__divider" aria-hidden="true"></span>
+
+  <button
+    type="button"
+    class="mobile-hoy-dock__create-btn"
+    aria-label="Crear proyecto"
+    (click)="state.openQuickCreate('Proyecto')"
+  >
+    <svg class="mobile-hoy-dock__plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+    <span>Crear</span>
+  </button>
+
+  <span class="mobile-hoy-dock__divider" aria-hidden="true"></span>
+
+  <button
+    type="button"
+    class="mobile-hoy-dock__icon-btn"
+    aria-label="Ver proyectos"
+    title="Ver proyectos"
+    (click)="state.navigate('proyectos')"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 7a2 2 0 0 1 2-2h4.2a2 2 0 0 1 1.4.58L12 7h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+      <path d="M3 10h18" />
+    </svg>
+  </button>
+</nav>

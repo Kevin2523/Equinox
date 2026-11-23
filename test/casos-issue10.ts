@@ -20,7 +20,7 @@ async function main() {
   async function sesion(contexto: ContextoSinSesion) {
     const id = randomUUID();
     const firmado = firmarToken(contexto, id);
-    await prisma.sesion.create({ data: { id, usuarioId: contexto.usuarioId, tokenHash: hashToken(firmado.token), expiraEn: firmado.expiraEn } });
+    await prisma.sesion.create({ data: { id, usuarioId: contexto.usuarioId, tipoAcceso: contexto.tipoAcceso, tokenHash: hashToken(firmado.token), expiraEn: firmado.expiraEn } });
     return firmado.token;
   }
   async function pedir(ruta: string, token: string, metodo = "GET", cuerpo?: object) {

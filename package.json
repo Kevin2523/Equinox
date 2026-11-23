@@ -12,6 +12,9 @@
     "prisma:desplegar": "node node_modules/prisma/build/index.js migrate deploy",
     "prisma:semilla": "node node_modules/tsx/dist/cli.mjs prisma/seed.ts",
     "prisma:verificar-semilla": "node node_modules/tsx/dist/cli.mjs prisma/verificar-semilla.ts",
+    "admin:bootstrap": "node node_modules/tsx/dist/cli.mjs src/cli/bootstrap-admin.ts",
+    "admin:rotar-mfa-pendiente": "node node_modules/tsx/dist/cli.mjs src/cli/rotar-mfa-pendiente.ts",
+    "admin:separar-identidad": "node node_modules/tsx/dist/cli.mjs src/cli/separar-identidad.ts",
     "compilar:pruebas": "node node_modules/typescript/bin/tsc -p tsconfig.pruebas.json --noEmit",
     "prueba:migracion": "node node_modules/tsx/dist/cli.mjs test/test-migracion-permanente.ts",
     "prueba:integracion": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-integracion.ts",
@@ -19,10 +22,15 @@
     "prueba:portal": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-portal.ts",
     "prueba:clientes-proyectos": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-clientes-proyectos.ts",
     "prueba:tareas-hitos": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue10.ts",
+    "prueba:facturas": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-facturas.ts",
+    "prueba:fotografia": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-fotografia.ts",
+    "prueba:fotografia:e2e": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/validar-e2e-fotografia-completo.ts",
+    "prueba:recuperacion": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-recuperacion.ts",
     "prueba:archivos": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue11.ts",
     "prueba:finanzas": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue12.ts",
     "prueba:limpieza": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue13.ts",
-    "prueba:qa": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue14.ts"
+    "prueba:qa": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue14.ts",
+    "prueba:separacion-identidad": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-separacion-identidad.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",
@@ -32,7 +40,8 @@
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
+    "morgan": "^1.12.1",
+    "nodemailer": "^10.6.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {
@@ -42,6 +51,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^24.5.2",
+    "@types/nodemailer": "^8.0.2",
     "prisma": "^6.16.1",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"

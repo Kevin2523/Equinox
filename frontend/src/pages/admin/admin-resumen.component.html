@@ -1,0 +1,289 @@
+<section class="admin-page resumen-page" aria-labelledby="resumen-titulo">
+  <header class="admin-page-header resumen-header">
+    <div>
+      <h1 id="resumen-titulo" class="admin-page-title">Resumen de plataforma</h1>
+      <p class="admin-page-subtitle">Estado operativo de Equinox.</p>
+    </div>
+    <div class="admin-header-actions">
+      <button
+        type="button"
+        class="resumen-refresh-btn"
+        (click)="cargar()"
+        [disabled]="cargando"
+        [attr.aria-busy]="cargando">
+        <svg
+          class="resumen-refresh-icon"
+          [class.spinning]="cargando"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+          <polyline points="21 3 21 9 15 9" />
+        </svg>
+        <span>{{ cargando ? 'Actualizando...' : 'Actualizar métricas' }}</span>
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="error" class="admin-error-banner" role="alert">
+    <span>{{ error }}</span>
+    <button type="button" class="admin-btn-sm" (click)="cargar()" [disabled]="cargando">Reintentar</button>
+  </div>
+
+  <!-- Estado de carga inicial -->
+  <div *ngIf="cargando && !resumen" class="resumen-skeleton" aria-busy="true" aria-label="Cargando métricas de plataforma">
+    <div class="admin-hero-dark resumen-hero-skeleton">
+      <div class="resumen-skeleton-stat" *ngFor="let i of [1, 2, 3, 4]">
+        <div class="admin-skeleton-row" style="width: 45%;"></div>
+        <div class="admin-skeleton-row" style="width: 30%; height: 28px;"></div>
+        <div class="admin-skeleton-row" style="width: 65%;"></div>
+      </div>
+    </div>
+    <div class="resumen-main-grid">
+      <div class="admin-card">
+        <div class="admin-skeleton-row" style="width: 42%; margin-bottom: 18px;"></div>
+        <div class="admin-skeleton-row" style="width: 100%; margin-bottom: 14px;" *ngFor="let i of [1, 2, 3, 4]"></div>
+      </div>
+      <div class="resumen-right-stack">
+        <div class="admin-card">
+          <div class="admin-skeleton-row" style="width: 45%; margin-bottom: 16px;"></div>
+          <div class="admin-skeleton-row" style="width: 90%; margin-bottom: 12px;" *ngFor="let i of [1, 2, 3, 4]"></div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-skeleton-row" style="width: 50%; margin-bottom: 16px;"></div>
+          <div class="admin-skeleton-row" style="width: 100%; height: 54px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="resumen as r">
+    <!-- Banda de métricas principales -->
+    <section class="admin-hero-dark resumen-hero" aria-label="Indicadores principales de plataforma">
+      <div class="resumen-hero-item">
+        <span class="resumen-hero-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="2" />
+            <path d="M9 7h1m4 0h1M9 11h1m4 0h1M9 15h1m4 0h1M10 21v-3h4v3" />
+          </svg>
+        </span>
+        <div class="resumen-hero-content">
+          <span class="resumen-hero-label">Organizaciones</span>
+          <strong class="resumen-hero-value">{{ r.organizaciones.total }}</strong>
+          <span class="resumen-hero-meta">
+            {{ activasOrganizaciones(r) }} activas · {{ suspendidasOrganizaciones(r) }} suspendidas
+          </span>
+        </div>
+      </div>
+
+      <div class="resumen-hero-item">
+        <span class="resumen-hero-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </span>
+        <div class="resumen-hero-content">
+          <span class="resumen-hero-label">Usuarios</span>
+          <strong class="resumen-hero-value">{{ r.usuarios.total }}</strong>
+          <span class="resumen-hero-meta">
+            {{ r.usuarios.adminsGlobales }} {{ r.usuarios.adminsGlobales === 1 ? 'administrador' : 'administradores' }} · {{ r.usuarios.verificados }} verificados
+          </span>
+        </div>
+      </div>
+
+      <div class="resumen-hero-item">
+        <span class="resumen-hero-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="12" rx="2" />
+            <path d="M2 20h20" />
+          </svg>
+        </span>
+        <div class="resumen-hero-content">
+          <span class="resumen-hero-label">Sesiones activas</span>
+          <strong class="resumen-hero-value">{{ r.usuarios.sesionesActivas }}</strong>
+          <span class="resumen-hero-meta">
+            {{ r.usuarios.conAccesoOrganizacion }} org · {{ r.usuarios.conAccesoCliente }} cliente
+          </span>
+        </div>
+      </div>
+
+      <div class="resumen-hero-item">
+        <span class="resumen-hero-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6l7-3z" />
+            <path d="M9.5 12l1.8 1.8L15 10" />
+          </svg>
+        </span>
+        <div class="resumen-hero-content">
+          <span class="resumen-hero-label">Eventos de auditoría</span>
+          <strong class="resumen-hero-value">{{ r.auditoria.eventosUltimas24h }}</strong>
+          <span class="resumen-hero-meta">
+            últimas 24 h · {{ r.auditoria.eventosTotales }} totales
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bloque central: Modalidades + Operación + Suscripciones -->
+    <div class="resumen-main-grid">
+      <article class="admin-card resumen-modalities-card" aria-labelledby="modalidades-titulo">
+        <div class="resumen-card-head">
+          <div>
+            <h2 id="modalidades-titulo" class="admin-card-title">Modalidades de estudio</h2>
+            <p class="resumen-card-subtitle">Organizaciones registradas por modalidad.</p>
+          </div>
+        </div>
+
+        <div class="resumen-modality-list">
+          <div class="resumen-modality-row" *ngFor="let mod of modalidadesOrdenadas(r)">
+            <span class="resumen-modality-label">{{ mod.etiqueta }}</span>
+            <div
+              class="resumen-bar-track"
+              role="progressbar"
+              [attr.aria-label]="mod.etiqueta + ': ' + mod.cantidad + ' de ' + r.organizaciones.total + ' organizaciones'"
+              aria-valuemin="0"
+              [attr.aria-valuemax]="r.organizaciones.total"
+              [attr.aria-valuenow]="mod.cantidad">
+              <div
+                class="resumen-bar-fill"
+                [class.is-nonzero]="mod.cantidad > 0"
+                [style.width.%]="mod.porcentaje">
+              </div>
+            </div>
+            <span class="resumen-modality-count">{{ mod.cantidad }}</span>
+          </div>
+        </div>
+
+        <p *ngIf="r.organizaciones.total === 0" class="resumen-empty-note">
+          Sin organizaciones registradas todavía.
+        </p>
+      </article>
+
+      <div class="resumen-right-stack">
+        <article class="admin-card resumen-ops-card" aria-labelledby="operacion-titulo">
+          <div class="admin-card-header resumen-card-header-tight">
+            <h2 id="operacion-titulo" class="admin-card-title">Operación global</h2>
+          </div>
+
+          <ul class="resumen-ops-list">
+            <li class="resumen-ops-row">
+              <span class="resumen-ops-name">
+                <svg class="resumen-ops-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="3" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a3 3 0 0 1 0 5.74" />
+                </svg>
+                <span>Clientes</span>
+              </span>
+              <strong class="resumen-ops-value">{{ r.operacion.clientes }}</strong>
+            </li>
+
+            <li class="resumen-ops-row">
+              <span class="resumen-ops-name">
+                <svg class="resumen-ops-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                  <polyline points="2 12 12 17 22 12" />
+                  <polyline points="2 17 12 22 22 17" />
+                </svg>
+                <span>Proyectos</span>
+              </span>
+              <strong class="resumen-ops-value">{{ r.operacion.proyectos }}</strong>
+            </li>
+
+            <li class="resumen-ops-row">
+              <span class="resumen-ops-name">
+                <svg class="resumen-ops-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="8" y1="13" x2="16" y2="13" />
+                  <line x1="8" y1="17" x2="13" y2="17" />
+                </svg>
+                <span>Facturas</span>
+              </span>
+              <strong class="resumen-ops-value">{{ r.operacion.facturas }}</strong>
+            </li>
+
+            <li class="resumen-ops-row">
+              <span class="resumen-ops-name">
+                <svg class="resumen-ops-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                <span>Sesiones fotográficas / Fotos</span>
+              </span>
+              <strong class="resumen-ops-value">{{ r.operacion.sesionesFotograficas }} / {{ r.operacion.fotos }}</strong>
+            </li>
+          </ul>
+        </article>
+
+        <article class="admin-card resumen-subs-card" aria-labelledby="suscripciones-titulo">
+          <div class="admin-card-header resumen-card-header-tight">
+            <h2 id="suscripciones-titulo" class="admin-card-title">Suscripciones manuales</h2>
+            <a routerLink="/admin/suscripciones" class="resumen-card-link">
+              Gestionar <span aria-hidden="true">→</span>
+            </a>
+          </div>
+
+          <div class="resumen-subs-grid">
+            <div class="resumen-sub-tile" *ngFor="let est of estadosSuscripcion">
+              <strong class="resumen-sub-count">{{ r.organizaciones.porEstadoSuscripcion[est] ?? 0 }}</strong>
+              <span class="admin-badge resumen-sub-badge" [ngClass]="claseEstado(est)">
+                {{ etiquetasEstado[est] }}
+              </span>
+            </div>
+          </div>
+
+          <p class="resumen-subs-note">Gestión manual sin cobro automático ni bloqueo de acceso.</p>
+        </article>
+      </div>
+    </div>
+
+    <!-- Actividad administrativa reciente -->
+    <section class="admin-card resumen-activity-card" aria-labelledby="actividad-reciente-titulo">
+      <div class="admin-card-header">
+        <h2 id="actividad-reciente-titulo" class="admin-card-title">Actividad administrativa reciente</h2>
+        <a routerLink="/admin/auditoria" class="resumen-card-link">
+          Ver bitácora completa <span aria-hidden="true">→</span>
+        </a>
+      </div>
+
+      <div *ngIf="r.actividadReciente.length === 0" class="admin-state-box resumen-empty-activity">
+        <h3>Sin actividad administrativa reciente</h3>
+        <p>Las acciones realizadas en el panel aparecerán registradas aquí automáticamente.</p>
+      </div>
+
+      <div *ngIf="r.actividadReciente.length > 0" class="admin-table-wrap resumen-table-wrap">
+        <table class="admin-table resumen-table">
+          <thead>
+            <tr>
+              <th scope="col">Fecha</th>
+              <th scope="col">Acción</th>
+              <th scope="col">Entidad</th>
+              <th scope="col">Actor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let ev of r.actividadReciente">
+              <td class="resumen-date-cell" data-label="Fecha">{{ formatearFecha(ev.creadoEn) }}</td>
+              <td data-label="Acción">
+                <span class="admin-badge" [ngClass]="claseAccion(ev.accion)">
+                  {{ etiquetaAccion(ev.accion) }}
+                </span>
+              </td>
+              <td data-label="Entidad">
+                <span class="admin-cell-primary">{{ etiquetaEntidad(ev.entidad) }}</span>
+              </td>
+              <td class="resumen-actor-cell" data-label="Actor">{{ formatearActor(ev) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+</section>

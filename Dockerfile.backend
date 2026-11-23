@@ -1,0 +1,59 @@
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY tsconfig.json ./
+COPY prisma ./prisma
+COPY src ./src
+
+RUN npx prisma generate && npm run compilar
+
+FROM node:22-alpine AS migrator
+
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+
+USER node
+
+CMD ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+
+FROM node:22-alpine AS runner
+
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    ENTORNO=produccion \
+    PUERTO=3000 \
+    HOST=0.0.0.0
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --omit=optional && npm cache clean --force
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY docker/backend-entrypoint.sh /usr/local/bin/equinox-entrypoint.sh
+
+RUN sed -i 's/\r$//' /usr/local/bin/equinox-entrypoint.sh \
+    && chmod +x /usr/local/bin/equinox-entrypoint.sh \
+    && mkdir -p /data/archivos /data/fotos \
+    && chown -R node:node /app /data
+
+USER node
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PUERTO||3000)+'/salud/listo').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+ENTRYPOINT ["/usr/local/bin/equinox-entrypoint.sh"]
+CMD ["node", "dist/servidor.js"]

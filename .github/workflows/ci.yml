@@ -1,0 +1,286 @@
+name: Equinox CI
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  BACKEND_DOCKERFILE: Dockerfile.backend
+  BACKEND_CONTEXT: .
+  FRONTEND_DOCKERFILE: frontend/Dockerfile
+  FRONTEND_CONTEXT: frontend
+
+jobs:
+  yaml-and-compose-validate:
+    name: Validación YAML, Workflows y Compose
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Validar sintaxis YAML (Workflows y Compose)
+        run: |
+          ruby -ryaml -e 'Dir[".github/workflows/*.yml", "compose*.yml"].each { |f| YAML.load_file(f); puts "OK: #{f}" }'
+
+      - name: Validar configuración Docker Compose
+        env:
+          POSTGRES_PASSWORD: ci_dummy_password
+          SECRETO_JWT: ci_dummy_jwt_secret
+          BACKEND_IMAGE: ghcr.io/owner/equinox-backend
+          MIGRATOR_IMAGE: ghcr.io/owner/equinox-migrator
+          FRONTEND_IMAGE: ghcr.io/owner/equinox-frontend
+          URL_BASE: https://equinox.example.invalid
+          ORIGENES_PERMITIDOS: https://equinox.example.invalid
+        run: |
+          docker compose -f compose.yml config --quiet
+          docker compose -f compose.yml -f compose.prod.yml config --quiet
+
+      - name: Verificar que CD no use puerto 80 implícito
+        run: |
+          if grep -nE 'curl .*http://127\.0\.0\.1/nginx-salud' .github/workflows/cd-*.yml; then
+            echo "::error::Workflow CD apunta al puerto 80 en vez del puerto Compose aislado"
+            exit 1
+          fi
+
+  secret-scan:
+    name: Escaneo de secretos (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ejecutar Gitleaks sobre el repositorio
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/repo" \
+            zricethezav/gitleaks:latest \
+            detect --source=/repo --config=/repo/.gitleaks.toml --redact --verbose --exit-code 1 --no-banner
+
+  dependency-audit:
+    name: Auditoría de dependencias (Backend y Frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Instalar dependencias backend
+        run: npm ci
+
+      - name: Instalar dependencias frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Gate crítico de producción (Backend)
+        run: |
+          npm audit --omit=dev --audit-level=critical
+          npm audit --omit=dev --omit=optional --audit-level=high
+
+      - name: Gate crítico de producción (Frontend)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=critical
+
+      - name: Reporte de vulnerabilidades high/moderate (informativo)
+        if: always()
+        run: |
+          {
+            echo "## Reporte npm audit (Backend)"
+            echo '```'
+            npm audit --audit-level=high || true
+            echo '```'
+            echo "## Reporte npm audit (Frontend)"
+            echo '```'
+            (cd frontend && npm audit --audit-level=high) || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  prisma-and-backend:
+    name: Prisma, Build y Tests Aislados Backend
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: equinox
+          POSTGRES_PASSWORD: equinox_ci_password
+          POSTGRES_DB: equinox_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U equinox -d equinox_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://equinox:equinox_ci_password@localhost:5432/equinox_ci?schema=public
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependencias backend
+        run: npm ci
+
+      - name: Generar cliente Prisma
+        run: npm run prisma:generar
+
+      - name: Validar esquema Prisma
+        run: npx prisma validate
+
+      - name: Verificar migraciones Prisma contra PostgreSQL limpio
+        run: npm run prisma:desplegar
+
+      - name: Compilar backend (TypeScript)
+        run: npm run compilar
+
+      - name: Verificar tipado de pruebas backend
+        run: npm run compilar:pruebas
+
+      - name: Ejecutar tests unitarios aislados backend
+        run: |
+          node node_modules/tsx/dist/cli.mjs --test \
+            test/archivos-validacion.test.ts \
+            test/limpieza-issue10.test.ts
+
+  frontend-build-and-tests:
+    name: Build y Tests Aislados Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Compilar frontend Angular (producción)
+        working-directory: frontend
+        run: npm run compilar
+
+      - name: Verificar o instalar Chrome para pruebas DOM
+        run: |
+          for bin in google-chrome chromium chromium-browser; do
+            if command -v "$bin" >/dev/null 2>&1; then
+              echo "EQUINOX_TEST_BROWSER=$(command -v "$bin")" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          npx --yes @puppeteer/browsers install chrome@stable --path /tmp/chrome
+          CHROME_BIN=$(find /tmp/chrome -name chrome -type f | head -n1)
+          echo "EQUINOX_TEST_BROWSER=$CHROME_BIN" >> "$GITHUB_ENV"
+
+      - name: Ejecutar tests aislados esenciales frontend
+        run: |
+          node --test \
+            frontend/test/auth.test.cjs \
+            frontend/test/registro.test.cjs \
+            frontend/test/portal.test.cjs \
+            frontend/test/portal-apariencia.test.cjs \
+            frontend/test/portal-fotografia.test.cjs \
+            frontend/test/accesibilidad-modales.test.cjs \
+            frontend/test/cliente-sitio-web.test.cjs \
+            frontend/test/clientes-fotografia.test.cjs \
+            frontend/test/invitaciones.test.cjs \
+            frontend/test/invitaciones-dom.test.cjs \
+            frontend/test/vista-previa-dom.test.cjs
+
+  docker-build-verify:
+    name: Validación Build Imágenes Docker
+    needs:
+      - prisma-and-backend
+      - frontend-build-and-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Verificar existencia de Dockerfiles
+        id: check_dockerfiles
+        run: |
+          if [ -f "${{ env.BACKEND_DOCKERFILE }}" ] && [ -f "${{ env.FRONTEND_DOCKERFILE }}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Dockerfiles no encontrados (${{ env.BACKEND_DOCKERFILE }} / ${{ env.FRONTEND_DOCKERFILE }}). Se omite build Docker en CI hasta su integración."
+          fi
+
+      - name: Configurar Docker Buildx
+        if: steps.check_dockerfiles.outputs.ready == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validar build imagen Backend (sin push)
+        if: steps.check_dockerfiles.outputs.ready == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BACKEND_CONTEXT }}
+          file: ${{ env.BACKEND_DOCKERFILE }}
+          target: runner
+          push: false
+          load: false
+          tags: equinox-backend:ci-${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Validar build imagen Migrator (sin push)
+        if: steps.check_dockerfiles.outputs.ready == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BACKEND_CONTEXT }}
+          file: ${{ env.BACKEND_DOCKERFILE }}
+          target: migrator
+          push: false
+          load: false
+          tags: equinox-migrator:ci-${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Validar build imagen Frontend (sin push)
+        if: steps.check_dockerfiles.outputs.ready == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.FRONTEND_CONTEXT }}
+          file: ${{ env.FRONTEND_DOCKERFILE }}
+          push: false
+          load: false
+          tags: equinox-frontend:ci-${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend

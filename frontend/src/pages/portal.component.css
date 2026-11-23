@@ -892,6 +892,16 @@
     grid-template-columns: 1fr;
     gap: 16px;
   }
+
+  .btn-secondary-light,
+  .btn-tab-project,
+  .btn-download-portal,
+  .portal-chat-input button {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 600px) {

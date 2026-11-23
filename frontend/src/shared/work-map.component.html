@@ -1,256 +1,227 @@
-<section class="map-area work-command-center">
-  <div class="work-center-scroll">
-    <!-- Cabecera del Mapa de Trabajo -->
-    <header class="work-header">
-      <div class="work-header-titles">
-        <p class="eyebrow">VISTA GENERAL · HOJA DE RUTA E HITOS</p>
-        <h1>Mapa de trabajo</h1>
-        <p class="work-subtitle">
-          <b>{{ totalActivos }}</b> proyectos activos conectados · Recorre la línea de tiempo vertical de hitos de cada proyecto.
-        </p>
-      </div>
-
-      <div class="work-header-controls">
-        <label class="map-search">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-          <input [(ngModel)]="state.query" placeholder="Buscar clientes o proyectos...">
-        </label>
-      </div>
-    </header>
-
-    <!-- Estados de carga / error / vacío -->
-    <div class="map-api-state" *ngIf="cargando">Cargando mapa de proyectos…</div>
-    <div class="map-api-state map-api-state-error" *ngIf="error" role="alert">
-      {{ error }} <button type="button" (click)="cargar()">Reintentar</button>
+<!-- ==========================================================================
+     CANVAS DE TRABAJO TÁCTIL (HOY / EQUINOX)
+     Fiel a la referencia: Lienzo cálido con cuadrícula, carpetas físicas conectadas
+     a un nodo central, proyecto seleccionado en azul y barra de herramientas flotante.
+     ========================================================================== -->
+<section
+  class="map-canvas-container"
+  [class.grabbing]="isDragging"
+  (mousedown)="onMouseDown($event)"
+  (touchstart)="onTouchStart($event)"
+  (touchmove)="onTouchMove($event)"
+  (touchend)="onTouchEnd()"
+  (touchcancel)="onTouchEnd()"
+  aria-label="Panel de proyectos del estudio"
+>
+  <!-- Canvas Header (Top-Left on Desktop, External Header above Map on Mobile) -->
+  <div class="canvas-header">
+    <div class="canvas-heading-copy">
+      <p class="canvas-eyebrow">{{ studioName }} / ESPACIO 01</p>
+      <h1 class="canvas-title">Todo conectado.</h1>
+      <p class="canvas-subtitle">{{ totalProyectosVisibles === 0 ? 'Sin proyectos en movimiento' : (totalProyectosVisibles + (totalProyectosVisibles === 1 ? ' proyecto en movimiento' : ' proyectos en movimiento')) }}</p>
     </div>
-
-    <!-- Nodos de Proyectos Conectados en el Mapa -->
-    <div class="map-nodes-hub" *ngIf="!cargando && !error">
-      <div class="work-section-bar">
-        <div class="work-section-title">
-          <h2>Nodos de proyectos</h2>
-          <span class="work-count-pill">{{ proyectosVisibles.length }}</span>
-        </div>
-        <div class="work-filter-pills">
-          <button type="button" [class.active]="filtroEstado === 'TODOS'" (click)="filtroEstado = 'TODOS'">Todos</button>
-          <button type="button" [class.active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado = 'ACTIVO'">Activos</button>
-          <button type="button" [class.active]="filtroEstado === 'BORRADOR'" (click)="filtroEstado = 'BORRADOR'">Borrador</button>
-          <button type="button" [class.active]="filtroEstado === 'COMPLETADO'" (click)="filtroEstado = 'COMPLETADO'">Completados</button>
-        </div>
-      </div>
-
-      <div class="map-api-state" *ngIf="proyectosVisibles.length === 0">
-        {{ state.query || filtroEstado !== 'TODOS' ? 'No hay proyectos que coincidan con el filtro actual.' : 'Todavía no hay proyectos. Crea uno para comenzar.' }}
-      </div>
-
-      <div class="map-nodes-track" *ngIf="proyectosVisibles.length > 0">
-        <button
-          type="button"
-          *ngFor="let p of proyectosVisibles; let i = index"
-          class="map-project-node"
-          [class.selected]="api.proyectoSeleccionado?.id === p.id"
-          (click)="seleccionar(p)"
-          [attr.aria-label]="p.nombre + ' ' + p.estado"
-        >
-          <span class="mpn-squircle" [ngClass]="p.visualClass">
-            {{ inicialesProyecto(p.nombre) }}
-            <i class="mpn-status-dot" [class.dot-active]="p.estado === 'ACTIVO' || p.estado === 'COMPLETADO'"></i>
-          </span>
-          <div class="mpn-meta">
-            <strong>{{ p.nombre }}</strong>
-            <small>{{ p.clienteNombre }}</small>
-            <span class="badge" [class.badge-completado]="p.estado === 'ACTIVO' || p.estado === 'COMPLETADO'" [class.badge-planificacion]="p.estado === 'BORRADOR' || p.estado === 'PAUSADO'">
-              ● {{ p.estado }}
-            </span>
-          </div>
-        </button>
-      </div>
-    </div>
-
-    <!-- Línea de Tiempo Vertical de Hitos del Proyecto Seleccionado -->
-    <section class="v-timeline-section" *ngIf="!cargando && !error && api.proyectoSeleccionado as proy">
-      <!-- Cabecera de la línea de tiempo -->
-      <div class="v-timeline-banner">
-        <div class="vtb-left">
-          <div class="vtb-eyebrow">
-            <span class="vtb-pulse"></span>
-            LÍNEA DE TIEMPO VERTICAL DE HITOS
-          </div>
-          <h2>{{ proy.nombre }}</h2>
-          <p>
-            Cliente: <b>{{ proy.cliente?.nombre || 'Cliente vinculado' }}</b>
-            <ng-container *ngIf="proy.cliente?.empresa"> · {{ proy.cliente?.empresa }}</ng-container>
-            <ng-container *ngIf="!cargandoHitos && !errorCargaHitos && hitosProyecto.length">
-              · {{ hitosCompletadosCount }} de {{ hitosProyecto.length }} hitos completados
-            </ng-container>
-          </p>
-        </div>
-
-        <div class="vtb-right">
-          <div class="vtb-progress-box" *ngIf="!cargandoHitos && !errorCargaHitos && hitosProyecto.length">
-            <div class="vtb-progress-top">
-              <span>Progreso de ruta</span>
-              <strong>{{ porcentajeHitos }}%</strong>
-            </div>
-            <div class="vtb-progress-bar">
-              <div class="vtb-progress-fill" [style.width.%]="porcentajeHitos"></div>
-            </div>
-          </div>
-
-          <div class="vtb-actions">
-            <button type="button" class="btn-timeline-add" (click)="mostrarFormularioHito = !mostrarFormularioHito">
-              <span>{{ mostrarFormularioHito ? '✕' : '＋' }}</span>
-              {{ mostrarFormularioHito ? 'Cerrar' : 'Nuevo hito' }}
-            </button>
-            <button type="button" class="btn-timeline-open" (click)="state.navigate('proyectos')">
-              Abrir en Proyectos ↗
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Formulario rápido inline para agregar un hito a la línea de tiempo -->
-      <div class="v-timeline-creator" *ngIf="mostrarFormularioHito">
-        <div class="vtc-head">
-          <strong>Agregar nuevo hito a la línea de tiempo</strong>
-          <small>Se guardará en el proyecto. Puedes elegir si se publica en el portal del cliente.</small>
-        </div>
-        <div class="vtc-grid">
-          <div class="form-group">
-            <label for="map-hito-titulo">Título del hito *</label>
-            <input id="map-hito-titulo" class="form-control" [(ngModel)]="nuevoHito.titulo" placeholder="Ej. Aprobación de diseño UI / Prototipo">
-          </div>
-          <div class="form-group">
-            <label for="map-hito-fecha">Fecha objetivo</label>
-            <input id="map-hito-fecha" type="date" class="form-control" [(ngModel)]="nuevoHito.fechaObjetivo">
-          </div>
-          <div class="form-group vtc-span-2">
-            <label for="map-hito-desc">Descripción del entregable</label>
-            <textarea id="map-hito-desc" class="form-control" rows="2" [(ngModel)]="nuevoHito.descripcion" placeholder="Describe qué incluye este hito o entregable..."></textarea>
-          </div>
-        </div>
-        <div class="vtc-foot">
-          <label class="vtc-check">
-            <input type="checkbox" [(ngModel)]="nuevoHito.visibleEnPortal">
-            <span>Publicar en el portal del cliente</span>
-          </label>
-          <div class="vtc-btns">
-            <button type="button" class="btn-secondary" (click)="mostrarFormularioHito = false">Cancelar</button>
-            <button type="button" class="btn-primary" [disabled]="guardandoHito" (click)="crearHitoEnMapa()">
-              {{ guardandoHito ? 'Guardando…' : 'Guardar hito en el mapa' }}
-            </button>
-          </div>
-        </div>
-        <p class="auth-error" *ngIf="errorHito" role="alert" style="margin-top: 8px;">{{ errorHito }}</p>
-      </div>
-
-      <div class="map-api-state" *ngIf="cargandoHitos" role="status">Consultando hitos del proyecto…</div>
-      <div class="map-api-state map-api-state-error v-timeline-error" *ngIf="!cargandoHitos && errorCargaHitos" role="alert">
-        {{ errorCargaHitos }} <button type="button" (click)="cargarHitosProyecto(proy.id)">Reintentar</button>
-      </div>
-      <div class="map-api-state v-timeline-empty" *ngIf="!cargandoHitos && !errorCargaHitos && hitosProyecto.length === 0">
-        <p>No hay hitos registrados para este proyecto.</p>
-        <button type="button" (click)="mostrarFormularioHito = true">Crear el primer hito</button>
-      </div>
-
-      <!-- Solo hitos devueltos por la API -->
-      <div class="v-timeline-track" *ngIf="!cargandoHitos && !errorCargaHitos && hitosProyecto.length">
-        <article
-          *ngFor="let hito of hitosProyecto; let idx = index"
-          class="v-timeline-item"
-          [class.is-completed]="hito.estado === 'COMPLETADO'"
-          [class.is-active]="hito.estado === 'EN_PROGRESO'"
-          [class.is-overdue]="hito.estado === 'VENCIDO'"
-        >
-          <div class="vti-rail">
-            <span
-              class="vti-marker"
-              [class.marker-completed]="hito.estado === 'COMPLETADO'"
-              [class.marker-active]="hito.estado === 'EN_PROGRESO'"
-              [class.marker-overdue]="hito.estado === 'VENCIDO'"
-              [class.marker-pending]="hito.estado === 'PENDIENTE'"
-            >
-              <svg *ngIf="hito.estado === 'COMPLETADO'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span *ngIf="hito.estado !== 'COMPLETADO'">{{ idx + 1 }}</span>
-            </span>
-            <i class="vti-line"></i>
-          </div>
-
-          <div class="vti-card">
-            <div class="vti-card-top">
-              <div class="vti-tags">
-                <span class="vti-step-tag">HITO {{ (idx + 1) < 10 ? ('0' + (idx + 1)) : (idx + 1) }}</span>
-                <span
-                  class="vti-status-pill"
-                  [class.status-done]="hito.estado === 'COMPLETADO'"
-                  [class.status-progress]="hito.estado === 'EN_PROGRESO'"
-                  [class.status-overdue]="hito.estado === 'VENCIDO'"
-                  [class.status-pending]="hito.estado === 'PENDIENTE'"
-                >
-                  ● {{ hito.estado === 'EN_PROGRESO' ? 'EN PROGRESO' : hito.estado }}
-                </span>
-                <span class="vti-portal-tag" [class.is-public]="hito.visibleEnPortal">
-                  {{ hito.visibleEnPortal ? 'Visible en portal' : 'Solo CRM' }}
-                </span>
-              </div>
-              <time class="vti-date">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                {{ hito.fechaObjetivo ? (hito.fechaObjetivo | date:'dd MMM yyyy') : 'Sin fecha límite' }}
-              </time>
-            </div>
-
-            <h3>{{ hito.titulo }}</h3>
-            <p *ngIf="hito.descripcion">{{ hito.descripcion }}</p>
-
-            <div class="vti-quick-actions">
-              <span class="vti-qa-label">Cambiar estado:</span>
-              <button
-                type="button"
-                [class.active]="hito.estado === 'PENDIENTE'"
-                [disabled]="actualizandoHitoId === hito.id"
-                (click)="cambiarEstadoHito(hito, 'PENDIENTE', $event)"
-              >Pendiente</button>
-              <button
-                type="button"
-                [class.active]="hito.estado === 'EN_PROGRESO'"
-                [disabled]="actualizandoHitoId === hito.id"
-                (click)="cambiarEstadoHito(hito, 'EN_PROGRESO', $event)"
-              >En progreso</button>
-              <button
-                type="button"
-                [class.active]="hito.estado === 'COMPLETADO'"
-                [disabled]="actualizandoHitoId === hito.id"
-                (click)="cambiarEstadoHito(hito, 'COMPLETADO', $event)"
-              >✓ Completado</button>
-            </div>
-          </div>
-        </article>
-
-      </div>
-    </section>
   </div>
 
-  <!-- Floating Command Dock -->
+  <!-- Interactive Map Frame (Transparent wrapper on desktop, rounded grid container on mobile) -->
+  <div class="map-frame">
+    <!-- Interactive Pan & Zoom Viewport -->
+    <div
+      id="proyectos-mapa"
+      class="canvas-viewport"
+      [style.transform]="'translate(' + panX + 'px, ' + panY + 'px) scale(' + (zoomLevel / 100) + ')'"
+    >
+    <div class="canvas-stage" [style.width.px]="stageWidth" [style.height.px]="stageHeight">
+      <!-- SVG Curved Connection Lines Layer -->
+      <svg class="connections-svg" [attr.viewBox]="'0 0 ' + stageWidth + ' ' + stageHeight" preserveAspectRatio="none" aria-hidden="true">
+        <g *ngFor="let p of proyectosVisuales; trackBy: trackByProyectoId">
+          <!-- Connecting Bezier Curve -->
+          <path
+            [attr.d]="p.curvePath"
+            class="conn-path"
+            [class.selected]="api.proyectoSeleccionado?.id === p.id"
+          />
+
+          <!-- Terminal Pin at folder connection point -->
+          <circle
+            [attr.cx]="p.connX"
+            [attr.cy]="p.connY"
+            [attr.r]="api.proyectoSeleccionado?.id === p.id ? 4.5 : 3.5"
+            class="conn-dot"
+            [class.selected]="api.proyectoSeleccionado?.id === p.id"
+          />
+        </g>
+      </svg>
+
+      <!-- Central Hub Node (Organización autenticada) -->
+      <div
+        class="central-hub"
+        [style.left.px]="hubX"
+        [style.top.px]="hubY"
+        (click)="resetZoom()"
+        (keydown.enter)="resetZoom()"
+        (keydown.space)="$event.preventDefault(); resetZoom()"
+        title="Restablecer vista"
+        role="button"
+        tabindex="0"
+      >
+        <span class="hub-line-1">{{ hubLine1 }}</span>
+        <span class="hub-line-2">{{ hubLine2 }}</span>
+      </div>
+
+      <!-- Empty State Card (Organizaciones sin proyectos) -->
+      <div
+        class="empty-map-node"
+        *ngIf="!cargando && totalProyectosVisibles === 0"
+        [style.left.px]="hubX"
+        [style.top.px]="hubY + 130"
+      >
+        <div class="empty-map-card">
+          <div class="empty-icon-ring">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </div>
+          <h3 class="empty-map-title">Sin proyectos activos</h3>
+          <p class="empty-map-text">Esta organización aún no tiene proyectos registrados.</p>
+          <button type="button" class="empty-map-action" (click)="state.openQuickCreate('Proyecto')">
+            + Crear primer proyecto
+          </button>
+        </div>
+      </div>
+
+      <!-- Project Folders (Carpetas / Fichas Visuales) -->
+      <button
+        *ngFor="let p of proyectosVisuales; trackBy: trackByProyectoId"
+        type="button"
+        class="folder-node"
+        [class.selected]="api.proyectoSeleccionado?.id === p.id"
+        [style.left.px]="p.posX"
+        [style.top.px]="p.posY"
+        [style.transform]="'translate(-50%, -50%) rotate(' + p.tiltDeg + 'deg)'"
+        (click)="seleccionar(p)"
+        [attr.aria-pressed]="api.proyectoSeleccionado?.id === p.id"
+        [attr.aria-label]="p.nombre + ', ' + p.statusDisplay"
+      >
+        <div class="folder-card-wrapper">
+          <!-- The Document / Photo Card Sticking Out Behind -->
+          <div class="folder-insert">
+            <!-- Tab on Top -->
+            <div class="insert-tab-row">
+              <span
+                class="insert-num-badge"
+                [class.badge-blue]="api.proyectoSeleccionado?.id === p.id"
+                [class.badge-lime]="api.proyectoSeleccionado?.id !== p.id && p.variant === 'lime'"
+                [class.badge-kraft]="api.proyectoSeleccionado?.id !== p.id && p.variant === 'kraft'"
+              >
+                {{ p.tabNum }}
+              </span>
+
+              <!-- Paperclip on top-right/left -->
+              <span class="paperclip" *ngIf="p.tabNum === '01' || p.tabNum === '04'"></span>
+            </div>
+
+            <!-- Graphic Preview Canvas within the Insert (Neutral & Driven by Real Data) -->
+            <div class="insert-graphic">
+              <!-- Style 0: Editorial / Typography Layout -->
+              <div class="preview-card preview-editorial" *ngIf="p.previewStyle === 'editorial'">
+                <div class="card-editorial-main">
+                  <span class="card-micro-tag">{{ p.cliente?.empresa || p.cliente?.nombre || studioName }}</span>
+                  <span class="card-editorial-title">{{ p.nombre }}</span>
+                  <span class="card-editorial-meta" *ngIf="p.formattedDate">Entrega: {{ p.formattedDate }}</span>
+                </div>
+                <div class="card-editorial-side">
+                  <span class="card-monogram">{{ p.initials }}</span>
+                </div>
+              </div>
+
+              <!-- Style 1: Architectural Blueprint / Technical Grid -->
+              <div class="preview-card preview-blueprint" *ngIf="p.previewStyle === 'blueprint'">
+                <div class="blueprint-grid-overlay"></div>
+                <div class="blueprint-content">
+                  <div class="blueprint-header">
+                    <span class="blueprint-badge">FICHA TECNICA</span>
+                    <span class="blueprint-ref">#{{ p.tabNum }}</span>
+                  </div>
+                  <div class="blueprint-title">{{ p.nombre }}</div>
+                  <div class="blueprint-footer">
+                    <span class="blueprint-status">{{ p.statusDisplay }}</span>
+                    <span class="blueprint-metric" *ngIf="p._count?.tareas">{{ p._count?.tareas }} tareas</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Style 2: Craft / Warm Minimal Stamp -->
+              <div class="preview-card preview-craft" *ngIf="p.previewStyle === 'craft'">
+                <div class="craft-left">
+                  <div class="craft-stamp">{{ p.initials }}</div>
+                </div>
+                <div class="craft-right">
+                  <span class="craft-eyebrow">{{ p.cliente?.nombre || 'PROYECTO' }}</span>
+                  <span class="craft-title">{{ p.nombre }}</span>
+                  <span class="craft-status-pill">{{ p.statusDisplay }}</span>
+                </div>
+              </div>
+
+              <!-- Style 3: Monochrome Architectural Frame -->
+              <div class="preview-card preview-monochrome" *ngIf="p.previewStyle === 'monochrome'">
+                <div class="mono-facade">
+                  <div class="mono-frame">
+                    <span class="mono-title">{{ p.nombre }}</span>
+                    <span class="mono-client">{{ p.cliente?.empresa || p.cliente?.nombre || studioName }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Front Folder Pocket (Pouch) -->
+          <div class="folder-pocket" [ngClass]="'variant-' + p.variant">
+            <div class="pocket-body">
+              <h2 class="folder-title">{{ p.nombre | uppercase }}</h2>
+              <p class="folder-cat">{{ p.categoryDisplay }}</p>
+            </div>
+
+            <div class="pocket-bottom">
+              <div class="folder-divider"></div>
+              <div class="pocket-footer">
+                <span class="status-dot"></span>
+                <span class="status-label">{{ p.statusDisplay }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Bottom-Left Floating Zoom Widget -->
+  <div class="zoom-dock">
+    <button class="zoom-btn" (click)="zoomOut()" aria-label="Reducir zoom" title="Alejar">−</button>
+    <span class="zoom-pct">{{ zoomLevel }}%</span>
+    <button class="zoom-btn" (click)="zoomIn()" aria-label="Aumentar zoom" title="Acercar">+</button>
+    <div class="zoom-divider"></div>
+    <span class="zoom-hint">Arrastra para explorar</span>
+  </div>
+
+  <!-- Bottom-Center Floating Command Dock -->
   <div class="command-dock">
-    <button class="create" id="createBtn" (click)="state.openQuickCreate()">
-      <span>＋</span>Crear
+    <button class="dock-create-btn" id="createBtn" (click)="state.openQuickCreate('Proyecto')">
+      <span>+ Crear proyecto</span>
     </button>
-    <i></i>
-    <button id="dockSearch" (click)="state.openSearch()">
+    <div class="dock-divider"></div>
+    <button class="dock-icon-btn" id="dockSearch" (click)="state.openSearch()" title="Buscar">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-      Buscar...
     </button>
-    <i></i>
-    <button title="Archivos del proyecto" [disabled]="!api.proyectoSeleccionado" (click)="state.switchTab('archivos')">
-      <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM15 3v5h5M8 13h8M8 17h6"/></svg>
+    <div class="dock-divider"></div>
+    <button class="dock-icon-btn" (click)="abrirProyectos()" title="Ver proyectos">
+      <svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v11H3zM3 11h18"/></svg>
     </button>
-    <button title="Tareas pendientes" (click)="state.navigate('tareas')">
-      <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v8H3V4h13"/></svg>
-    </button>
-    <button title="Añadir colaborador no disponible" disabled class="btn-dock-disabled" aria-label="Añadir colaborador no disponible">
-      <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
-    </button>
-    <i></i>
-    <button title="Más opciones" (click)="state.navigate('configuracion')">•••</button>
+  </div>
+
+    <!-- State Toasts -->
+    <div class="map-status-toast" *ngIf="cargando">Cargando proyectos…</div>
+    <div class="map-status-toast map-status-error" *ngIf="error" role="alert">
+      {{ error }} <button type="button" (click)="cargar()">Reintentar</button>
+    </div>
   </div>
 </section>

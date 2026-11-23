@@ -7,7 +7,16 @@ const ts = require('typescript');
 const { of, throwError, firstValueFrom } = require('rxjs');
 
 global.window = { location: { hostname: 'localhost', origin: 'http://localhost:4200' } };
-const angular = { Component: () => (target) => target, Injectable: () => (target) => target };
+const angular = {
+  Component: () => (target) => target,
+  Directive: () => (target) => target,
+  Injectable: () => (target) => target,
+  HostListener: () => () => {},
+  Input: () => () => {},
+  Output: () => () => {},
+  ViewChild: () => () => {},
+  EventEmitter: class {}
+};
 const authGuards = { guardCliente: () => true, guardOrganizacion: () => true, guardPublico: () => true };
 const routeStubs = new Map([
   ['./pages/dashboard.component', 'DashboardComponent'], ['./pages/clientes.component', 'ClientesComponent'],
@@ -37,6 +46,7 @@ function load(relativePath) {
     if (id === '@angular/forms') return { FormsModule: class FormsModule {} };
     if (id === '@angular/common/http') return { HttpClient: class HttpClient {} };
     if (id === '@angular/router') return { Router: class Router {}, ActivatedRoute: class ActivatedRoute {} };
+    if (id === 'qrcode') return { toDataURL: async () => '' };
     if (id === 'rxjs') return require('rxjs');
     if (id === './auth/auth.guards') return authGuards;
     if (routeStubs.has(id)) return { [routeStubs.get(id)]: class {} };

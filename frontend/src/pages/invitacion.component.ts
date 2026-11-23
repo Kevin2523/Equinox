@@ -6,8 +6,11 @@ import { ConsultaInvitacionPublica, DatosAceptarInvitacion } from '../models/inv
 import { InvitacionesApiService } from '../services/invitaciones-api.service';
 
 @Component({
-  selector: 'app-invitacion', standalone: true, imports: [CommonModule, FormsModule, RouterLink],
-  templateUrl: './invitacion.component.html', styleUrl: './invitacion.component.css'
+  selector: 'app-invitacion',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink],
+  templateUrl: './invitacion.component.html',
+  styleUrl: './invitacion.component.css'
 })
 export class InvitacionComponent implements OnInit {
   token = '';
@@ -17,6 +20,7 @@ export class InvitacionComponent implements OnInit {
   enviada = false;
   aceptada = false;
   puedeReintentarConsulta = false;
+  mostrarContrasena = false;
   error = '';
   mensajeExito = '';
   datos = { nombre: '', apellido: '', contrasena: '' };
@@ -28,15 +32,33 @@ export class InvitacionComponent implements OnInit {
     void this.cargar();
   }
 
+  toggleMostrarContrasena(): void {
+    this.mostrarContrasena = !this.mostrarContrasena;
+  }
+
+  get esFotografia(): boolean {
+    return this.invitacion?.organizacion?.tipoFreelance?.toUpperCase() === 'FOTOGRAFIA';
+  }
+
+  get rolLegible(): string {
+    return this.invitacion?.rol === 'TITULAR' ? 'Titular' : 'Colaborador';
+  }
+
   async cargar(): Promise<void> {
     if (!this.token || this.cargando) return;
-    this.cargando = true; this.error = ''; this.invitacion = null; this.puedeReintentarConsulta = false;
-    try { this.invitacion = await this.api.consultarPublica(this.token); }
-    catch (error: any) {
+    this.cargando = true;
+    this.error = '';
+    this.invitacion = null;
+    this.puedeReintentarConsulta = false;
+    try {
+      this.invitacion = await this.api.consultarPublica(this.token);
+    } catch (error: any) {
       this.error = this.mensajeErrorConsulta(error);
-      this.puedeReintentarConsulta = error?.name === 'TimeoutError' || error?.status === 0 || error?.status === 429 || error?.status >= 500;
+      this.puedeReintentarConsulta =
+        error?.name === 'TimeoutError' || error?.status === 0 || error?.status === 429 || error?.status >= 500;
+    } finally {
+      this.cargando = false;
     }
-    finally { this.cargando = false; }
   }
 
   async aceptar(form: NgForm): Promise<void> {
@@ -44,15 +66,24 @@ export class InvitacionComponent implements OnInit {
     if (!this.invitacion || form.invalid || this.enviando || this.aceptada) return;
     const datos: DatosAceptarInvitacion = this.invitacion.esUsuarioExistente
       ? { contrasena: this.datos.contrasena }
-      : { nombre: this.datos.nombre.trim(), ...(this.datos.apellido.trim() ? { apellido: this.datos.apellido.trim() } : {}), contrasena: this.datos.contrasena };
-    this.enviando = true; this.error = '';
+      : {
+          nombre: this.datos.nombre.trim(),
+          ...(this.datos.apellido.trim() ? { apellido: this.datos.apellido.trim() } : {}),
+          contrasena: this.datos.contrasena
+        };
+    this.enviando = true;
+    this.error = '';
     try {
       const respuesta = await this.api.aceptar(this.token, datos);
-      this.aceptada = true; this.mensajeExito = respuesta.mensaje;
+      this.aceptada = true;
+      this.mensajeExito = respuesta.mensaje;
       this.datos.contrasena = '';
       this.token = '';
-    } catch (error: any) { this.error = this.mensajeErrorAceptar(error); }
-    finally { this.enviando = false; }
+    } catch (error: any) {
+      this.error = this.mensajeErrorAceptar(error);
+    } finally {
+      this.enviando = false;
+    }
   }
 
   private mensajeErrorConsulta(error: any): string {
@@ -71,7 +102,9 @@ export class InvitacionComponent implements OnInit {
     if (error?.status === 404) return 'Este enlace de invitación no es válido.';
     if (error?.status === 410) {
       const descripcion = String(error?.error?.error || '').toLocaleLowerCase();
-      return descripcion.includes('revoc') ? 'Esta invitación fue revocada y ya no se puede aceptar.' : 'Esta invitación venció y ya no se puede aceptar.';
+      return descripcion.includes('revoc')
+        ? 'Esta invitación fue revocada y ya no se puede aceptar.'
+        : 'Esta invitación venció y ya no se puede aceptar.';
     }
     if (error?.status === 409) return 'La invitación ya se usó o cambió de estado. Vuelve a consultar el enlace.';
     if (error?.status === 422) return 'Revisa los campos: el nombre debe tener al menos 2 caracteres y la contraseña al menos 8.';

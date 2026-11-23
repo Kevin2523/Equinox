@@ -1,0 +1,70 @@
+<header class="admin-topnav">
+  <div class="admin-brand-group">
+    <a class="admin-brand" routerLink="/admin/resumen" aria-label="Panel Superadmin Equinox">
+      <span class="admin-brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="14" stroke="#ffffff" stroke-width="2.5"/>
+          <path d="M16 6 A 10 10 0 0 1 26 16" fill="#ffffff" />
+        </svg>
+      </span>
+      <strong>equinox</strong>
+    </a>
+    <span class="admin-pill">SUPERADMIN</span>
+  </div>
+
+  <nav class="admin-nav-center" aria-label="Navegación de administración">
+    <a
+      *ngFor="let item of enlaces"
+      [routerLink]="item.ruta"
+      routerLinkActive="active"
+      class="admin-nav-link">
+      {{ item.etiqueta }}
+    </a>
+  </nav>
+
+  <div class="admin-nav-actions">
+    <div class="admin-user-chip" *ngIf="auth.sesion?.usuario as usuario">
+      <span class="admin-avatar" aria-hidden="true">{{ obtenerIniciales() }}</span>
+      <div class="admin-user-meta">
+        <strong>{{ usuario.nombre }} {{ usuario.apellido || '' }}</strong>
+        <small>{{ usuario.correo }}</small>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      class="admin-logout-btn"
+      (click)="cerrarSesion()"
+      [disabled]="cerrandoSesion">
+      {{ cerrandoSesion ? 'Saliendo...' : 'Cerrar sesión' }}
+    </button>
+
+    <button
+      type="button"
+      class="admin-mobile-toggle"
+      (click)="menuMovilAbierto = !menuMovilAbierto"
+      [attr.aria-expanded]="menuMovilAbierto"
+      aria-label="Abrir menú de administración">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<div class="admin-mobile-drawer" *ngIf="menuMovilAbierto">
+  <nav aria-label="Navegación móvil de administración" class="admin-mobile-nav">
+    <a
+      *ngFor="let item of enlaces"
+      [routerLink]="item.ruta"
+      routerLinkActive="active"
+      class="admin-mobile-link"
+      (click)="menuMovilAbierto = false">
+      {{ item.etiqueta }}
+    </a>
+  </nav>
+</div>
+
+<main class="admin-workspace">
+  <router-outlet></router-outlet>
+</main>

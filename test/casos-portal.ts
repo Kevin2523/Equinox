@@ -29,14 +29,14 @@ async function ejecutar() {
   async function sesion(contexto: ContextoSinSesion) {
     const id = randomUUID();
     const firmado = firmarToken(contexto, id);
-    await prisma.sesion.create({ data: { id, usuarioId: contexto.usuarioId, tokenHash: hashToken(firmado.token), expiraEn: firmado.expiraEn } });
+    await prisma.sesion.create({ data: { id, usuarioId: contexto.usuarioId, tipoAcceso: contexto.tipoAcceso, tokenHash: hashToken(firmado.token), expiraEn: firmado.expiraEn } });
     return { token: firmado.token, id };
   }
   async function pedir(ruta: string, token?: string, metodo = "GET", cuerpo?: object) {
     const respuesta = await fetch(`${base}${ruta}`, { method: metodo,
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "Content-Type": "application/json" },
       ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}) });
-    return { status: respuesta.status, datos: await respuesta.json() as any };
+    return { status: respuesta.status, headers: respuesta.headers, datos: await respuesta.json() as any };
   }
   try {
     const propietario = await prisma.usuario.create({ data: { correo: "propietario.portal@example.test", nombre: "Propietario", contrasenaHash: "solo-fixture" } });
@@ -53,6 +53,8 @@ async function ejecutar() {
     const clienteB = await prisma.cliente.create({ data: { organizacionId: org.id, nombre: "Ficha B", empresa: "Empresa B", notasInternas: "dato interno B" } });
     const clienteAjeno = await prisma.cliente.create({ data: { organizacionId: orgAjena.id, nombre: "Ficha ajena" } });
     const accesoA = await prisma.accesoCliente.create({ data: { usuarioId: usuarioA.id, clienteId: clienteA.id, organizacionId: org.id, activo: true } });
+    const usuarioColabA = await prisma.usuario.create({ data: { correo: "colab.a@example.test", nombre: "Colaborador A", contrasenaHash: "solo-fixture" } });
+    await prisma.accesoCliente.create({ data: { usuarioId: usuarioColabA.id, clienteId: clienteA.id, organizacionId: org.id, rol: "COLABORADOR", activo: true } });
     await prisma.accesoCliente.create({ data: { usuarioId: usuarioB.id, clienteId: clienteB.id, organizacionId: org.id, activo: true } });
     const proyA = await prisma.proyecto.create({ data: { organizacionId: org.id, clienteId: clienteA.id, creadoPorId: propietario.id, nombre: "Proyecto A", presupuesto: 9000 } });
     const proyB = await prisma.proyecto.create({ data: { organizacionId: org.id, clienteId: clienteB.id, creadoPorId: propietario.id, nombre: "Proyecto B", presupuesto: 8000 } });
@@ -80,6 +82,7 @@ async function ejecutar() {
       await prisma.factura.create({ data: { organizacionId: org.id, clienteId, numero, concepto: "Servicio", monto: 120, estado, notas: "nota reservada" } });
     }
     const tokenA = await sesion({ tipoAcceso: "CLIENTE", usuarioId: usuarioA.id, organizacionId: org.id, clienteId: clienteA.id, rolCliente: "TITULAR" });
+    const tokenColabA = await sesion({ tipoAcceso: "CLIENTE", usuarioId: usuarioColabA.id, organizacionId: org.id, clienteId: clienteA.id, rolCliente: "COLABORADOR" });
     const tokenB = await sesion({ tipoAcceso: "CLIENTE", usuarioId: usuarioB.id, organizacionId: org.id, clienteId: clienteB.id, rolCliente: "TITULAR" });
     const tokenProp = await sesion({ tipoAcceso: "ORGANIZACION", usuarioId: propietario.id, organizacionId: org.id, rolOrganizacion: "PROPIETARIO" });
     const tokenColab = await sesion({ tipoAcceso: "ORGANIZACION", usuarioId: colaborador.id, organizacionId: org.id, rolOrganizacion: "COLABORADOR" });
@@ -181,6 +184,22 @@ async function ejecutar() {
       }
       assert.deepEqual((await pedir("/api/portal/facturas", tokenB.token)).datos.map((f: any) => f.numero), ["B-enviada"]);
     });
+    await caso("seguridad rol cliente: titular consulta facturas, colaborador recibe 403 sin afectar proyectos", async () => {
+      // Con finanzas activas, tokenA (TITULAR) recibe facturas con header habilitado
+      const rTitular = await pedir("/api/portal/facturas", tokenA.token);
+      assert.equal(rTitular.status, 200);
+      assert.equal(rTitular.headers.get("x-portal-finanzas"), "habilitado");
+
+      // Colaborador de clienteA recibe 403 en facturas
+      const rColab = await pedir("/api/portal/facturas", tokenColabA.token);
+      assert.equal(rColab.status, 403);
+      assert.ok(JSON.stringify(rColab.datos).includes("titular"));
+
+      // Proyectos de clienteA siguen siendo accesibles para el colaborador
+      const rProyColab = await pedir("/api/portal/proyectos", tokenColabA.token);
+      assert.equal(rProyColab.status, 200);
+      assert.deepEqual(rProyColab.datos.map((p: any) => p.id), [proyA.id]);
+    });
     await caso("desactivar finanzas oculta los montos de inmediato", async () => {
       assert.equal((await pedir("/api/organizacion", tokenProp.token, "PATCH", { portalMostrarFinanzas: false })).status, 200);
       assert.deepEqual((await pedir("/api/portal/facturas", tokenA.token)).datos, []);
@@ -215,6 +234,74 @@ async function ejecutar() {
       assert.equal(await prisma.comentario.count(), previo);
       await prisma.accesoCliente.update({ where: { id: accesoA.id }, data: { activo: true } });
     });
+    await caso("configuración de marca y estudio: persistencia, validación, permisos PROPIETARIO y multitenancy", async () => {
+      assert.equal(
+        (await pedir("/api/organizacion", tokenColab.token, "PATCH", { colorPrimario: "#112233" })).status,
+        403
+      );
+      assert.equal(
+        (await pedir("/api/organizacion", tokenProp.token, "PATCH", { colorPrimario: "azul" })).status,
+        422
+      );
+      await pedir("/api/organizacion", tokenProp.token, "PATCH", { tipografia: "Comic Sans" });
+      assert.equal((await prisma.organizacion.findUniqueOrThrow({ where: { id: org.id } })).tipografia, "Inter");
+      const rOk = await pedir("/api/organizacion", tokenProp.token, "PATCH", {
+        nombre: "Estudio Actualizado",
+        colorPrimario: "#1D4ED8",
+        colorSecundario: "#111827",
+        tipografia: "DM Sans",
+        portalMensajeBienvenida: "Bienvenidos a nuestro espacio",
+        correoContacto: "contacto@estudio.test",
+        moneda: "USD",
+        organizacionId: orgAjena.id,
+      });
+      assert.equal(rOk.status, 200);
+      const orgActualizada = await prisma.organizacion.findUniqueOrThrow({ where: { id: org.id } });
+      assert.equal(orgActualizada.nombre, "Estudio Actualizado");
+      assert.equal(orgActualizada.colorPrimario, "#1D4ED8");
+      assert.equal(orgActualizada.colorSecundario, "#111827");
+      // La tipografía no se puede modificar vía PATCH /api/organizacion (conserva valor por defecto/legado)
+      assert.equal(orgActualizada.tipografia, "Inter");
+      assert.equal(orgActualizada.portalMensajeBienvenida, "Bienvenidos a nuestro espacio");
+      assert.equal(
+        (await prisma.organizacion.findUniqueOrThrow({ where: { id: orgAjena.id } })).nombre,
+        orgAjena.nombre
+      );
+
+      const rPortal = await pedir("/api/portal", tokenA.token);
+      assert.equal(rPortal.status, 200);
+      assert.equal(rPortal.datos.estudio.nombre, "Estudio Actualizado");
+      assert.equal(rPortal.datos.estudio.colorPrimario, "#1D4ED8");
+      assert.equal(rPortal.datos.estudio.colorSecundario, "#111827");
+      assert.equal(rPortal.datos.estudio.tipografia, "Inter");
+      assert.equal(rPortal.datos.estudio.portalMensajeBienvenida, "Bienvenidos a nuestro espacio");
+      assert.ok(!JSON.stringify(rPortal.datos).includes("portalMostrarFinanzas"));
+    });
+    await caso("vista previa de organización: aislada por tenant y sensible a modalidad", async () => {
+      const rGeneral = await pedir("/api/organizacion/vista-previa", tokenProp.token);
+      assert.equal(rGeneral.status, 200);
+      assert.equal(rGeneral.datos.modalidad, "GENERAL");
+      assert.equal(rGeneral.datos.sesion, null);
+      assert.ok([proyA.id, proyB.id].includes(rGeneral.datos.proyecto?.id));
+      assert.notEqual(rGeneral.datos.proyecto?.id, proyAjeno.id);
+      assert.ok(["Ficha A", "Ficha B"].includes(rGeneral.datos.clienteNombre));
+      assert.ok(Array.isArray(rGeneral.datos.facturas));
+
+      assert.equal(
+        (await pedir("/api/organizacion", tokenProp.token, "PATCH", { tipoFreelance: "FOTOGRAFIA" })).status,
+        200
+      );
+      const rFoto = await pedir("/api/organizacion/vista-previa", tokenProp.token);
+      assert.equal(rFoto.status, 200);
+      assert.equal(rFoto.datos.modalidad, "FOTOGRAFIA");
+      assert.equal(rFoto.datos.proyecto, null);
+      assert.equal(rFoto.datos.sesion, null);
+
+      assert.equal(
+        (await pedir("/api/organizacion", tokenProp.token, "PATCH", { tipoFreelance: "GENERAL" })).status,
+        200
+      );
+    });
     await caso("desvincular miembro invalida contexto de organización", async () => {
       await prisma.miembroOrganizacion.delete({ where: { usuarioId_organizacionId: { usuarioId: colaborador.id, organizacionId: org.id } } });
       assert.equal((await pedir("/api/organizacion", tokenColab.token)).status, 403);
@@ -224,7 +311,7 @@ async function ejecutar() {
       assert.equal((await pedir("/api/portal", tokenA.token)).status, 401);
       assert.equal((await pedir(`${rutaA}/comentarios`, tokenA.token, "POST", { contenido: "sin sesión" })).status, 401);
     });
-    assert.equal(cuenta, 17);
+    assert.equal(cuenta, 20);
     console.log(`[portal] Suite completada: ${cuenta} casos ejecutados.`);
   } finally {
     await new Promise<void>(resolver => servidor.close(() => resolver()));

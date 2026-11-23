@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { NavigationEnd, Router } from '@angular/router';
-import { BehaviorSubject, Observable, filter } from 'rxjs';
+import { BehaviorSubject, Observable, filter, firstValueFrom } from 'rxjs';
 import { EquinoxService } from '../services/equinox.service';
 import { ClientesProyectosApiService, ClienteApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import { TrabajoApiService } from '../services/trabajo-api.service';
 import { AuthService } from '../auth/auth.service';
+import { obtenerBaseApi } from '../auth/api.config';
 import { FacturasApiService, FacturaApi, TotalesFacturasApi, TotalMonedaApi } from '../services/facturas-api.service';
 import { OrganizacionApiService, ActualizarOrganizacionApi } from '../services/organizacion-api.service';
 import {
@@ -116,7 +118,33 @@ export class UiStateService {
     return this.totalesFacturas?.totalesPorMoneda || [];
   }
 
-  constructor(public equinox: EquinoxService, public clientesProyectosApi: ClientesProyectosApiService, private router: Router, public trabajo: TrabajoApiService, private auth: AuthService, public facturasApi?: FacturasApiService, public organizacionApi?: OrganizacionApiService) {
+  equinox: EquinoxService;
+  clientesProyectosApi: ClientesProyectosApiService;
+  private router: Router;
+  trabajo: TrabajoApiService;
+  private auth: AuthService;
+  facturasApi?: FacturasApiService;
+  organizacionApi?: OrganizacionApiService;
+  private http?: HttpClient;
+
+  constructor(
+    equinox: EquinoxService,
+    clientesProyectosApi: ClientesProyectosApiService,
+    router: Router,
+    trabajo: TrabajoApiService,
+    auth: AuthService,
+    facturasApi?: FacturasApiService,
+    organizacionApi?: OrganizacionApiService,
+    http?: HttpClient
+  ) {
+    this.equinox = equinox;
+    this.clientesProyectosApi = clientesProyectosApi;
+    this.router = router;
+    this.trabajo = trabajo;
+    this.auth = auth;
+    this.facturasApi = facturasApi;
+    this.organizacionApi = organizacionApi;
+    this.http = http;
     this.initialize();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       const segmento = event.urlAfterRedirects.split('?')[0].split('/')[1];
@@ -149,6 +177,7 @@ export class UiStateService {
       this.totalesFacturas = null;
       this.haCargadoFacturas = false;
       this.portalMostrarFinanzas = null;
+      this.notificaciones = [];
       this.equinox.limpiarConfiguracionSesion();
       this.errorFacturas = '';
       this.errorPortalFinanzas = '';
@@ -169,8 +198,49 @@ export class UiStateService {
         void this.cargarFacturas();
         void this.cargarConfiguracionPortalFinanzas();
         void this.cargarOrganizacion();
+        void this.cargarNotificacionesPanel();
       }
     });
+  }
+
+  async cargarNotificacionesPanel(): Promise<void> {
+    if (!this.http || !this.auth.token) {
+      this.notificaciones = [];
+      return;
+    }
+    const generacion = this.sesionGeneracion;
+    const sesionId = this.obtenerIdentificadorSesion();
+    try {
+      const panel = await firstValueFrom(this.http.get<any>(`${obtenerBaseApi()}/organizacion/panel`)).catch(() => null);
+      if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
+      if (panel?.actividadReciente && Array.isArray(panel.actividadReciente)) {
+        this.notificaciones = panel.actividadReciente.slice(0, 8).map((act: any) => ({
+          id: act.id,
+          titulo: act.accion === 'CREAR' ? 'Registro creado' : act.accion === 'COMPLETAR' ? 'Tarea completada' : 'Actividad',
+          descripcion: act.descripcion || `${act.entidad}: ${act.accion}`,
+          tiempo: this.formatearTiempoRelativo(new Date(act.creadoEn)),
+          leida: true
+        }));
+      } else {
+        this.notificaciones = [];
+      }
+    } catch {
+      if (generacion === this.sesionGeneracion && sesionId === this.obtenerIdentificadorSesion()) {
+        this.notificaciones = [];
+      }
+    }
+  }
+
+  private formatearTiempoRelativo(fecha: Date): string {
+    if (!fecha || isNaN(fecha.getTime())) return '';
+    const diffMs = Date.now() - fecha.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Hace un momento';
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    const diffHoras = Math.floor(diffMins / 60);
+    if (diffHoras < 24) return `Hace ${diffHoras} h`;
+    const diffDias = Math.floor(diffHoras / 24);
+    return `Hace ${diffDias} d`;
   }
 
   get mapActive(): boolean {

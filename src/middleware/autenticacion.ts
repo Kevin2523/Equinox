@@ -3,7 +3,15 @@ import type { NextFunction, Response } from "express";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
-import type { ContextoSinSesion, DatosJWT, RolMiembro, SolicitudAutenticada } from "../tipos.js";
+import type {
+  ContextoSesion,
+  ContextoSesionAdmin,
+  ContextoSinSesion,
+  ContextoSinSesionAdmin,
+  DatosJWT,
+  RolMiembro,
+  SolicitudAutenticada,
+} from "../tipos.js";
 import { ErrorHttp } from "../utilidades/errores.js";
 
 const esquemaPayloadJwt = z.discriminatedUnion("tipoAcceso", [
@@ -22,7 +30,20 @@ const esquemaPayloadJwt = z.discriminatedUnion("tipoAcceso", [
     clienteId: z.string().uuid(),
     rolCliente: z.enum(["TITULAR", "COLABORADOR"]),
   }),
+  z.object({
+    tipoAcceso: z.literal("ADMIN_GLOBAL"),
+    sesionId: z.string().uuid(),
+    usuarioId: z.string().uuid(),
+    rolPlataforma: z.literal("ADMIN_GLOBAL"),
+    mfaVerificado: z.literal(true),
+  }),
 ]);
+
+const esquemaPayloadDesafioMfa = z.object({
+  tipoToken: z.literal("DESAFIO_MFA_ADMIN"),
+  usuarioId: z.string().uuid(),
+  proposito: z.enum(["CONFIGURAR", "VERIFICAR"]),
+});
 
 export function obtenerSecretoJwt(): string {
   const entorno = (process.env.ENTORNO || "").trim().toLowerCase();
@@ -50,9 +71,15 @@ export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export function firmarToken(datos: ContextoSinSesion, sesionId: string): { token: string; expiraEn: Date } {
+export function firmarToken(
+  datos: ContextoSinSesion | ContextoSinSesionAdmin,
+  sesionId: string
+): { token: string; expiraEn: Date } {
   const secreto = obtenerSecretoJwt();
-  const vencimiento = process.env.VENCIMIENTO_JWT || "7d";
+  const vencimiento =
+    datos.tipoAcceso === "ADMIN_GLOBAL"
+      ? process.env.VENCIMIENTO_JWT_ADMIN || "8h"
+      : process.env.VENCIMIENTO_JWT || "7d";
   const payload: DatosJWT = { ...datos, sesionId };
 
   const token = jwt.sign(payload, secreto, {
@@ -62,9 +89,47 @@ export function firmarToken(datos: ContextoSinSesion, sesionId: string): { token
   const decodificado = jwt.decode(token) as { exp?: number };
   const expiraEn = decodificado?.exp
     ? new Date(decodificado.exp * 1000)
-    : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    : new Date(
+        Date.now() + (datos.tipoAcceso === "ADMIN_GLOBAL" ? 8 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000)
+      );
 
   return { token, expiraEn };
+}
+
+export function firmarTokenDesafioMfa(
+  usuarioId: string,
+  proposito: "CONFIGURAR" | "VERIFICAR"
+): string {
+  const secreto = obtenerSecretoJwt();
+  return jwt.sign(
+    {
+      tipoToken: "DESAFIO_MFA_ADMIN",
+      usuarioId,
+      proposito,
+    },
+    secreto,
+    { expiresIn: "10m" }
+  );
+}
+
+export function verificarTokenDesafioMfa(token: string): {
+  usuarioId: string;
+  proposito: "CONFIGURAR" | "VERIFICAR";
+} {
+  let decodificado: unknown;
+  try {
+    decodificado = jwt.verify(token, obtenerSecretoJwt());
+  } catch {
+    throw new ErrorHttp(401, "Desafío MFA inválido o vencido");
+  }
+  const res = esquemaPayloadDesafioMfa.safeParse(decodificado);
+  if (!res.success) {
+    throw new ErrorHttp(401, "Desafío MFA con estructura inválida");
+  }
+  return {
+    usuarioId: res.data.usuarioId,
+    proposito: res.data.proposito,
+  };
 }
 
 export async function exigirAutenticacion(req: SolicitudAutenticada, _res: Response, next: NextFunction) {
@@ -118,8 +183,25 @@ export async function exigirAutenticacion(req: SolicitudAutenticada, _res: Respo
       return next(new ErrorHttp(401, "Token no coincide con la sesión"));
     }
 
+    if (sesion.tipoAcceso !== datos.tipoAcceso) {
+      return next(new ErrorHttp(403, "Contexto de sesión no coincide con el token"));
+    }
+
     // Revalidación contra la base de datos según el contexto
-    if (datos.tipoAcceso === "ORGANIZACION") {
+    if (datos.tipoAcceso === "ADMIN_GLOBAL") {
+      if (!sesion.mfaVerificado || !sesion.mfaVerificadoEn) {
+        return next(new ErrorHttp(403, "La sesión administrativa requiere verificación MFA"));
+      }
+
+      const usuarioAdmin = await prisma.usuario.findUnique({
+        where: { id: datos.usuarioId },
+        select: { id: true, rolPlataforma: true, mfaHabilitado: true },
+      });
+
+      if (!usuarioAdmin || usuarioAdmin.rolPlataforma !== "ADMIN_GLOBAL" || !usuarioAdmin.mfaHabilitado) {
+        return next(new ErrorHttp(403, "Acceso restringido a superadministradores globales"));
+      }
+    } else if (datos.tipoAcceso === "ORGANIZACION") {
       const miembro = await prisma.miembroOrganizacion.findUnique({
         where: {
           usuarioId_organizacionId: {
@@ -127,10 +209,19 @@ export async function exigirAutenticacion(req: SolicitudAutenticada, _res: Respo
             organizacionId: datos.organizacionId,
           },
         },
+        include: {
+          organizacion: {
+            select: { suspendidaEn: true },
+          },
+        },
       });
 
       if (!miembro) {
         return next(new ErrorHttp(403, "No perteneces a esta organización"));
+      }
+
+      if (miembro.organizacion.suspendidaEn !== null) {
+        return next(new ErrorHttp(403, "Esta organización se encuentra suspendida"));
       }
 
       // Sincronizar el rol real de la base de datos
@@ -143,16 +234,30 @@ export async function exigirAutenticacion(req: SolicitudAutenticada, _res: Respo
             clienteId: datos.clienteId,
           },
         },
+        include: {
+          organizacion: {
+            select: { suspendidaEn: true },
+          },
+        },
       });
 
       if (!acceso || !acceso.activo || acceso.organizacionId !== datos.organizacionId) {
         return next(new ErrorHttp(403, "Acceso de cliente inactivo o no autorizado"));
       }
 
+      if (acceso.organizacion.suspendidaEn !== null) {
+        return next(new ErrorHttp(403, "Esta organización se encuentra suspendida"));
+      }
+
       datos.rolCliente = acceso.rol;
     }
 
-    req.sesion = datos;
+    if (datos.tipoAcceso === "ADMIN_GLOBAL") {
+      req.sesionAdmin = datos;
+      req.sesion = datos as unknown as ContextoSesion;
+    } else {
+      req.sesion = datos;
+    }
     next();
   } catch (err) {
     next(err);
@@ -196,6 +301,25 @@ export function exigirCliente(req: SolicitudAutenticada, _res: Response, next: N
 
   if (req.sesion.tipoAcceso !== "CLIENTE") {
     return next(new ErrorHttp(403, "Acceso restringido a cuentas de cliente"));
+  }
+
+  next();
+}
+
+export function exigirSuperadmin(req: SolicitudAutenticada, _res: Response, next: NextFunction) {
+  const sesionAdmin =
+    req.sesionAdmin ?? (req.sesion as unknown as ContextoSesionAdmin | undefined);
+
+  if (!sesionAdmin) {
+    return next(new ErrorHttp(401, "Se requiere autenticación"));
+  }
+
+  if (
+    sesionAdmin.tipoAcceso !== "ADMIN_GLOBAL" ||
+    sesionAdmin.rolPlataforma !== "ADMIN_GLOBAL" ||
+    sesionAdmin.mfaVerificado !== true
+  ) {
+    return next(new ErrorHttp(403, "Acceso restringido a superadministradores globales"));
   }
 
   next();

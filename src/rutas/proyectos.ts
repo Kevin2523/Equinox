@@ -9,29 +9,73 @@ import { enviarArchivo } from "../almacenamiento/descarga.js";
 
 export const rutasProyectos = Router();
 const uuid = z.string().uuid();
-const proyectoSchema = z.object({ clienteId: uuid, nombre: z.string().min(2), descripcion: z.string().optional().nullable(), estado: z.enum(["BORRADOR", "ACTIVO", "PAUSADO", "COMPLETADO", "CANCELADO"]).optional(), presupuesto: z.coerce.number().nonnegative().optional().nullable(), moneda: z.string().length(3).optional(), fechaInicio: z.coerce.date().optional().nullable(), fechaEntrega: z.coerce.date().optional().nullable() });
-const tareaSchema = z.object({ titulo: z.string().min(2), descripcion: z.string().optional().nullable(), estado: z.enum(["PENDIENTE", "EN_PROGRESO", "BLOQUEADA", "COMPLETADA", "CANCELADA"]).optional(), prioridad: z.enum(["BAJA", "MEDIA", "ALTA", "URGENTE"]).optional(), orden: z.number().int().optional(), fechaVencimiento: z.coerce.date().optional().nullable(), hitoId: uuid.optional().nullable(), asignadoAId: uuid.optional().nullable() });
-const hitoSchema = z.object({ titulo: z.string().min(2), descripcion: z.string().optional().nullable(), estado: z.enum(["PENDIENTE", "EN_PROGRESO", "COMPLETADO", "VENCIDO"]).optional(), orden: z.number().int().optional(), fechaObjetivo: z.coerce.date().optional().nullable(), visibleEnPortal: z.boolean().optional() });
+const MONEDAS_VALIDAS = new Set(Intl.supportedValuesOf("currency"));
+const monedaSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]{3}$/, "La moneda debe ser un código ISO 4217 de 3 letras")
+  .refine((val) => MONEDAS_VALIDAS.has(val), "Código de moneda ISO 4217 no válido");
+
+const presupuestoSchema = z.coerce
+  .number()
+  .nonnegative()
+  .max(9_999_999_999.99, "El presupuesto supera el valor máximo soportado")
+  .refine((v) => Math.round(v * 100) <= 999_999_999_999, "El presupuesto supera el valor máximo soportado");
+
+const proyectoSchema = z.object({
+  clienteId: uuid,
+  nombre: z.string().min(2).max(200),
+  descripcion: z.string().max(2000).optional().nullable(),
+  estado: z.enum(["BORRADOR", "ACTIVO", "PAUSADO", "COMPLETADO", "CANCELADO"]).optional(),
+  presupuesto: presupuestoSchema.optional().nullable(),
+  moneda: monedaSchema.optional(),
+  fechaInicio: z.coerce.date().optional().nullable(),
+  fechaEntrega: z.coerce.date().optional().nullable(),
+});
+const queryProyectosSchema = z.object({
+  estado: z.preprocess((val) => (val === "" ? undefined : val), z.enum(["BORRADOR", "ACTIVO", "PAUSADO", "COMPLETADO", "CANCELADO"]).optional()),
+  clienteId: z.preprocess((val) => (val === "" ? undefined : val), uuid.optional()),
+});
+const ordenSchema = z.number().int().min(-2_147_483_648).max(2_147_483_647).optional();
+const tareaSchema = z.object({ titulo: z.string().min(2).max(200), descripcion: z.string().max(2000).optional().nullable(), estado: z.enum(["PENDIENTE", "EN_PROGRESO", "BLOQUEADA", "COMPLETADA", "CANCELADA"]).optional(), prioridad: z.enum(["BAJA", "MEDIA", "ALTA", "URGENTE"]).optional(), orden: ordenSchema, fechaVencimiento: z.coerce.date().optional().nullable(), hitoId: uuid.optional().nullable(), asignadoAId: uuid.optional().nullable() });
+const hitoSchema = z.object({ titulo: z.string().min(2).max(200), descripcion: z.string().max(2000).optional().nullable(), estado: z.enum(["PENDIENTE", "EN_PROGRESO", "COMPLETADO", "VENCIDO"]).optional(), orden: ordenSchema, fechaObjetivo: z.coerce.date().optional().nullable(), visibleEnPortal: z.boolean().optional() });
 const archivoSchema = z.strictObject({ nombre: z.string().trim().min(1).max(180).optional(), descripcion: z.string().trim().max(1000).optional(), tipo: z.enum(["ARCHIVO", "ENTREGABLE", "IMAGEN", "DOCUMENTO"]).optional(), visibilidad: z.enum(["INTERNA", "CLIENTE"]).optional() });
 const camposArchivo = { id: true, proyectoId: true, nombre: true, nombreOriginal: true, tipoMime: true, tamanoBytes: true, tipo: true, visibilidad: true, descripcion: true, publicadoEn: true, creadoEn: true } as const;
-const proyectoPropio = async (id: string, organizacionId: string) => { const p = await prisma.proyecto.findFirst({ where: { id, organizacionId } }); if (!p) throw new ErrorHttp(404, "Proyecto no encontrado"); return p; };
+const proyectoPropio = async (req: SolicitudAutenticada, id: string) => {
+  const sesion = req.sesion!;
+  if (sesion.tipoAcceso !== "ORGANIZACION") throw new ErrorHttp(403, "Acceso restringido a miembros de la organización");
+  const p = await prisma.proyecto.findFirst({ where: { id, organizacionId: sesion.organizacionId } });
+  if (!p) throw new ErrorHttp(404, "Proyecto no encontrado");
+  return p;
+};
+const contextoOrg = (req: SolicitudAutenticada) => {
+  const sesion = req.sesion!;
+  if (sesion.tipoAcceso !== "ORGANIZACION") throw new ErrorHttp(403, "Acceso restringido a miembros de la organización");
+  return sesion;
+};
 async function validarAsignacion(asignadoAId: string | null | undefined, organizacionId: string) {
   if (!asignadoAId) return;
   const miembro = await prisma.miembroOrganizacion.findUnique({ where: { usuarioId_organizacionId: { usuarioId: asignadoAId, organizacionId } }, select: { usuarioId: true } });
   if (!miembro) throw new ErrorHttp(422, "La persona asignada no pertenece a la organización");
 }
 
-rutasProyectos.get("/", async (req: SolicitudAutenticada, res) => res.json(await prisma.proyecto.findMany({ where: { organizacionId: req.sesion!.organizacionId, ...(typeof req.query.estado === "string" && { estado: req.query.estado as never }), ...(typeof req.query.clienteId === "string" && { clienteId: req.query.clienteId }) }, include: { cliente: { select: { id: true, nombre: true, empresa: true } }, _count: { select: { tareas: true, hitos: true } } }, orderBy: { actualizadoEn: "desc" } })));
-rutasProyectos.post("/", async (req: SolicitudAutenticada, res) => {
-  const datos = proyectoSchema.parse(req.body); const organizacionId = req.sesion!.organizacionId;
-  if (!await prisma.cliente.findFirst({ where: { id: datos.clienteId, organizacionId } })) throw new ErrorHttp(422, "El cliente no pertenece a tu organización");
-  const proyecto = await prisma.proyecto.create({ data: { ...datos, organizacionId, creadoPorId: req.sesion!.usuarioId } });
-  await registrarActividad({ organizacionId, usuarioId: req.sesion!.usuarioId, entidad: "proyecto", entidadId: proyecto.id, accion: "CREAR", descripcion: `Creó el proyecto ${proyecto.nombre}` }); res.status(201).json(proyecto);
+rutasProyectos.get("/", async (req: SolicitudAutenticada, res) => {
+  const { organizacionId } = contextoOrg(req);
+  const { estado, clienteId } = queryProyectosSchema.parse(req.query);
+  res.json(await prisma.proyecto.findMany({ where: { organizacionId, ...(estado && { estado }), ...(clienteId && { clienteId }) }, include: { cliente: { select: { id: true, nombre: true, empresa: true } }, _count: { select: { tareas: true, hitos: true } } }, orderBy: { actualizadoEn: "desc" } }));
 });
-rutasProyectos.get("/:id", async (req: SolicitudAutenticada, res) => { const id = uuid.parse(req.params.id); await proyectoPropio(id, req.sesion!.organizacionId); res.json(await prisma.proyecto.findUnique({ where: { id }, include: { cliente: true, tareas: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] }, hitos: { orderBy: { orden: "asc" } }, archivos: { select: camposArchivo, orderBy: { creadoEn: "desc" } }, comentarios: { include: { usuario: { select: { nombre: true, apellido: true } }, accesoPortal: { select: { nombre: true, correo: true } } }, orderBy: { creadoEn: "asc" } }, accesosPortal: true } })); });
-rutasProyectos.patch("/:id", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId); const datos = proyectoSchema.partial().parse(req.body); if (datos.clienteId && !await prisma.cliente.findFirst({ where: { id: datos.clienteId, organizacionId: p.organizacionId } })) throw new ErrorHttp(422, "El cliente no pertenece a tu organización"); res.json(await prisma.proyecto.update({ where: { id: p.id }, data: { ...datos, ...(datos.estado === "COMPLETADO" && { completadoEn: new Date() }) } })); });
+rutasProyectos.post("/", async (req: SolicitudAutenticada, res) => {
+  const datos = proyectoSchema.parse(req.body);
+  const { organizacionId, usuarioId } = contextoOrg(req);
+  if (!await prisma.cliente.findFirst({ where: { id: datos.clienteId, organizacionId } })) throw new ErrorHttp(422, "El cliente no pertenece a tu organización");
+  const proyecto = await prisma.proyecto.create({ data: { ...datos, organizacionId, creadoPorId: usuarioId } });
+  await registrarActividad({ organizacionId, usuarioId, entidad: "proyecto", entidadId: proyecto.id, accion: "CREAR", descripcion: `Creó el proyecto ${proyecto.nombre}` }); res.status(201).json(proyecto);
+});
+rutasProyectos.get("/:id", async (req: SolicitudAutenticada, res) => { const id = uuid.parse(req.params.id); await proyectoPropio(req, id); res.json(await prisma.proyecto.findUnique({ where: { id }, include: { cliente: true, tareas: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] }, hitos: { orderBy: { orden: "asc" } }, archivos: { select: camposArchivo, orderBy: { creadoEn: "desc" } }, comentarios: { include: { usuario: { select: { nombre: true, apellido: true } }, accesoPortal: { select: { nombre: true, correo: true } } }, orderBy: { creadoEn: "asc" } } } })); });
+rutasProyectos.patch("/:id", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(req, uuid.parse(req.params.id)); const datos = proyectoSchema.partial().parse(req.body); if (datos.clienteId && !await prisma.cliente.findFirst({ where: { id: datos.clienteId, organizacionId: p.organizacionId } })) throw new ErrorHttp(422, "El cliente no pertenece a tu organización"); res.json(await prisma.proyecto.update({ where: { id: p.id }, data: { ...datos, ...(datos.estado === "COMPLETADO" && { completadoEn: new Date() }) } })); });
 rutasProyectos.delete("/:id", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   await prisma.$transaction(async (tx) => {
     const bloqueado = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM proyectos WHERE id = ${p.id}::uuid AND organizacion_id = ${p.organizacionId}::uuid FOR UPDATE`;
     if (!bloqueado.length) throw new ErrorHttp(404, "Proyecto no encontrado");
@@ -42,11 +86,11 @@ rutasProyectos.delete("/:id", async (req: SolicitudAutenticada, res) => {
 });
 
 rutasProyectos.get("/:id/tareas", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   res.json(await prisma.tarea.findMany({ where: { proyectoId: p.id }, orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] }));
 });
 rutasProyectos.post("/:id/tareas", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   const datos = tareaSchema.parse(req.body);
   if (datos.hitoId && !await prisma.hito.findFirst({ where: { id: datos.hitoId, proyectoId: p.id } })) throw new ErrorHttp(422, "El hito no pertenece al proyecto");
   await validarAsignacion(datos.asignadoAId, p.organizacionId);
@@ -58,7 +102,7 @@ rutasProyectos.post("/:id/tareas", async (req: SolicitudAutenticada, res) => {
   res.status(201).json(creada);
 });
 rutasProyectos.patch("/:id/tareas/:tareaId", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   const tarea = await prisma.tarea.findFirst({ where: { id: uuid.parse(req.params.tareaId), proyectoId: p.id } });
   if (!tarea) throw new ErrorHttp(404, "Tarea no encontrada");
   const datos = tareaSchema.partial().parse(req.body);
@@ -80,31 +124,31 @@ rutasProyectos.patch("/:id/tareas/:tareaId", async (req: SolicitudAutenticada, r
   });
   res.json(actualizada);
 });
-rutasProyectos.delete("/:id/tareas/:tareaId", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId); const tarea = await prisma.tarea.findFirst({ where: { id: uuid.parse(req.params.tareaId), proyectoId: p.id } }); if (!tarea) throw new ErrorHttp(404, "Tarea no encontrada"); await prisma.tarea.delete({ where: { id: tarea.id } }); res.status(204).end(); });
+rutasProyectos.delete("/:id/tareas/:tareaId", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(req, uuid.parse(req.params.id)); const tarea = await prisma.tarea.findFirst({ where: { id: uuid.parse(req.params.tareaId), proyectoId: p.id } }); if (!tarea) throw new ErrorHttp(404, "Tarea no encontrada"); await prisma.tarea.delete({ where: { id: tarea.id } }); res.status(204).end(); });
 
 rutasProyectos.get("/:id/hitos", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   res.json(await prisma.hito.findMany({ where: { proyectoId: p.id }, orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] }));
 });
 rutasProyectos.post("/:id/hitos", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   const datos = hitoSchema.parse(req.body);
   res.status(201).json(await prisma.hito.create({ data: { ...datos, proyectoId: p.id, visibleEnPortal: datos.visibleEnPortal ?? false,
     ...(datos.estado === "COMPLETADO" && { completadoEn: new Date() }) } }));
 });
 rutasProyectos.patch("/:id/hitos/:hitoId", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   const hito = await prisma.hito.findFirst({ where: { id: uuid.parse(req.params.hitoId), proyectoId: p.id } });
   if (!hito) throw new ErrorHttp(404, "Hito no encontrado");
   const datos = hitoSchema.partial().parse(req.body);
   res.json(await prisma.hito.update({ where: { id: hito.id }, data: { ...datos,
     ...(datos.estado && { completadoEn: datos.estado === "COMPLETADO" ? hito.completadoEn || new Date() : null }) } }));
 });
-rutasProyectos.delete("/:id/hitos/:hitoId", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId); const h = await prisma.hito.findFirst({ where: { id: uuid.parse(req.params.hitoId), proyectoId: p.id } }); if (!h) throw new ErrorHttp(404, "Hito no encontrado"); await prisma.hito.delete({ where: { id: h.id } }); res.status(204).end(); });
+rutasProyectos.delete("/:id/hitos/:hitoId", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(req, uuid.parse(req.params.id)); const h = await prisma.hito.findFirst({ where: { id: uuid.parse(req.params.hitoId), proyectoId: p.id } }); if (!h) throw new ErrorHttp(404, "Hito no encontrado"); await prisma.hito.delete({ where: { id: h.id } }); res.status(204).end(); });
 
-rutasProyectos.get("/:id/archivos", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId); res.json(await prisma.archivo.findMany({ where: { proyectoId: p.id }, select: camposArchivo, orderBy: { creadoEn: "desc" } })); });
+rutasProyectos.get("/:id/archivos", async (req: SolicitudAutenticada, res) => { const p = await proyectoPropio(req, uuid.parse(req.params.id)); res.json(await prisma.archivo.findMany({ where: { proyectoId: p.id }, select: camposArchivo, orderBy: { creadoEn: "desc" } })); });
 rutasProyectos.post("/:id/archivos", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   const { archivo, campos } = await recibirMultipart(req);
   const datos = archivoSchema.parse(campos);
   const { extension, mime } = detectarArchivo(archivo.nombre, archivo.mime, archivo.bytes);
@@ -125,13 +169,13 @@ rutasProyectos.post("/:id/archivos", async (req: SolicitudAutenticada, res) => {
   }
 });
 rutasProyectos.get("/:id/archivos/:archivoId/descargar", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   const archivo = await prisma.archivo.findFirst({ where: { id: uuid.parse(req.params.archivoId), proyectoId: p.id }, select: { url: true, nombreOriginal: true, tipoMime: true } });
   if (!archivo) throw new ErrorHttp(404, "Archivo no encontrado");
   await enviarArchivo(res, archivo);
 });
 rutasProyectos.delete("/:id/archivos/:archivoId", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   const archivo = await prisma.archivo.findFirst({ where: { id: uuid.parse(req.params.archivoId), proyectoId: p.id } });
   if (!archivo) throw new ErrorHttp(404, "Archivo no encontrado");
   const apartada = await almacenArchivos.apartar(claveDeArchivo(archivo.url));
@@ -147,12 +191,12 @@ rutasProyectos.delete("/:id/archivos/:archivoId", async (req: SolicitudAutentica
 });
 
 rutasProyectos.get("/:id/comentarios", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   res.json(await prisma.comentario.findMany({ where: { proyectoId: p.id }, select: { id: true, autor: true, contenido: true, creadoEn: true,
     usuario: { select: { nombre: true, apellido: true } } }, orderBy: { creadoEn: "asc" } }));
 });
 rutasProyectos.post("/:id/comentarios", async (req: SolicitudAutenticada, res) => {
-  const p = await proyectoPropio(uuid.parse(req.params.id), req.sesion!.organizacionId);
+  const p = await proyectoPropio(req, uuid.parse(req.params.id));
   const { contenido } = z.strictObject({ contenido: z.string().trim().min(1).max(2000) }).parse(req.body);
   const creado = await prisma.$transaction(async (tx) => {
     const comentario = await tx.comentario.create({ data: { proyectoId: p.id, usuarioId: req.sesion!.usuarioId, autor: "FREELANCER", contenido },

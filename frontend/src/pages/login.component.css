@@ -1,0 +1,790 @@
+/* ==========================================================================
+   EQUINOX - PANTALLA DE INICIO DE SESIÓN
+   Móvil: Encabezado azul marino de ancho completo con borde inferior curvo,
+   logo arriba, copy a la izquierda y órbitas finas azul/dorado a la derecha;
+   debajo formulario blanco limpio y pie discreto sin espacio vacío artificial.
+   Desktop: Composición coherente de dos columnas con la misma identidad.
+   ========================================================================== */
+
+:host {
+  display: block;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+}
+
+.login-page {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #ffffff;
+  box-sizing: border-box;
+  padding: 16px;
+  position: relative;
+  overflow-x: clip;
+}
+
+/* ==========================================================================
+   PANEL HERO (Escritorio: columna izquierda | Móvil: encabezado superior)
+   ========================================================================== */
+.hero-panel {
+  flex: 0 0 46%;
+  max-width: 660px;
+  min-width: 400px;
+  background: linear-gradient(175deg, #071226 0%, #091630 100%);
+  border-radius: 24px;
+  padding: 44px 44px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  box-shadow: 0 20px 45px -10px rgba(5, 11, 24, 0.35);
+}
+
+.hero-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  z-index: 3;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 22px;
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.brand-mark::before,
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  top: 2px;
+}
+
+.brand-mark::before {
+  left: 0;
+  background: #2563eb;
+}
+
+.brand-mark::after {
+  left: 9px;
+  background: #fbbf24;
+  mix-blend-mode: screen;
+}
+
+.brand-text {
+  color: #ffffff;
+  font-family: var(--font-display, inherit);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.hero-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  z-index: 3;
+  margin: 36px 0 24px;
+}
+
+.hero-copy {
+  min-width: 0;
+}
+
+.hero-title {
+  color: #ffffff;
+  font-family: var(--font-display, inherit);
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.13;
+  margin: 0 0 16px;
+  letter-spacing: -0.03em;
+}
+
+.hero-subtitle {
+  color: #cbd5e1;
+  font-size: 17px;
+  line-height: 1.5;
+  margin: 0;
+  font-weight: 400;
+}
+
+.hero-graphic {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  margin-top: 16px;
+}
+
+.orbits-svg {
+  width: 100%;
+  height: auto;
+  max-width: 420px;
+  overflow: visible;
+}
+
+.hero-footer {
+  position: relative;
+  z-index: 3;
+}
+
+.hero-tag {
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hero-curve {
+  display: none;
+}
+
+/* ==========================================================================
+   PANEL DE FORMULARIO
+   ========================================================================== */
+.form-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 32px;
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 420px;
+  margin: auto 0;
+}
+
+.form-brand-icon {
+  margin-bottom: 24px;
+}
+
+.form-brand-icon .brand-mark {
+  transform: scale(1.15);
+  transform-origin: left center;
+}
+
+.form-brand-icon .brand-mark::after {
+  mix-blend-mode: multiply;
+}
+
+.form-header {
+  margin-bottom: 28px;
+}
+
+.form-title {
+  color: #08132b;
+  font-family: var(--font-display, inherit);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.18;
+  margin: 0 0 8px;
+  letter-spacing: -0.03em;
+}
+
+.form-subtitle {
+  color: #64748b;
+  font-size: 15.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Campos y etiquetas */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.form-input {
+  width: 100%;
+  height: 50px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 15px;
+  color: #0f172a;
+  background: #ffffff;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.form-input::placeholder {
+  color: #94a3b8;
+  font-size: 15px;
+}
+
+.form-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.form-input.input-error {
+  border-color: #dc2626;
+  background-color: #fffaf0;
+}
+
+/* Contraseña con toggle */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.password-input-wrapper:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.password-input-wrapper.input-error {
+  border-color: #dc2626;
+  background-color: #fffaf0;
+}
+
+.password-input-wrapper .password-input {
+  border: none;
+  box-shadow: none;
+  height: 47px;
+  padding-right: 48px;
+}
+
+.password-input-wrapper .password-input:focus {
+  box-shadow: none;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.password-toggle-btn:hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+/* Recuperar contraseña */
+.forgot-password-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.forgot-link {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #2563eb;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  margin: -10px -4px;
+  transition: color 0.15s ease;
+}
+
+.forgot-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.forgot-link:focus-visible {
+  outline: 2px solid #2563eb;
+  border-radius: 4px;
+}
+
+/* Validación y errores */
+.auth-validation {
+  display: block;
+  color: #dc2626;
+  font-size: 12.5px;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.auth-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 16px 0;
+}
+
+.auth-error-banner {
+  background-color: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin-bottom: 20px;
+}
+
+/* Botón CTA principal */
+.btn-submit {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 18px;
+  background: #08132b;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  margin-top: 22px;
+  box-sizing: border-box;
+  box-shadow: 0 4px 14px rgba(8, 19, 43, 0.18);
+  transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #111e3b;
+  box-shadow: 0 6px 20px rgba(8, 19, 43, 0.28);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.btn-submit:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.btn-submit:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.btn-arrow {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Crear cuenta */
+.register-prompt {
+  text-align: center;
+  margin-top: 22px;
+  font-size: 14.5px;
+  color: #64748b;
+}
+
+.register-link {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 5px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  margin-top: -10px;
+  margin-bottom: -10px;
+}
+
+.register-link:hover {
+  text-decoration: underline;
+}
+
+.register-link:focus-visible {
+  outline: 2px solid #2563eb;
+  border-radius: 4px;
+}
+
+/* Selector de contexto múltiple */
+.context-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.context-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #08132b;
+  margin: 0;
+}
+
+.context-subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.context-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.context-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 16px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+}
+
+.context-option-card:hover {
+  border-color: #2563eb;
+  background-color: #f8faff;
+  transform: translateY(-1px);
+}
+
+.context-option-card:focus-visible {
+  outline: 2px solid #2563eb;
+}
+
+.context-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.context-desc {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.btn-back {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 0;
+  text-align: left;
+  align-self: flex-start;
+}
+
+.btn-back:hover {
+  text-decoration: underline;
+}
+
+/* Pie discreto */
+.form-footer-note {
+  position: absolute;
+  right: 32px;
+  bottom: 24px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* ==========================================================================
+   RESPONSIVE: Tablets y Móviles (<= 900px)
+   Fiel a la referencia móvil con escala fluida de 320px a 483px+
+   ========================================================================== */
+@media (max-width: 900px) {
+  .login-page {
+    flex-direction: column;
+    padding: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .hero-panel {
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: max(26px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 48px max(24px, env(safe-area-inset-left));
+    justify-content: flex-start;
+  }
+
+  .hero-brand {
+    margin-bottom: 18px;
+  }
+
+  .hero-main {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+  }
+
+  .hero-copy {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .hero-title {
+    font-size: clamp(22px, 6.9vw, 30px);
+    line-height: 1.12;
+    margin: 0 0 10px;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(12.5px, 3.5vw, 14.5px);
+    line-height: 1.4;
+  }
+
+  .hero-graphic {
+    flex: 0 0 clamp(96px, 33vw, 148px);
+    width: clamp(96px, 33vw, 148px);
+    height: auto;
+    margin-top: 0;
+  }
+
+  .orbits-svg {
+    max-width: 100%;
+  }
+
+  .hero-footer {
+    display: none;
+  }
+
+  .hero-curve {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    width: 100%;
+    height: clamp(26px, 7.5vw, 38px);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .form-panel {
+    flex: 1;
+    width: 100%;
+    padding: 12px max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+    justify-content: flex-start;
+  }
+
+  .btn-back {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .form-brand-icon {
+    display: none;
+  }
+
+  .form-container {
+    max-width: 420px;
+    margin: 0;
+  }
+
+  .form-header {
+    margin-bottom: 22px;
+  }
+
+  .form-title {
+    font-size: clamp(25px, 7vw, 31px);
+    margin-bottom: 6px;
+  }
+
+  .form-subtitle {
+    font-size: clamp(13.5px, 3.8vw, 15px);
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .btn-submit {
+    margin-top: 20px;
+  }
+
+  .register-prompt {
+    margin-top: 20px;
+  }
+
+  .form-footer-note {
+    position: static;
+    margin-top: auto;
+    padding-top: 24px;
+    padding-bottom: 4px;
+    text-align: center;
+    font-size: 13px;
+  }
+}
+
+/* Ajuste fino para 360px y 320px */
+@media (max-width: 640px) {
+  .form-input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 375px) {
+  .hero-panel {
+    padding: 20px 18px 42px;
+  }
+
+  .hero-brand {
+    margin-bottom: 14px;
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 24px;
+    height: 19px;
+  }
+
+  .brand-mark::before,
+  .brand-mark::after {
+    width: 15px;
+    height: 15px;
+    top: 2px;
+  }
+
+  .brand-mark::after {
+    left: 8px;
+  }
+
+  .brand-text {
+    font-size: 19px;
+  }
+
+  .hero-main {
+    gap: 8px;
+  }
+
+  .form-panel {
+    padding: 10px 18px 18px;
+  }
+
+  .form-header {
+    margin-bottom: 18px;
+  }
+
+  .form-input,
+  .password-input-wrapper {
+    height: 46px;
+  }
+
+  .password-input-wrapper .password-input {
+    height: 43px;
+  }
+
+  .btn-submit {
+    min-height: 48px;
+    font-size: 15px;
+    margin-top: 16px;
+  }
+
+  .register-prompt {
+    margin-top: 16px;
+    font-size: 13.5px;
+  }
+
+  .form-footer-note {
+    padding-top: 18px;
+    font-size: 12.5px;
+  }
+}
+
+/* Ajuste para pantallas bajas (ej. 320x568 o landscape móvil) */
+@media (max-width: 900px) and (max-height: 660px) {
+  .hero-panel {
+    padding: 16px 18px 34px;
+  }
+
+  .hero-brand {
+    margin-bottom: 10px;
+  }
+
+  .hero-title {
+    margin-bottom: 6px;
+  }
+
+  .form-panel {
+    padding: 8px 18px 14px;
+  }
+
+  .form-header {
+    margin-bottom: 14px;
+  }
+
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  .form-footer-note {
+    padding-top: 14px;
+  }
+}

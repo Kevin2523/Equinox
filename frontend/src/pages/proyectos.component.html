@@ -1,120 +1,430 @@
-<main class="standard"><section class="collection">
-  <div class="page-title"><div><p class="eyebrow">EQUINOX / PROYECTOS</p><h1>Proyectos</h1><p>Proyectos asociados a los clientes de tu organización.</p></div><button class="btn-primary" (click)="nuevo()" [disabled]="!clientes.length"><span>+</span> Nuevo proyecto</button></div>
-  <div class="metrics-row"><div class="metric-card"><small>TOTAL PROYECTOS</small><strong>{{ proyectos.length }}</strong><p>En esta organización</p></div><div class="metric-card"><small>PROYECTOS ACTIVOS</small><strong>{{ proyectosActivos }}</strong><p>Estado ACTIVO</p></div><div class="metric-card"><small>CLIENTES</small><strong>{{ clientes.length }}</strong><p>Disponibles para asociar</p></div></div>
-  <div class="filter-bar"><label class="search-input-pill"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input [(ngModel)]="busqueda" placeholder="Buscar por nombre, cliente o descripción..."></label><div class="filter-pills">
-    <button [class.active]="filtroEstado === 'TODOS'" (click)="filtroEstado = 'TODOS'">Todos</button><button [class.active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado = 'ACTIVO'">Activos</button><button [class.active]="filtroEstado === 'BORRADOR'" (click)="filtroEstado = 'BORRADOR'">Borradores</button><button [class.active]="filtroEstado === 'PAUSADO'" (click)="filtroEstado = 'PAUSADO'">Pausados</button><button [class.active]="filtroEstado === 'COMPLETADO'" (click)="filtroEstado = 'COMPLETADO'">Completados</button>
-  </div></div>
-  <p class="api-state" *ngIf="cargando" role="status">Cargando proyectos y clientes…</p><div class="api-state api-state-error" *ngIf="error" role="alert">{{ error }} <button class="btn-secondary" (click)="reintentarCarga()">Reintentar</button></div>
-  <div class="api-state" *ngIf="!cargando && !error && !clientes.length">Registra un cliente antes de crear un proyecto.</div>
-  <div class="api-state" *ngIf="!cargando && !error && clientes.length && proyectosVisibles.length === 0">{{ busqueda || filtroEstado !== 'TODOS' ? 'No hay proyectos que coincidan con el filtro.' : 'Todavía no hay proyectos. Crea el primero para comenzar.' }}</div>
-  <div class="projects-grid" *ngIf="!cargando && !error && proyectosVisibles.length">
-    <article class="project-grid-card" *ngFor="let p of proyectosVisibles">
-      <button class="project-card-main" type="button" (click)="verDetalle(p)"><div class="p-card-top"><span class="p-node-thumb visual-building"></span><div><small>{{ p.cliente?.nombre || 'Cliente' }}{{ p.cliente?.empresa ? ' · ' + p.cliente?.empresa : '' }}</small><h3>{{ p.nombre }}</h3><p>{{ p.descripcion || 'Sin descripción' }}</p></div><span class="badge" [ngClass]="claseEstado(p.estado)">● {{ p.estado }}</span></div></button>
-      <div class="p-card-foot"><span>Entrega: <b>{{ p.fechaEntrega ? (p.fechaEntrega | date:'mediumDate') : 'Sin fecha' }}</b></span><span class="p-budget" *ngIf="p.presupuesto !== null">{{ p.moneda }} {{ p.presupuesto | number:'1.2-2' }}</span><button class="btn-card-action" type="button" (click)="abrirEdicion(p.id)">Editar</button></div>
-    </article>
+<main class="proyectos-page">
+  <!-- Selector de Organización / Estudio según el prototipo -->
+  <div class="org-selector-row">
+    <button class="org-selector-btn" type="button" title="Organización activa">
+      <span>{{ nombreOrganizacion }}</span>
+      <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+      </svg>
+    </button>
   </div>
-</section></main>
 
-<!-- Modal Crear / Editar Proyecto (Ventana emergente ancha) -->
-<div class="overlay" *ngIf="modalFormulario" (click)="modalFormulario = false">
-  <section class="quick-modal modal-formulario-amplio" role="dialog" aria-modal="true" aria-labelledby="proyecto-form-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
-    <!-- Cabecera Hero -->
-    <header class="modal-header-hero">
-      <div class="hero-bg-pattern"></div>
-      <div class="modal-header-hero-content">
-        <div class="modal-hero-eyebrow-row">
-          <span class="modal-hero-eyebrow">{{ editandoId ? 'EDITAR PROYECTO' : 'NUEVO PROYECTO' }}</span>
-          <button class="modal-hero-close" type="button" (click)="modalFormulario = false" aria-label="Cerrar" title="Cerrar ventana">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-hero-title-row">
-          <div>
-            <h2 id="proyecto-form-title">{{ editandoId ? 'Actualizar proyecto' : 'Crear nuevo proyecto' }}</h2>
-            <p class="modal-hero-subtitle">Completa los datos del proyecto y su vinculación con el cliente.</p>
-          </div>
+  <!-- Encabezado de Página -->
+  <header class="page-header">
+    <div class="header-titles">
+      <div class="title-with-count">
+        <h1>Proyectos</h1>
+        <span class="proyectos-count-badge">{{ proyectos.length }} proyecto{{ proyectos.length === 1 ? '' : 's' }}</span>
+      </div>
+      <p class="subtitle">Cada idea, con rumbo y seguimiento.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary btn-nuevo" type="button" (click)="nuevo()" [disabled]="!clientes.length" title="Crear un nuevo proyecto">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Nuevo proyecto</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Barra de Filtros por Estado, Búsqueda y Alternancia de Vistas -->
+  <section class="controls-bar" aria-label="Controles de filtrado y visualización">
+    <!-- Pestañas por Estado con Conteos Reales -->
+    <nav class="status-tabs" aria-label="Filtrar por estado">
+      <button class="tab-btn" [class.active]="filtroEstado === 'TODOS'" (click)="filtroEstado = 'TODOS'">
+        <span>Todos</span> <span class="tab-count">{{ conteoTodos }}</span>
+        <div class="active-line" *ngIf="filtroEstado === 'TODOS'"></div>
+      </button>
+      <button class="tab-btn" [class.active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado = 'ACTIVO'">
+        <span>En progreso</span> <span class="tab-count">{{ conteoEnProgreso }}</span>
+        <div class="active-line" *ngIf="filtroEstado === 'ACTIVO'"></div>
+      </button>
+      <button class="tab-btn" [class.active]="filtroEstado === 'BORRADOR'" (click)="filtroEstado = 'BORRADOR'">
+        <span>Planificación</span> <span class="tab-count">{{ conteoPlanificacion }}</span>
+        <div class="active-line" *ngIf="filtroEstado === 'BORRADOR'"></div>
+      </button>
+      <button class="tab-btn" [class.active]="filtroEstado === 'PAUSADO'" (click)="filtroEstado = 'PAUSADO'">
+        <span>En pausa</span> <span class="tab-count">{{ conteoEnPausa }}</span>
+        <div class="active-line" *ngIf="filtroEstado === 'PAUSADO'"></div>
+      </button>
+      <button class="tab-btn" [class.active]="filtroEstado === 'COMPLETADO'" (click)="filtroEstado = 'COMPLETADO'">
+        <span>Completados</span> <span class="tab-count">{{ conteoCompletados }}</span>
+        <div class="active-line" *ngIf="filtroEstado === 'COMPLETADO'"></div>
+      </button>
+      <button class="tab-btn" *ngIf="conteoCancelados > 0" [class.active]="filtroEstado === 'CANCELADO'" (click)="filtroEstado = 'CANCELADO'">
+        <span>Cancelados</span> <span class="tab-count">{{ conteoCancelados }}</span>
+        <div class="active-line" *ngIf="filtroEstado === 'CANCELADO'"></div>
+      </button>
+    </nav>
+
+    <!-- Controles de la Derecha: Buscador y Conmutador Cuadrícula / Lista -->
+    <div class="controls-right">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
+        </svg>
+        <input type="text" [(ngModel)]="busqueda" placeholder="Buscar proyectos..." aria-label="Buscar proyectos">
+        <button *ngIf="busqueda" class="clear-search-btn" (click)="busqueda = ''" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">×</button>
+      </div>
+
+      <div class="view-toggle" role="group" aria-label="Modo de visualización">
+        <button class="view-btn" [class.active]="vista === 'list'" (click)="vista = 'list'" title="Vista lista" aria-label="Vista lista">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+        </button>
+        <button class="view-btn" [class.active]="vista === 'grid'" (click)="vista = 'grid'" title="Vista cuadrícula" aria-label="Vista cuadrícula">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Estados del Sistema: Cargando, Error y Vacíos -->
+  <div class="state-container" *ngIf="cargando">
+    <div class="skeleton-grid">
+      <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5,6]">
+        <div class="skeleton-cover"></div>
+        <div class="skeleton-body">
+          <div class="skeleton-line line-title"></div>
+          <div class="skeleton-line line-sub"></div>
+          <div class="skeleton-line line-footer"></div>
         </div>
       </div>
-    </header>
+    </div>
+  </div>
 
-    <form #form="ngForm" (ngSubmit)="guardar(form)" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
-      <div class="modal-form-body">
-        <div class="modal-form-grid-2col">
-          <div class="form-group">
-            <label for="proyecto-nombre">Nombre del proyecto *</label>
-            <input id="proyecto-nombre" class="form-control" name="nombre" [(ngModel)]="formulario.nombre" required minlength="2" placeholder="Ej. Sitio web corporativo">
+  <div class="error-banner" *ngIf="!cargando && error" role="alert">
+    <div class="error-text">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ error }}</span>
+    </div>
+    <button class="btn-retry" type="button" (click)="reintentarCarga()">Reintentar</button>
+  </div>
+
+  <div class="empty-state-card" *ngIf="!cargando && !error && !clientes.length">
+    <div class="empty-icon-wrap">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+    </div>
+    <h3>Registra un cliente primero</h3>
+    <p>Para crear proyectos, necesitas tener al menos un cliente en tu organización.</p>
+  </div>
+
+  <div class="empty-state-card" *ngIf="!cargando && !error && clientes.length && proyectosVisibles.length === 0">
+    <div class="empty-icon-wrap">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </svg>
+    </div>
+    <ng-container *ngIf="busqueda || filtroEstado !== 'TODOS'; else sinProyectosGeneral">
+      <h3>No se encontraron proyectos</h3>
+      <p>No hay proyectos que coincidan con "{{ busqueda || etiquetaEstado(filtroEstado) }}".</p>
+      <button class="btn-clear-filter" type="button" (click)="busqueda = ''; filtroEstado = 'TODOS'">Restablecer filtros</button>
+    </ng-container>
+    <ng-template #sinProyectosGeneral>
+      <h3>Todavía no hay proyectos</h3>
+      <p>Comienza creando el primer proyecto para tu organización.</p>
+      <button class="btn-primary" type="button" (click)="nuevo()">+ Nuevo proyecto</button>
+    </ng-template>
+  </div>
+
+  <!-- VISTA 1: CUADRÍCULA (GRID VIEW CONFORME A LA REFERENCIA) -->
+  <section class="projects-grid" *ngIf="!cargando && !error && proyectosVisibles.length > 0 && vista === 'grid'">
+    <article class="project-card" *ngFor="let p of proyectosVisibles" (click)="verDetalle(p)" tabindex="0" (keydown.enter)="verDetalle(p)">
+      <!-- Portada: Archivo real asociado o Tarjeta Gráfica Neutra con Patrón Derivado -->
+      <div class="card-cover">
+        <!-- Badge de Categoría en la esquina superior izquierda -->
+        <span class="card-category-badge">{{ categoria(p) }}</span>
+
+        <ng-container *ngIf="obtenerPortadaReal(p) as imgUrl; else tarjetaGraficaNeutra">
+          <img [src]="imgUrl" [alt]="p.nombre" class="cover-image" loading="lazy">
+        </ng-container>
+        <ng-template #tarjetaGraficaNeutra>
+          <div class="neutral-cover" [ngStyle]="{ 'background-color': obtenerGraficoNeutro(p).bg }">
+            <svg class="neutral-svg-pattern" viewBox="0 0 400 200" preserveAspectRatio="none">
+              <line x1="0" y1="40" x2="400" y2="40" [attr.stroke]="obtenerGraficoNeutro(p).line" stroke-width="1" stroke-dasharray="4 6"/>
+              <line x1="0" y1="160" x2="400" y2="160" [attr.stroke]="obtenerGraficoNeutro(p).line" stroke-width="1" stroke-dasharray="4 6"/>
+              <line x1="100" y1="0" x2="100" y2="200" [attr.stroke]="obtenerGraficoNeutro(p).line" stroke-width="1" stroke-dasharray="4 6"/>
+              <line x1="300" y1="0" x2="300" y2="200" [attr.stroke]="obtenerGraficoNeutro(p).line" stroke-width="1" stroke-dasharray="4 6"/>
+              <circle cx="200" cy="100" r="46" [attr.stroke]="obtenerGraficoNeutro(p).line" stroke-width="1" fill="none"/>
+              <circle cx="200" cy="100" r="72" [attr.stroke]="obtenerGraficoNeutro(p).line" stroke-width="0.75" stroke-dasharray="2 4" fill="none"/>
+            </svg>
+            <div class="neutral-monogram" [ngStyle]="{ 'background': obtenerGraficoNeutro(p).monoBg, 'color': obtenerGraficoNeutro(p).accent }">
+              {{ obtenerGraficoNeutro(p).iniciales }}
+            </div>
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- Cuerpo de la Tarjeta -->
+      <div class="card-content">
+        <h3 class="card-title" [title]="p.nombre">{{ p.nombre }}</h3>
+        <p class="card-client" [title]="clienteTexto(p)">{{ clienteTexto(p) }}</p>
+
+        <!-- Fila Inferior: Estado, Progreso, Fecha y Menú de Acciones -->
+        <div class="card-meta-row" (click)="$event.stopPropagation()">
+          <div class="meta-status">
+            <span class="status-dot" [ngClass]="claseEstadoDot(p.estado)"></span>
+            <span class="status-text">{{ etiquetaEstado(p.estado) }}</span>
           </div>
 
-          <div class="form-group">
-            <label for="proyecto-cliente">Cliente asociado *</label>
-            <select id="proyecto-cliente" class="form-control" name="clienteId" [(ngModel)]="formulario.clienteId" required>
-              <option value="" disabled>Selecciona un cliente</option>
-              <option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }}{{ c.empresa ? ' · ' + c.empresa : '' }}</option>
-            </select>
-          </div>
-
-          <div class="form-group col-span-2">
-            <label for="proyecto-descripcion">Descripción</label>
-            <textarea id="proyecto-descripcion" class="form-control" name="descripcion" [(ngModel)]="formulario.descripcion" rows="2" placeholder="Detalles, alcance y notas del proyecto..."></textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="proyecto-estado">Estado del proyecto</label>
-            <select id="proyecto-estado" class="form-control" name="estado" [(ngModel)]="formulario.estado">
-              <option value="BORRADOR">Borrador</option>
-              <option value="ACTIVO">Activo</option>
-              <option value="PAUSADO">Pausado</option>
-              <option value="COMPLETADO">Completado</option>
-              <option value="CANCELADO">Cancelado</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="proyecto-presupuesto">Presupuesto</label>
-            <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px;">
-              <input id="proyecto-presupuesto" type="number" min="0" step="0.01" class="form-control" name="presupuesto" [(ngModel)]="formulario.presupuesto" placeholder="0.00">
-              <input id="proyecto-moneda" class="form-control" name="moneda" [(ngModel)]="formulario.moneda" required minlength="3" maxlength="3" placeholder="PAB" title="Código ISO de moneda (ej. PAB, USD)">
+          <div class="meta-progress" [title]="'Progreso calculado: ' + progreso(p) + '%'">
+            <span class="progress-pct">{{ progreso(p) }}%</span>
+            <div class="progress-track" aria-hidden="true">
+              <div class="progress-fill" [style.width.%]="progreso(p)"></div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="proyecto-inicio">Fecha de inicio</label>
-            <input id="proyecto-inicio" type="date" class="form-control" name="fechaInicio" [(ngModel)]="formulario.fechaInicio">
+          <div class="meta-date">
+            <span>{{ p.fechaEntrega ? (p.fechaEntrega | date:'dd MMM') : '—' }}</span>
           </div>
 
-          <div class="form-group">
-            <label for="proyecto-entrega">Fecha de entrega prevista</label>
-            <input id="proyecto-entrega" type="date" class="form-control" name="fechaEntrega" [(ngModel)]="formulario.fechaEntrega">
+          <div class="meta-actions">
+            <button class="btn-dots-trigger" type="button" (click)="abrirMenu(p.id, $event)" title="Opciones del proyecto" aria-label="Opciones del proyecto">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="5" cy="12" r="2.2"/>
+                <circle cx="12" cy="12" r="2.2"/>
+                <circle cx="19" cy="12" r="2.2"/>
+              </svg>
+            </button>
+
+            <!-- Menú Desplegable de Acciones Reales -->
+            <div class="actions-dropdown" *ngIf="menuAbiertoId === p.id" (click)="$event.stopPropagation()">
+              <button type="button" class="dropdown-item" (click)="verDetalle(p); menuAbiertoId = null">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <span>Ver detalles</span>
+              </button>
+              <button type="button" class="dropdown-item" (click)="abrirEdicion(p.id); menuAbiertoId = null">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                <span>Editar proyecto</span>
+              </button>
+              <div class="dropdown-divider"></div>
+              <button *ngIf="p.estado !== 'ACTIVO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'ACTIVO', $event)">
+                <span class="status-dot dot-progreso"></span>
+                <span>En progreso</span>
+              </button>
+              <button *ngIf="p.estado !== 'PAUSADO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'PAUSADO', $event)">
+                <span class="status-dot dot-pausa"></span>
+                <span>En pausa</span>
+              </button>
+              <button *ngIf="p.estado !== 'COMPLETADO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'COMPLETADO', $event)">
+                <span class="status-dot dot-completado"></span>
+                <span>Completado</span>
+              </button>
+              <div class="dropdown-divider"></div>
+              <button type="button" class="dropdown-item item-danger" (click)="iniciarEliminar(p.id, $event)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <span>Eliminar proyecto</span>
+              </button>
+            </div>
           </div>
         </div>
-
-        <p class="auth-validation" *ngIf="enviado && form.invalid" style="margin-top: 10px;">Revisa los campos requeridos y el formato.</p>
-        <p class="auth-error" role="alert" *ngIf="errorGuardar" style="margin-top: 10px;">{{ errorGuardar }}</p>
       </div>
+    </article>
+  </section>
 
-      <footer class="modal-footer-bar">
+  <!-- VISTA 2: LISTA ALTERNATIVA (LIST VIEW) -->
+  <section class="projects-list-table-wrap" *ngIf="!cargando && !error && proyectosVisibles.length > 0 && vista === 'list'">
+    <table class="projects-table">
+      <thead>
+        <tr>
+          <th>Proyecto</th>
+          <th>Cliente / Contacto</th>
+          <th>Estado</th>
+          <th>Progreso</th>
+          <th>Entrega</th>
+          <th>Presupuesto</th>
+          <th class="th-actions">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of proyectosVisibles" (click)="verDetalle(p)" class="table-row">
+          <td class="td-project">
+            <div class="list-thumb" [ngStyle]="{ 'background-color': obtenerGraficoNeutro(p).bg }">
+              <span class="list-thumb-initials" [ngStyle]="{ 'color': obtenerGraficoNeutro(p).accent }">{{ obtenerGraficoNeutro(p).iniciales }}</span>
+            </div>
+            <div class="list-title-wrap">
+              <div class="list-category-tag">{{ categoria(p) }}</div>
+              <strong>{{ p.nombre }}</strong>
+              <small class="list-desc" *ngIf="p.descripcion">{{ p.descripcion }}</small>
+            </div>
+          </td>
+          <td class="td-client">
+            <span class="list-client-name">{{ clienteTexto(p) }}</span>
+          </td>
+          <td class="td-status">
+            <div class="meta-status">
+              <span class="status-dot" [ngClass]="claseEstadoDot(p.estado)"></span>
+              <span class="status-text">{{ etiquetaEstado(p.estado) }}</span>
+            </div>
+          </td>
+          <td class="td-progress">
+            <div class="meta-progress">
+              <span class="progress-pct">{{ progreso(p) }}%</span>
+              <div class="progress-track" aria-hidden="true">
+                <div class="progress-fill" [style.width.%]="progreso(p)"></div>
+              </div>
+            </div>
+          </td>
+          <td class="td-date">
+            {{ p.fechaEntrega ? (p.fechaEntrega | date:'dd MMM yyyy') : 'Sin fecha' }}
+          </td>
+          <td class="td-budget">
+            {{ p.presupuesto !== null ? (p.moneda + ' ' + (p.presupuesto | number:'1.2-2')) : '—' }}
+          </td>
+          <td class="td-actions" (click)="$event.stopPropagation()">
+            <button class="btn-dots-trigger" type="button" (click)="abrirMenu(p.id, $event)" title="Opciones" aria-label="Opciones">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/>
+              </svg>
+            </button>
+            <!-- Dropdown en fila de lista -->
+            <div class="actions-dropdown dropdown-list-align" *ngIf="menuAbiertoId === p.id" (click)="$event.stopPropagation()">
+              <button type="button" class="dropdown-item" (click)="verDetalle(p); menuAbiertoId = null">Ver detalles</button>
+              <button type="button" class="dropdown-item" (click)="abrirEdicion(p.id); menuAbiertoId = null">Editar proyecto</button>
+              <div class="dropdown-divider"></div>
+              <button *ngIf="p.estado !== 'ACTIVO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'ACTIVO', $event)">Marcar En progreso</button>
+              <button *ngIf="p.estado !== 'PAUSADO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'PAUSADO', $event)">Pausar proyecto</button>
+              <button *ngIf="p.estado !== 'COMPLETADO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'COMPLETADO', $event)">Marcar Completado</button>
+              <div class="dropdown-divider"></div>
+              <button type="button" class="dropdown-item item-danger" (click)="iniciarEliminar(p.id, $event)">Eliminar proyecto</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Pie de la Lista: Total mostrado -->
+  <footer class="proyectos-footer" *ngIf="!cargando && !error && proyectos.length > 0">
+    <span class="footer-count">Mostrando {{ proyectosVisibles.length }} de {{ proyectos.length }} proyecto{{ proyectos.length === 1 ? '' : 's' }}</span>
+  </footer>
+</main>
+
+<!-- ==========================================================================
+     MODAL CREAR / EDITAR PROYECTO
+     ========================================================================== -->
+<div class="overlay" *ngIf="modalFormulario" (click)="modalFormulario = false">
+  <section class="quick-modal" role="dialog" aria-modal="true" aria-labelledby="proyecto-modal-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
+    <button class="close" type="button" (click)="modalFormulario = false" aria-label="Cerrar modal">×</button>
+    <small class="modal-eyebrow">{{ editandoId ? 'EDITAR PROYECTO' : 'NUEVO PROYECTO' }}</small>
+    <h2 id="proyecto-modal-title">{{ editandoId ? 'Actualizar proyecto' : 'Crear proyecto' }}</h2>
+    <form #form="ngForm" (ngSubmit)="guardar(form)">
+      <div class="form-group">
+        <label for="proyecto-nombre">Nombre del proyecto *</label>
+        <input id="proyecto-nombre" class="form-control" name="nombre" [(ngModel)]="formulario.nombre" required minlength="2" placeholder="Ej. Rediseño web Café Unido">
+      </div>
+      <div class="form-group">
+        <label for="proyecto-cliente">Cliente asociado *</label>
+        <select id="proyecto-cliente" class="form-control" name="clienteId" [(ngModel)]="formulario.clienteId" required>
+          <option value="" disabled>Selecciona un cliente</option>
+          <option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }}{{ c.empresa ? ' · ' + c.empresa : '' }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="proyecto-descripcion">Descripción</label>
+        <textarea id="proyecto-descripcion" class="form-control" name="descripcion" [(ngModel)]="formulario.descripcion" rows="3" placeholder="Resumen o alcance del proyecto..."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="proyecto-estado">Estado</label>
+        <select id="proyecto-estado" class="form-control" name="estado" [(ngModel)]="formulario.estado">
+          <option value="BORRADOR">Planificación (Borrador)</option>
+          <option value="ACTIVO">En progreso (Activo)</option>
+          <option value="PAUSADO">En pausa</option>
+          <option value="COMPLETADO">Completado</option>
+          <option value="CANCELADO">Cancelado</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="proyecto-presupuesto">Presupuesto</label>
+          <input id="proyecto-presupuesto" type="number" min="0" step="0.01" class="form-control" name="presupuesto" [(ngModel)]="formulario.presupuesto">
+        </div>
+        <div class="form-group">
+          <label for="proyecto-moneda">Moneda (ISO)</label>
+          <input id="proyecto-moneda" class="form-control" name="moneda" [(ngModel)]="formulario.moneda" required minlength="3" maxlength="3">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="proyecto-inicio">Fecha de inicio</label>
+          <input id="proyecto-inicio" type="date" class="form-control" name="fechaInicio" [(ngModel)]="formulario.fechaInicio">
+        </div>
+        <div class="form-group">
+          <label for="proyecto-entrega">Fecha de entrega</label>
+          <input id="proyecto-entrega" type="date" class="form-control" name="fechaEntrega" [(ngModel)]="formulario.fechaEntrega">
+        </div>
+      </div>
+      <p class="auth-validation" *ngIf="enviado && form.invalid">Revisa los campos requeridos y el formato.</p>
+      <p class="auth-error" role="alert" *ngIf="errorGuardar">{{ errorGuardar }}</p>
+      <div class="modal-actions">
         <button class="btn-secondary" type="button" (click)="modalFormulario = false">Cancelar</button>
         <button class="btn-primary" type="submit" [disabled]="guardando">{{ guardando ? 'Guardando…' : (editandoId ? 'Guardar cambios' : 'Crear proyecto') }}</button>
-      </footer>
+      </div>
     </form>
   </section>
 </div>
 
-<!-- Modal Detalle de Proyecto (Inspector moderno estructurado con pestañas) -->
+<!-- ==========================================================================
+     MODAL CONFIRMAR ELIMINACIÓN DE PROYECTO
+     ========================================================================== -->
+<div class="overlay" *ngIf="confirmandoEliminarId" (click)="confirmandoEliminarId = null">
+  <section class="quick-modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="proyecto-confirm-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
+    <button class="close" type="button" (click)="confirmandoEliminarId = null" aria-label="Cerrar">×</button>
+    <div class="confirm-icon-wrap">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+    </div>
+    <h2 id="proyecto-confirm-title">¿Eliminar este proyecto?</h2>
+    <p>Esta acción eliminará de forma permanente el proyecto, sus tareas, hitos, archivos y comentarios asociados en la base de datos.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" type="button" (click)="confirmandoEliminarId = null" [disabled]="eliminandoProyecto">Cancelar</button>
+      <button class="btn-danger" type="button" (click)="confirmarEliminar()" [disabled]="eliminandoProyecto">{{ eliminandoProyecto ? 'Eliminando…' : 'Sí, eliminar proyecto' }}</button>
+    </div>
+  </section>
+</div>
+
+<!-- ==========================================================================
+     MODAL DETALLE DE PROYECTO (VENTANA MODAL AMPLIA CON PESTAÑAS COMPLETAS)
+     ========================================================================== -->
 <div class="overlay" *ngIf="modalDetalle" (click)="cerrarDetalle()">
   <section class="quick-modal modal-detalle-amplio" role="dialog" aria-modal="true" aria-labelledby="proyecto-detail-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
-
     <ng-container *ngIf="proyectoDetalle as p">
-      <!-- Cabecera Hero -->
+      <!-- Cabecera Hero con Estética Equinox -->
       <header class="modal-header-hero">
         <div class="hero-bg-pattern"></div>
         <div class="modal-header-hero-content">
           <div class="modal-hero-eyebrow-row">
-            <span class="modal-hero-eyebrow">Detalle de Proyecto</span>
-            <button class="modal-hero-close" (click)="cerrarDetalle()" aria-label="Cerrar" title="Cerrar ventana">
+            <span class="modal-hero-eyebrow">{{ categoria(p) }} / PROYECTO</span>
+            <button class="modal-hero-close" (click)="cerrarDetalle()" aria-label="Cerrar detalle" title="Cerrar">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -126,342 +436,338 @@
             <div>
               <h2 id="proyecto-detail-title">{{ p.nombre }}</h2>
               <p class="modal-hero-subtitle">
-                <span>{{ p.cliente?.nombre || 'Cliente sin asignar' }}{{ p.cliente?.empresa ? ' · ' + p.cliente?.empresa : '' }}</span>
+                <span>{{ clienteTexto(p) }}</span>
                 <span>•</span>
-                <span class="badge" [ngClass]="claseEstado(p.estado)">● {{ p.estado }}</span>
+                <span class="badge" [ngClass]="'badge-' + p.estado.toLowerCase()">● {{ etiquetaEstado(p.estado) }}</span>
               </p>
             </div>
             <div class="modal-hero-actions">
-              <button class="btn-secondary" type="button" (click)="abrirEdicion(p.id)">Editar proyecto</button>
+              <button class="btn-secondary btn-hero-edit" type="button" (click)="abrirEdicion(p.id)">Editar proyecto</button>
             </div>
           </div>
         </div>
+
+        <!-- Pestañas de Navegación del Detalle -->
+        <nav class="detail-nav-tabs">
+          <button class="detail-tab-btn" [class.active]="pestanaDetalle === 'resumen'" (click)="pestanaDetalle = 'resumen'">
+            Resumen
+          </button>
+          <button class="detail-tab-btn" [class.active]="pestanaDetalle === 'tareas'" (click)="pestanaDetalle = 'tareas'">
+            Tareas <span class="tab-badge">{{ tareasDetalle.length }}</span>
+          </button>
+          <button class="detail-tab-btn" [class.active]="pestanaDetalle === 'hitos'" (click)="pestanaDetalle = 'hitos'">
+            Hitos <span class="tab-badge">{{ hitosDetalle.length }}</span>
+          </button>
+          <button class="detail-tab-btn" [class.active]="pestanaDetalle === 'archivos'" (click)="pestanaDetalle = 'archivos'">
+            Archivos <span class="tab-badge">{{ archivosDetalle.length }}</span>
+          </button>
+          <button class="detail-tab-btn" [class.active]="pestanaDetalle === 'bitacora'" (click)="pestanaDetalle = 'bitacora'">
+            Bitácora & Comentarios <span class="tab-badge">{{ comentariosDetalle.length }}</span>
+          </button>
+        </nav>
       </header>
 
-      <!-- Cuerpo del modal -->
-      <div class="modal-body-scroll pd-modal-body">
+      <!-- Cuerpo del Modal -->
+      <div class="modal-body-scroll">
         <p *ngIf="detalleCargando" role="status" class="api-state">Cargando detalles…</p>
         <p class="auth-error" *ngIf="detalleError" role="alert">{{ detalleError }} <button class="btn-secondary" type="button" (click)="cargarDetalle(detalleId || '')">Reintentar</button></p>
 
         <div *ngIf="!detalleCargando">
-          <!-- Resumen Ejecutivo Superior: Franja unificada sin cajas anidadas -->
-          <div class="pd-hero-summary">
-            <p class="pd-desc-text" *ngIf="p.descripcion">{{ p.descripcion }}</p>
+          <!-- PESTAÑA 1: RESUMEN -->
+          <div *ngIf="pestanaDetalle === 'resumen'" class="detail-tab-content">
+            <div class="stats-cards-grid">
+              <div class="stat-box">
+                <small>Presupuesto</small>
+                <b>{{ p.presupuesto === null ? 'Sin asignar' : (p.moneda + ' ' + (p.presupuesto | number:'1.2-2')) }}</b>
+              </div>
+              <div class="stat-box">
+                <small>Fecha Inicio</small>
+                <b>{{ p.fechaInicio ? (p.fechaInicio | date:'dd MMM yyyy') : 'No definida' }}</b>
+              </div>
+              <div class="stat-box">
+                <small>Fecha Entrega</small>
+                <b>{{ p.fechaEntrega ? (p.fechaEntrega | date:'dd MMM yyyy') : 'No definida' }}</b>
+              </div>
+            </div>
 
-            <div class="pd-metrics-strip">
-              <div class="pd-metric-item">
-                <span class="pd-metric-label">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                  Presupuesto
-                </span>
-                <strong class="pd-metric-value">{{ p.presupuesto === null ? 'Sin asignar' : (p.moneda + ' ' + (p.presupuesto | number:'1.2-2')) }}</strong>
+            <!-- Progreso General de Tareas -->
+            <div class="task-progress-box">
+              <div class="progress-header-row">
+                <strong>Progreso Global de Tareas</strong>
+                <span class="progress-pct-badge">{{ progresoDetalle() }}%</span>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill" [style.width.%]="progresoDetalle()"></div>
+              </div>
+              <p class="progress-subtext">Calculado en base a {{ tareasDetalle.length }} tarea(s) en este proyecto.</p>
+            </div>
+
+            <!-- Descripción -->
+            <div class="detail-card-panel">
+              <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                Descripción del Proyecto
+              </h3>
+              <p class="detail-desc-text">{{ p.descripcion || 'Sin descripción registrada para este proyecto.' }}</p>
+            </div>
+          </div>
+
+          <!-- PESTAÑA 2: TAREAS -->
+          <div *ngIf="pestanaDetalle === 'tareas'" class="detail-tab-content">
+            <div class="detail-card-panel">
+              <div class="panel-header-with-action">
+                <h3>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                  Tareas del Proyecto ({{ tareasDetalle.length }})
+                </h3>
               </div>
 
-              <div class="pd-metric-item">
-                <span class="pd-metric-label">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  Fecha Inicio
-                </span>
-                <strong class="pd-metric-value">{{ p.fechaInicio ? (p.fechaInicio | date:'dd MMM yyyy') : 'No definida' }}</strong>
-              </div>
-
-              <div class="pd-metric-item">
-                <span class="pd-metric-label">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  Fecha Entrega
-                </span>
-                <strong class="pd-metric-value">{{ p.fechaEntrega ? (p.fechaEntrega | date:'dd MMM yyyy') : 'No definida' }}</strong>
-              </div>
-
-              <div class="pd-metric-item pd-metric-item-progress">
-                <div class="pd-progress-meta">
-                  <span class="pd-metric-label">Progreso tareas</span>
-                  <strong class="pd-metric-value">{{ progresoProyecto === null ? '0%' : (progresoProyecto + '%') }}</strong>
+              <!-- Lista de Tareas con Checkbox real -->
+              <div class="tasks-checklist" *ngIf="tareasDetalle.length">
+                <div class="task-checklist-item" *ngFor="let t of tareasDetalle" [class.task-done]="t.estado === 'COMPLETADA'">
+                  <label class="task-check-label">
+                    <input type="checkbox" [checked]="t.estado === 'COMPLETADA'" (change)="alternarTarea(t)">
+                    <span class="custom-checkbox"></span>
+                    <span class="task-title-text">{{ t.titulo }}</span>
+                  </label>
+                  <div class="task-item-meta">
+                    <span class="badge" [ngClass]="'priority-' + t.prioridad.toLowerCase()">{{ t.prioridad }}</span>
+                    <span class="task-due-date" *ngIf="t.fechaVencimiento">Vence: {{ t.fechaVencimiento | date:'dd MMM' }}</span>
+                    <button class="btn-task-del" type="button" (click)="eliminarTarea(t)" title="Eliminar tarea">×</button>
+                  </div>
                 </div>
-                <div class="pd-progress-track">
-                  <div class="pd-progress-fill" [style.width.%]="progresoProyecto || 0"></div>
+              </div>
+
+              <p *ngIf="!tareasDetalle.length" class="text-empty-italic">No hay tareas creadas todavía en este proyecto.</p>
+
+              <!-- Formulario para Nueva Tarea -->
+              <div class="inline-add-box">
+                <h4>+ Agregar nueva tarea</h4>
+                <div class="form-row">
+                  <div class="form-group flex-2">
+                    <input class="form-control" [(ngModel)]="nuevaTarea.titulo" placeholder="Título de la tarea..." minlength="2">
+                  </div>
+                  <div class="form-group">
+                    <select class="form-control" [(ngModel)]="nuevaTarea.prioridad">
+                      <option value="BAJA">Baja</option>
+                      <option value="MEDIA">Media</option>
+                      <option value="ALTA">Alta</option>
+                      <option value="URGENTE">Urgente</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <input type="date" class="form-control" [(ngModel)]="nuevaTarea.fechaVencimiento" title="Fecha límite">
+                  </div>
                 </div>
+                <p class="auth-error" *ngIf="errorTareas">{{ errorTareas }}</p>
+                <button class="btn-primary" type="button" (click)="crearTarea()" [disabled]="guardandoTarea || !nuevaTarea.titulo.trim()">
+                  {{ guardandoTarea ? 'Creando…' : 'Crear tarea' }}
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- Navegación por pestañas intuitivas -->
-          <nav class="pd-segmented-tabs" role="tablist" aria-label="Secciones del proyecto">
-            <button id="pd-tab-hitos" type="button" role="tab" class="pd-tab-btn" [class.active]="pestanaDetalle === 'hitos'" (click)="pestanaDetalle = 'hitos'" (keydown)="moverPestana($event)" [attr.tabindex]="pestanaDetalle === 'hitos' ? 0 : -1" aria-controls="pd-panel-hitos" [attr.aria-selected]="pestanaDetalle === 'hitos'">
-              <span class="pd-tab-label">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                Hitos y Entregables
-              </span>
-              <span class="pd-tab-count">{{ hitosDetalle.length }}</span>
-            </button>
-
-            <button id="pd-tab-archivos" type="button" role="tab" class="pd-tab-btn" [class.active]="pestanaDetalle === 'archivos'" (click)="pestanaDetalle = 'archivos'" (keydown)="moverPestana($event)" [attr.tabindex]="pestanaDetalle === 'archivos' ? 0 : -1" aria-controls="pd-panel-archivos" [attr.aria-selected]="pestanaDetalle === 'archivos'">
-              <span class="pd-tab-label">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                Archivos del Proyecto
-              </span>
-              <span class="pd-tab-count">{{ archivosDetalle.length }}</span>
-            </button>
-
-            <button id="pd-tab-bitacora" type="button" role="tab" class="pd-tab-btn" [class.active]="pestanaDetalle === 'bitacora'" (click)="pestanaDetalle = 'bitacora'" (keydown)="moverPestana($event)" [attr.tabindex]="pestanaDetalle === 'bitacora' ? 0 : -1" aria-controls="pd-panel-bitacora" [attr.aria-selected]="pestanaDetalle === 'bitacora'">
-              <span class="pd-tab-label">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                Conversación y Bitácora
-              </span>
-              <span class="pd-tab-count">{{ comentariosDetalle.length }}</span>
-            </button>
-          </nav>
-
-          <!-- ========================================== -->
-          <!-- PESTAÑA 1: HITOS Y ENTREGABLES -->
-          <!-- ========================================== -->
-          <div id="pd-panel-hitos" role="tabpanel" aria-labelledby="pd-tab-hitos" class="pd-tab-content" [hidden]="pestanaDetalle !== 'hitos'">
-            <div class="pd-tab-header">
-              <div>
-                <h3 class="pd-section-title">Hitos y Entregables</h3>
-                <p class="pd-section-subtitle">Define las etapas clave para seguimiento interno y visibilidad en el portal del cliente.</p>
+          <!-- PESTAÑA 3: HITOS -->
+          <div *ngIf="pestanaDetalle === 'hitos'" class="detail-tab-content">
+            <div class="detail-card-panel">
+              <div class="milestones-header">
+                <h3>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                  Hitos del Proyecto ({{ hitosDetalle.length }})
+                </h3>
               </div>
-              <button class="btn-primary pd-add-btn" type="button" (click)="mostrarFormularioHito = !mostrarFormularioHito">
-                <span>{{ mostrarFormularioHito ? '✕ Cancelar' : '+ Agregar hito' }}</span>
-              </button>
-            </div>
 
-            <!-- Formulario desplegable para nuevo hito -->
-            <div class="pd-form-card" *ngIf="mostrarFormularioHito || !hitosDetalle.length">
-              <div class="pd-form-card-title">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Nuevo hito o entrega
+              <p *ngIf="!hitosDetalle.length" class="text-empty-italic">Todavía no hay hitos registrados para este proyecto.</p>
+
+              <div class="milestones-list" *ngIf="hitosDetalle.length">
+                <div class="milestone-item-card" *ngFor="let hito of hitosDetalle">
+                  <div class="milestone-head">
+                    <div>
+                      <h4 class="milestone-title">{{ hito.titulo }}</h4>
+                      <div class="milestone-badges">
+                        <span class="badge" [ngClass]="hito.estado === 'COMPLETADO' ? 'badge-completado' : 'badge-progreso'">{{ hito.estado }}</span>
+                        <span class="badge badge-subtle">{{ hito.visibleEnPortal ? 'Visible en portal' : 'Solo CRM' }}</span>
+                      </div>
+                    </div>
+                    <time class="milestone-date" *ngIf="hito.fechaObjetivo">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      {{ hito.fechaObjetivo.slice(0, 10) }}
+                    </time>
+                  </div>
+
+                  <p class="milestone-desc" *ngIf="hito.descripcion">{{ hito.descripcion }}</p>
+
+                  <!-- Edición inline de hito -->
+                  <div *ngIf="editandoHitoId === hito.id" class="milestone-form-box">
+                    <label>Título <input class="form-control" [(ngModel)]="hitoBorrador.titulo" minlength="2"></label>
+                    <label>Descripción <textarea class="form-control" [(ngModel)]="hitoBorrador.descripcion"></textarea></label>
+                    <div class="form-row">
+                      <label>Estado
+                        <select class="form-control" [(ngModel)]="hitoBorrador.estado">
+                          <option value="PENDIENTE">Pendiente</option>
+                          <option value="EN_PROGRESO">En progreso</option>
+                          <option value="COMPLETADO">Completado</option>
+                          <option value="VENCIDO">Vencido</option>
+                        </select>
+                      </label>
+                      <label>Fecha objetivo <input class="form-control" type="date" [(ngModel)]="hitoBorrador.fechaObjetivo"></label>
+                    </div>
+                    <label><input type="checkbox" [(ngModel)]="hitoBorrador.visibleEnPortal"> Publicar en el portal del cliente</label>
+                    <div class="form-btn-row">
+                      <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="guardarHito(hito)">Guardar</button>
+                      <button class="btn-secondary" type="button" (click)="editandoHitoId = null">Cancelar</button>
+                    </div>
+                  </div>
+
+                  <div class="milestone-actions" *ngIf="editandoHitoId !== hito.id">
+                    <button class="btn-sm-action" type="button" (click)="editarHito(hito)">Editar hito</button>
+                    <button class="btn-sm-action" type="button" *ngIf="confirmandoHitoId !== hito.id" (click)="confirmandoHitoId = hito.id">Eliminar</button>
+                    <ng-container *ngIf="confirmandoHitoId === hito.id">
+                      <button class="btn-sm-action text-danger" type="button" [disabled]="guardandoHito" (click)="eliminarHito(hito)">Confirmar eliminación</button>
+                      <button class="btn-sm-action" type="button" (click)="confirmandoHitoId = null">Cancelar</button>
+                    </ng-container>
+                  </div>
+                </div>
               </div>
-              <div class="pd-form-grid">
-                <div class="form-group pd-grid-full">
-                  <label class="pd-field-label">Título del hito *</label>
-                  <input class="form-control" [(ngModel)]="nuevoHito.titulo" minlength="2" placeholder="Ej. Aprobación de wireframes y diseño final">
-                </div>
-                <div class="form-group pd-grid-full">
-                  <label class="pd-field-label">Descripción</label>
-                  <textarea class="form-control" [(ngModel)]="nuevoHito.descripcion" rows="2" placeholder="Detalles de lo que se entregará o revisará con el cliente..."></textarea>
-                </div>
-                <div class="form-group">
-                  <label class="pd-field-label">Fecha objetivo</label>
-                  <input class="form-control" type="date" [(ngModel)]="nuevoHito.fechaObjetivo">
-                </div>
-                <div class="form-group pd-checkbox-cell">
-                  <label class="custom-checkbox-label">
+
+              <!-- Formulario para nuevo hito -->
+              <div class="inline-add-box">
+                <h4>+ Agregar nuevo hito</h4>
+                <label>Título <input class="form-control" [(ngModel)]="nuevoHito.titulo" minlength="2" placeholder="Ej. Aprobación de bocetos iniciales"></label>
+                <label>Descripción <textarea class="form-control" [(ngModel)]="nuevoHito.descripcion" placeholder="Detalles de lo que se entregará o revisará..."></textarea></label>
+                <div class="form-row">
+                  <label>Fecha objetivo <input class="form-control" type="date" [(ngModel)]="nuevoHito.fechaObjetivo"></label>
+                  <label class="checkbox-label">
                     <input type="checkbox" [(ngModel)]="nuevoHito.visibleEnPortal"> Visible en portal del cliente
                   </label>
                 </div>
-              </div>
-              <div class="pd-form-actions">
-                <button class="btn-primary" type="button" [disabled]="guardandoHito || !nuevoHito.titulo.trim()" (click)="crearHito()">{{ guardandoHito ? 'Guardando…' : 'Crear hito' }}</button>
-                <button class="btn-secondary" type="button" *ngIf="hitosDetalle.length" (click)="mostrarFormularioHito = false">Cancelar</button>
-              </div>
-              <p class="auth-error" *ngIf="errorHitos" role="alert">{{ errorHitos }}</p>
-            </div>
-
-            <p *ngIf="!hitosDetalle.length && !mostrarFormularioHito" class="pd-empty-state">
-              Todavía no hay hitos registrados para este proyecto. Agrega el primero con el botón superior.
-            </p>
-
-            <!-- Lista de hitos -->
-            <div class="pd-items-list" *ngIf="hitosDetalle.length">
-              <div class="pd-item-card" *ngFor="let hito of hitosDetalle">
-                <div class="pd-item-header">
-                  <div class="pd-item-title-block">
-                    <h4 class="pd-item-title">{{ hito.titulo }}</h4>
-                    <div class="pd-item-tags">
-                      <span class="badge" [ngClass]="hito.estado === 'COMPLETADO' ? 'badge-status-completado' : (hito.estado === 'PENDIENTE' ? 'badge-status-pendiente' : 'badge-status-progreso')">
-                        {{ hito.estado }}
-                      </span>
-                      <span class="badge pd-visibility-badge">
-                        {{ hito.visibleEnPortal ? 'Visible en portal' : 'Solo CRM' }}
-                      </span>
-                    </div>
-                  </div>
-                  <time class="pd-item-date" *ngIf="hito.fechaObjetivo" [attr.datetime]="hito.fechaObjetivo">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    {{ hito.fechaObjetivo.slice(0, 10) }}
-                  </time>
-                </div>
-
-                <p class="pd-item-desc" *ngIf="hito.descripcion">{{ hito.descripcion }}</p>
-
-                <!-- Edición inline de hito -->
-                <div *ngIf="editandoHitoId === hito.id" class="pd-form-card pd-inline-edit-card">
-                  <div class="pd-form-grid">
-                    <div class="form-group pd-grid-full">
-                      <label class="pd-field-label">Título</label>
-                      <input class="form-control" [(ngModel)]="hitoBorrador.titulo" minlength="2">
-                    </div>
-                    <div class="form-group pd-grid-full">
-                      <label class="pd-field-label">Descripción</label>
-                      <textarea class="form-control" [(ngModel)]="hitoBorrador.descripcion"></textarea>
-                    </div>
-                    <div class="form-group">
-                      <label class="pd-field-label">Estado</label>
-                      <select class="form-control" [(ngModel)]="hitoBorrador.estado">
-                        <option value="PENDIENTE">Pendiente</option>
-                        <option value="EN_PROGRESO">En progreso</option>
-                        <option value="COMPLETADO">Completado</option>
-                        <option value="VENCIDO">Vencido</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label class="pd-field-label">Fecha objetivo</label>
-                      <input class="form-control" type="date" [(ngModel)]="hitoBorrador.fechaObjetivo">
-                    </div>
-                    <div class="form-group pd-grid-full">
-                      <label class="custom-checkbox-label">
-                        <input type="checkbox" [(ngModel)]="hitoBorrador.visibleEnPortal"> Publicar en el portal del cliente
-                      </label>
-                    </div>
-                  </div>
-                  <div class="pd-form-actions">
-                    <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="guardarHito(hito)">Guardar cambios</button>
-                    <button class="btn-secondary" type="button" (click)="editandoHitoId = null">Cancelar</button>
-                  </div>
-                </div>
-
-                <div class="pd-item-actions" *ngIf="editandoHitoId !== hito.id">
-                  <button class="btn-secondary btn-action-pill" type="button" (click)="editarHito(hito)">Editar hito</button>
-                  <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmandoHitoId !== hito.id" (click)="confirmandoHitoId = hito.id">Eliminar</button>
-                  <ng-container *ngIf="confirmandoHitoId === hito.id">
-                    <button class="btn-action-pill btn-action-danger" type="button" [disabled]="guardandoHito" (click)="eliminarHito(hito)">Confirmar eliminación</button>
-                    <button class="btn-secondary btn-action-pill" type="button" (click)="confirmandoHitoId = null">Cancelar</button>
-                  </ng-container>
-                </div>
+                <p class="auth-error" *ngIf="errorHitos">{{ errorHitos }}</p>
+                <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="crearHito()">{{ guardandoHito ? 'Guardando…' : 'Crear hito' }}</button>
               </div>
             </div>
           </div>
 
-          <!-- ========================================== -->
-          <!-- PESTAÑA 2: ARCHIVOS DEL PROYECTO -->
-          <!-- ========================================== -->
-          <div id="pd-panel-archivos" role="tabpanel" aria-labelledby="pd-tab-archivos" class="pd-tab-content project-work-section" [hidden]="pestanaDetalle !== 'archivos'">
-            <div class="pd-tab-header">
-              <div>
-                <h3 class="pd-section-title">Archivos del Proyecto</h3>
-                <p class="pd-section-subtitle">Documentos, especificaciones, comprobantes e imágenes vinculadas.</p>
+          <!-- PESTAÑA 4: ARCHIVOS -->
+          <div *ngIf="pestanaDetalle === 'archivos'" class="detail-tab-content">
+            <div class="detail-card-panel">
+              <div class="panel-header-with-action">
+                <h3>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                  Archivos y Entregables ({{ archivosDetalle.length }})
+                </h3>
               </div>
+
+              <!-- Caja de carga real -->
+              <div class="pd-upload-card">
+                <div class="pd-upload-grid">
+                  <div class="form-group pd-file-picker-group">
+                    <label for="proyecto-archivo" class="pd-field-label">
+                      Seleccionar archivo <small class="text-muted">(PDF, PNG, JPG, WebP, GIF, TXT; máx 8 MB)</small>
+                    </label>
+                    <input id="proyecto-archivo" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt" (change)="elegirArchivo($event)" class="custom-file-upload-input">
+                  </div>
+
+                  <div class="form-group pd-visibility-group">
+                    <label for="archivo-visibilidad" class="pd-field-label">Visibilidad</label>
+                    <select id="archivo-visibilidad" class="form-control" [(ngModel)]="visibilidadArchivo">
+                      <option value="INTERNA">Solo equipo (Privado)</option>
+                      <option value="CLIENTE">Compartir con cliente (Visible en portal)</option>
+                    </select>
+                  </div>
+
+                  <div class="pd-upload-btn-cell">
+                    <button class="btn-primary" type="button" [disabled]="!archivoElegido || subiendoArchivo" (click)="subirArchivo()">
+                      {{ subiendoArchivo ? 'Subiendo…' : 'Subir archivo' }}
+                    </button>
+                  </div>
+                </div>
+
+                <progress *ngIf="subiendoArchivo" [value]="progresoArchivo" max="100" class="pd-upload-progress" aria-label="Progreso de carga"></progress>
+                <p class="auth-error" *ngIf="errorArchivos" role="alert" style="margin-top: 8px;">{{ errorArchivos }}</p>
+              </div>
+
+              <p *ngIf="!archivosDetalle.length" class="text-empty-italic">No hay archivos ni entregables registrados en este proyecto.</p>
+
+              <!-- Lista de Archivos -->
+              <ul class="project-files-list files-box-list pd-files-list" *ngIf="archivosDetalle.length">
+                <li *ngFor="let archivo of archivosDetalle" class="pd-file-item">
+                  <div class="pd-file-info">
+                    <div class="pd-file-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                    </div>
+                    <div>
+                      <strong class="pd-file-name">{{ archivo.nombre }}</strong>
+                      <div class="pd-file-meta-row">
+                        <span>{{ archivo.tamanoBytes | number }} bytes</span>
+                        <span>•</span>
+                        <span class="badge" [style.background]="archivo.visibilidad === 'CLIENTE' ? '#eff6ff' : '#f1f5f9'" [style.color]="archivo.visibilidad === 'CLIENTE' ? '#1d4ed8' : '#475569'" style="font-size: 11px; font-weight: 700;">
+                          {{ archivo.visibilidad === 'CLIENTE' ? 'Visible al cliente' : 'Solo equipo' }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pd-file-actions">
+                    <button class="btn-secondary btn-action-pill" type="button" [disabled]="!!descargandoArchivoId" (click)="descargarArchivo(archivo)">{{ descargandoArchivoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
+                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId !== archivo.id" (click)="confirmarEliminarArchivoId = archivo.id">Eliminar</button>
+                    <button class="btn-action-pill btn-action-danger" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" [disabled]="!!eliminandoArchivoId" (click)="eliminarArchivo(archivo)">Confirmar</button>
+                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" (click)="confirmarEliminarArchivoId = null">Cancelar</button>
+                  </div>
+                </li>
+              </ul>
             </div>
+          </div>
 
-            <!-- Caja de carga moderna -->
-            <div class="pd-upload-card">
-              <div class="pd-upload-grid">
-                <div class="form-group pd-file-picker-group">
-                  <label for="proyecto-archivo" class="pd-field-label">
-                    Seleccionar archivo <small class="text-muted">(PDF, PNG, JPG, WebP, GIF, TXT; máx 8 MB)</small>
-                  </label>
-                  <input id="proyecto-archivo" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt" (change)="elegirArchivo($event)" class="custom-file-upload-input">
-                </div>
+          <!-- PESTAÑA 5: BITÁCORA Y COMENTARIOS -->
+          <div *ngIf="pestanaDetalle === 'bitacora'" class="detail-tab-content">
+            <div class="detail-card-panel">
+              <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                Conversación y Bitácora ({{ comentariosDetalle.length }})
+              </h3>
 
-                <div class="form-group pd-visibility-group">
-                  <label for="archivo-visibilidad" class="pd-field-label">Visibilidad</label>
-                  <select id="archivo-visibilidad" class="form-control" [(ngModel)]="visibilidadArchivo">
-                    <option value="INTERNA">Solo equipo (Privado)</option>
-                    <option value="CLIENTE">Compartir con cliente (Visible en portal)</option>
-                  </select>
-                </div>
+              <p *ngIf="!comentariosDetalle.length" class="text-empty-italic">Todavía no hay notas ni comentarios registrados.</p>
 
-                <div class="pd-upload-btn-cell">
-                  <button class="btn-primary" type="button" [disabled]="!archivoElegido || subiendoArchivo" (click)="subirArchivo()">
-                    {{ subiendoArchivo ? 'Subiendo…' : 'Subir archivo' }}
+              <ol class="comments-list" *ngIf="comentariosDetalle.length">
+                <li class="comment-card" *ngFor="let c of comentariosDetalle">
+                  <div class="comment-header">
+                    <span class="comment-author">{{ autor(c) }}</span>
+                    <time class="comment-time">{{ c.creadoEn | date:'dd MMM yyyy, h:mm a' }}</time>
+                  </div>
+                  <p class="comment-content">{{ c.contenido }}</p>
+                </li>
+              </ol>
+
+              <div class="comment-composer">
+                <label for="crm-comentario" class="composer-label">Nuevo comentario o actualización:</label>
+                <textarea id="crm-comentario" class="form-control" [(ngModel)]="comentarioNuevo" maxlength="2000" rows="3" placeholder="Escribe un comentario o nota interna..."></textarea>
+                <p class="auth-error" *ngIf="errorComentario">{{ errorComentario }}</p>
+                <div class="composer-actions">
+                  <button class="btn-primary" type="button" [disabled]="enviandoComentario || !comentarioNuevo.trim()" (click)="enviarComentario()">
+                    {{ enviandoComentario ? 'Enviando…' : 'Enviar comentario' }}
                   </button>
                 </div>
-              </div>
-
-              <progress *ngIf="subiendoArchivo" [value]="progresoArchivo" max="100" class="pd-upload-progress" aria-label="Progreso de carga"></progress>
-              <p class="auth-error" *ngIf="errorArchivos" role="alert" style="margin-top: 8px;">{{ errorArchivos }}</p>
-            </div>
-
-            <p *ngIf="!archivosDetalle.length" class="pd-empty-state">
-              Todavía no hay archivos cargados para este proyecto. Selecciona un archivo en la barra superior.
-            </p>
-
-            <!-- Lista de archivos -->
-            <ul class="project-files-list files-box-list pd-files-list" *ngIf="archivosDetalle.length">
-              <li *ngFor="let archivo of archivosDetalle" class="pd-file-item">
-                <div class="pd-file-info">
-                  <div class="pd-file-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
-                  </div>
-                  <div>
-                    <strong class="pd-file-name">{{ archivo.nombre }}</strong>
-                    <div class="pd-file-meta-row">
-                      <span>{{ archivo.tamanoBytes | number }} bytes</span>
-                      <span>•</span>
-                      <span class="badge" [style.background]="archivo.visibilidad === 'CLIENTE' ? '#eff6ff' : '#f1f5f9'" [style.color]="archivo.visibilidad === 'CLIENTE' ? '#1d4ed8' : '#475569'" style="font-size: 11px; font-weight: 700;">
-                        {{ archivo.visibilidad === 'CLIENTE' ? 'Visible al cliente' : 'Solo equipo' }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="pd-file-actions">
-                  <button class="btn-secondary btn-action-pill" type="button" [disabled]="!!descargandoArchivoId" (click)="descargarArchivo(archivo)">{{ descargandoArchivoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
-                  <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId !== archivo.id" (click)="confirmarEliminarArchivoId = archivo.id">Eliminar</button>
-                  <button class="btn-action-pill btn-action-danger" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" [disabled]="!!eliminandoArchivoId" (click)="eliminarArchivo(archivo)">Confirmar</button>
-                  <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" (click)="confirmarEliminarArchivoId = null">Cancelar</button>
-                </div>
-              </li>
-            </ul>
-          </div>
-
-          <!-- ========================================== -->
-          <!-- PESTAÑA 3: CONVERSACIÓN Y BITÁCORA -->
-          <!-- ========================================== -->
-          <div id="pd-panel-bitacora" role="tabpanel" aria-labelledby="pd-tab-bitacora" class="pd-tab-content comments-container" [hidden]="pestanaDetalle !== 'bitacora'">
-            <div class="pd-tab-header">
-              <div>
-                <h3 class="pd-section-title">Conversación y Bitácora</h3>
-                <p class="pd-section-subtitle">Historial de notas de trabajo, acuerdos y comunicación interna o con el cliente.</p>
-              </div>
-            </div>
-
-            <p *ngIf="!comentariosDetalle.length" class="pd-empty-state">
-              Todavía no hay notas ni comentarios registrados. Escribe la primera nota abajo.
-            </p>
-
-            <ol class="comments-list pd-comments-stream" *ngIf="comentariosDetalle.length">
-              <li class="comment-card pd-comment-bubble" *ngFor="let comentario of comentariosDetalle">
-                <div class="pd-comment-avatar">
-                  {{ autor(comentario).substring(0, 2).toUpperCase() }}
-                </div>
-                <div class="pd-comment-body">
-                  <div class="comment-header pd-comment-head">
-                    <span class="comment-author pd-author-name">{{ autor(comentario) }}</span>
-                    <time class="comment-time pd-comment-timestamp" [attr.datetime]="comentario.creadoEn">{{ comentario.creadoEn | date:'short' }}</time>
-                  </div>
-                  <p class="comment-content pd-comment-text">{{ comentario.contenido }}</p>
-                </div>
-              </li>
-            </ol>
-
-            <div class="comment-composer pd-composer-card">
-              <label for="crm-comentario" class="pd-field-label">Nuevo comentario o nota interna:</label>
-              <textarea id="crm-comentario" class="form-control pd-composer-textarea" [(ngModel)]="comentarioNuevo" maxlength="2000" rows="3" placeholder="Escribe un comentario o nota interna..."></textarea>
-              <p class="auth-error" *ngIf="errorComentario" role="alert" style="margin-top: 8px;">{{ errorComentario }}</p>
-              <div class="pd-composer-actions">
-                <button class="btn-primary" type="button" [disabled]="enviandoComentario || !comentarioNuevo.trim()" (click)="enviarComentario()">{{ enviandoComentario ? 'Enviando…' : 'Enviar comentario' }}</button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Barra de pie del modal -->
+      <!-- Pie del Modal -->
       <footer class="modal-footer-bar">
         <button class="btn-secondary" type="button" (click)="cerrarDetalle()">Cerrar</button>
         <button class="btn-primary" type="button" (click)="abrirEdicion(p.id)">Editar proyecto</button>
       </footer>
     </ng-container>
-
   </section>
 </div>

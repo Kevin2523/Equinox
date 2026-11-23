@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { obtenerBaseApi } from '../auth/api.config';
+import { AuthService } from '../auth/auth.service';
+
+export type EstadoFacturaApi = 'BORRADOR' | 'ENVIADA' | 'PAGADA' | 'VENCIDA' | 'CANCELADA';
 
 export interface PagoApi {
   id: string;
@@ -25,20 +28,31 @@ export interface HistorialFacturaApi {
 
 export interface FacturaApi {
   id: string;
+  organizacionId?: string;
+  clienteId: string;
+  proyectoId?: string | null;
   numero: string;
   concepto: string;
-  monto: number;
+  monto: number | string;
   moneda: string;
-  estado: 'BORRADOR' | 'ENVIADA' | 'PAGADA' | 'VENCIDA' | 'CANCELADA';
-  visibleEnPortal: boolean;
+  estado: EstadoFacturaApi;
+  visibleEnPortal?: boolean;
   fechaEmision: string;
-  fechaVencimiento: string | null;
-  pagadaEn: string | null;
-  notas: string | null;
-  clienteId: string;
-  proyectoId: string | null;
-  cliente?: { id: string; nombre: string; empresa: string | null };
-  proyecto?: { id: string; nombre: string } | null;
+  fechaVencimiento?: string | null;
+  pagadaEn?: string | null;
+  notas?: string | null;
+  creadoEn?: string;
+  actualizadoEn?: string;
+  cliente?: {
+    id: string;
+    nombre: string;
+    empresa: string | null;
+    correo?: string | null;
+  };
+  proyecto?: {
+    id: string;
+    nombre: string;
+  } | null;
   pagos?: PagoApi[];
   historial?: HistorialFacturaApi[];
   totalPagado?: number;
@@ -58,41 +72,104 @@ export interface TotalesFacturasApi {
   totalesPorMoneda: TotalMonedaApi[];
 }
 
-export interface NuevaFacturaApi {
+export interface CrearFacturaInput {
   clienteId: string;
   proyectoId?: string | null;
   numero?: string;
   concepto: string;
   monto: number;
   moneda?: string;
-  estado?: 'BORRADOR' | 'ENVIADA' | 'PAGADA' | 'VENCIDA' | 'CANCELADA';
+  estado?: EstadoFacturaApi;
   visibleEnPortal?: boolean;
   fechaEmision?: string;
   fechaVencimiento?: string | null;
   notas?: string | null;
 }
 
+export type NuevaFacturaApi = CrearFacturaInput;
+
+export type ActualizarFacturaInput = Partial<CrearFacturaInput> & {
+  pagadaEn?: string | null;
+  motivo?: string;
+};
+
+export interface OrganizacionFinanzasApi {
+  id: string;
+  nombre: string;
+  moneda: string;
+  portalMostrarFinanzas?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FacturasApiService {
+  private generacionSesion = 0;
+  private readonly facturasSubject = new BehaviorSubject<FacturaApi[]>([]);
+  private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly errorSubject = new BehaviorSubject<string | null>(null);
+
+  readonly facturas$ = this.facturasSubject.asObservable();
+  readonly cargando$ = this.cargandoSubject.asObservable();
+  readonly error$ = this.errorSubject.asObservable();
+
   private get base(): string {
     return `${obtenerBaseApi()}/facturas`;
   }
 
-  constructor(private http: HttpClient) {}
+  get facturas(): FacturaApi[] {
+    return this.facturasSubject.value;
+  }
 
-  listarFacturas(filtros?: {
+  get cargando(): boolean {
+    return this.cargandoSubject.value;
+  }
+
+  constructor(private http: HttpClient, private auth?: AuthService) {
+    this.auth?.sesion$.subscribe(() => {
+      this.generacionSesion++;
+      this.facturasSubject.next([]);
+      this.errorSubject.next(null);
+    });
+  }
+
+  async listarFacturas(filtros?: {
     clienteId?: string;
     proyectoId?: string;
     estado?: string;
     busqueda?: string;
   }): Promise<FacturaApi[]> {
+    const generacion = this.generacionSesion;
+    const token = this.auth?.token;
+    this.cargandoSubject.next(true);
+    this.errorSubject.next(null);
+
     let params = new HttpParams();
     if (filtros?.clienteId) params = params.set('clienteId', filtros.clienteId);
     if (filtros?.proyectoId) params = params.set('proyectoId', filtros.proyectoId);
     if (filtros?.estado && filtros.estado !== 'TODAS') params = params.set('estado', filtros.estado);
     if (filtros?.busqueda) params = params.set('busqueda', filtros.busqueda);
 
-    return firstValueFrom(this.http.get<FacturaApi[]>(this.base, { params }));
+    try {
+      const facturas = await firstValueFrom(
+        this.http.get<FacturaApi[]>(this.base, {
+          params,
+          headers: { 'Cache-Control': 'no-cache' }
+        })
+      );
+      if (generacion === this.generacionSesion && token === this.auth?.token && !filtros) {
+        this.facturasSubject.next(facturas);
+      }
+      return facturas;
+    } catch (err: any) {
+      if (generacion === this.generacionSesion) {
+        const mensaje = err?.error?.error || 'No se pudieron cargar las facturas';
+        this.errorSubject.next(mensaje);
+      }
+      throw err;
+    } finally {
+      if (generacion === this.generacionSesion) {
+        this.cargandoSubject.next(false);
+      }
+    }
   }
 
   consultarTotales(): Promise<TotalesFacturasApi> {
@@ -104,39 +181,51 @@ export class FacturasApiService {
   }
 
   configurarPortalFinanzas(habilitado: boolean): Promise<{ portalMostrarFinanzas: boolean }> {
-    return firstValueFrom(this.http.patch<{ portalMostrarFinanzas: boolean }>(`${obtenerBaseApi()}/organizacion`, { portalMostrarFinanzas: habilitado }));
+    return firstValueFrom(
+      this.http.patch<{ portalMostrarFinanzas: boolean }>(`${obtenerBaseApi()}/organizacion`, {
+        portalMostrarFinanzas: habilitado
+      })
+    );
   }
 
   consultarFactura(id: string): Promise<FacturaApi> {
     return firstValueFrom(this.http.get<FacturaApi>(`${this.base}/${encodeURIComponent(id)}`));
   }
 
-  crearFactura(datos: NuevaFacturaApi): Promise<FacturaApi> {
-    return firstValueFrom(this.http.post<FacturaApi>(this.base, datos));
+  async crearFactura(datos: CrearFacturaInput): Promise<FacturaApi> {
+    const factura = await firstValueFrom(this.http.post<FacturaApi>(this.base, datos));
+    await this.listarFacturas().catch(() => null);
+    return factura;
   }
 
-  actualizarFactura(
-    id: string,
-    datos: Partial<NuevaFacturaApi> & { estado?: string; motivo?: string }
-  ): Promise<FacturaApi> {
-    return firstValueFrom(
+  async actualizarFactura(id: string, datos: ActualizarFacturaInput): Promise<FacturaApi> {
+    const factura = await firstValueFrom(
       this.http.patch<FacturaApi>(`${this.base}/${encodeURIComponent(id)}`, datos)
     );
+    await this.listarFacturas().catch(() => null);
+    return factura;
   }
 
-  registrarPago(
+  async registrarPago(
     id: string,
     datos: { monto: number; moneda?: string; metodo?: string; referencia?: string | null; notas?: string | null }
   ): Promise<{ pago: PagoApi; factura: FacturaApi; saldoRestante: number }> {
-    return firstValueFrom(
+    const resultado = await firstValueFrom(
       this.http.post<{ pago: PagoApi; factura: FacturaApi; saldoRestante: number }>(
         `${this.base}/${encodeURIComponent(id)}/pagos`,
         datos
       )
     );
+    await this.listarFacturas().catch(() => null);
+    return resultado;
   }
 
-  eliminarFactura(id: string): Promise<void> {
-    return firstValueFrom(this.http.delete<void>(`${this.base}/${encodeURIComponent(id)}`));
+  async eliminarFactura(id: string): Promise<void> {
+    await firstValueFrom(this.http.delete<void>(`${this.base}/${encodeURIComponent(id)}`));
+    await this.listarFacturas().catch(() => null);
+  }
+
+  obtenerOrganizacion(): Promise<OrganizacionFinanzasApi> {
+    return firstValueFrom(this.http.get<OrganizacionFinanzasApi>(`${obtenerBaseApi()}/organizacion`));
   }
 }

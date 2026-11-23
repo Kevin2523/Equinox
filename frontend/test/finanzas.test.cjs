@@ -3,11 +3,13 @@ const assert = require('node:assert/strict');
 const { BehaviorSubject } = require('rxjs');
 
 let UiStateService;
+let FinanzasComponent;
 global.window = { location: { hostname: 'localhost', origin: 'http://localhost:4200' } };
 
 before(async () => {
   await import('../node_modules/@angular/compiler/fesm2022/compiler.mjs');
   ({ UiStateService } = await import('../src/state/ui-state.service.ts'));
+  ({ FinanzasComponent } = await import('../src/pages/finanzas.component.ts'));
 });
 
 function crearEstado(facturasApiMock, sesionInicial = { tipoAcceso: 'ORGANIZACION' }) {
@@ -279,4 +281,48 @@ test('una factura nueva solo se emite y comparte tras marcarlo explícitamente',
   assert.equal(enviado.estado, 'ENVIADA');
   assert.equal(enviado.visibleEnPortal, true);
   assert.equal(estado.compartirNuevaFactura, false);
+});
+
+test('FinanzasComponent.confirmarRegistroPago rechaza montos con más de dos decimales antes de hacer POST y permite pagos parciales en centavos', async () => {
+  const llamadas = [];
+  const comp = Object.create(FinanzasComponent.prototype);
+  comp.monedaOrg = 'USD';
+  comp.modalDetalleAbierto = false;
+  comp.facturaDetalle = null;
+  comp.guardandoPago = false;
+  comp.mostrarToast = () => {};
+  comp.facturasApi = {
+    registrarPago: async (id, payload) => {
+      llamadas.push({ id, payload });
+      return {
+        pago: { id: 'p-1' },
+        factura: { id, monto: 1000, montoPendiente: 600 },
+        saldoRestante: 600,
+      };
+    },
+  };
+
+  comp.abrirModalRegistrarPago({
+    id: 'f-ficticia',
+    numero: 'INV-FICTICIA',
+    concepto: 'Servicio',
+    monto: 1000,
+    montoPendiente: 1000,
+    moneda: 'USD',
+    estado: 'ENVIADA',
+  });
+
+  comp.formPago.monto = 1.234;
+  await comp.confirmarRegistroPago();
+  assert.equal(llamadas.length, 0);
+  assert.equal(comp.modalPagoAbierto, true);
+  assert.match(comp.errorModalPago || '', /dos decimales/i);
+
+  comp.formPago.monto = 400;
+  comp.formPago.metodo = 'EFECTIVO';
+  await comp.confirmarRegistroPago();
+  assert.equal(llamadas.length, 1);
+  assert.equal(llamadas[0].payload.monto, 400);
+  assert.equal(comp.modalPagoAbierto, false);
+  assert.equal(comp.errorModalPago, null);
 });

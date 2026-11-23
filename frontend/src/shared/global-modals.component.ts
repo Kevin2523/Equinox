@@ -8,7 +8,8 @@ import { DialogFocusDirective } from './dialog-focus.directive';
   selector: 'app-global-modals',
   standalone: true,
   imports: [CommonModule, FormsModule, DialogFocusDirective],
-  templateUrl: './global-modals.component.html'
+  templateUrl: './global-modals.component.html',
+  styleUrl: './global-modals.component.css'
 })
 export class GlobalModalsComponent {
   constructor(public state: UiStateService) {}
