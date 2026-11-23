@@ -54,6 +54,21 @@ Para habilitar el envío real de correos de recuperación, defina las siguientes
 > **Comportamiento sin transporte configurado:**
 > Si `SMTP_HOST` no está configurado, la API responderá de inmediato con HTTP 503 (`"El servicio de recuperación por correo no está configurado o no se encuentra disponible"`), y la interfaz de usuario informará con total honestidad operativa que el canal de correo no está disponible, evitando dar falsas expectativas de envío.
 
+### Configuración con Gmail SMTP
+
+El módulo `src/servicios/correo.ts` es compatible directamente con Gmail SMTP (tanto STARTTLS en puerto `587` como SSL/TLS implícito en puerto `465`, sin cambios de código).
+
+Valores requeridos en `.env` del servidor:
+
+- `SMTP_HOST=smtp.gmail.com`
+- `SMTP_PORT=587` y `SMTP_SECURE=false` (recomendado, STARTTLS) — o bien `SMTP_PORT=465` y `SMTP_SECURE=true` (SSL/TLS directo).
+- `SMTP_USER=tu-cuenta@gmail.com` (dirección Gmail completa).
+- `SMTP_PASS=<app-password-16-caracteres-sin-espacios>` (requiere **Verificación en 2 pasos** activa en la cuenta Google y generar una **Contraseña de aplicación** en Seguridad de Google; la contraseña normal de Google no funciona para SMTP).
+- `SMTP_FROM="Equinox <tu-cuenta@gmail.com>"` (debe coincidir con `SMTP_USER` o un alias verificado "Enviar como" en Gmail, ya que Gmail reescribe o rechaza remitentes de dominios no verificados como `no-reply@equinox.app`).
+- `URL_BASE=https://tu-dominio-equinox` (URL pública real del frontend para construir el enlace de restablecimiento).
+
+Tras actualizar `.env` en el host, recrea el servicio `backend` para que cargue las nuevas variables de entorno (por ejemplo, `docker compose -f compose.yml -f compose.prod.yml up -d --force-recreate backend`) y verifica `GET /salud/listo`.
+
 ---
 
 ## 3. Pruebas Automatizadas y Arnés de Captura Local

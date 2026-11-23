@@ -1608,14 +1608,102 @@
   background: #f8fafc;
   border: 1px dashed #cbd5e1;
   border-radius: 10px;
-  padding: 12px;
-  margin-top: 10px;
+  padding: 16px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.milestone-add-box {
+  padding: 18px 20px;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.milestone-add-box h4 {
+  margin: 0 0 2px 0;
+  letter-spacing: 0.03em;
+}
+
+.milestone-add-box .form-group,
+.milestone-form-box .form-group {
+  margin-bottom: 0;
+}
+
+.milestone-add-box .form-group label,
+.milestone-form-box .form-group label {
+  margin-bottom: 6px;
+}
+
+.milestone-textarea {
+  min-height: 82px;
+  resize: vertical;
+  line-height: 1.45;
+  font-family: inherit;
+}
+
+.milestone-form-row {
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.milestone-checkbox-group {
+  display: flex;
+  align-items: center;
+}
+
+.milestone-checkbox-label {
+  margin-top: 0;
+  min-height: 40px;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+}
+
+.milestone-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #0f172a;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.milestone-submit-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.milestone-submit-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+}
+
+.milestone-add-box .auth-error {
+  margin: 0;
+}
+
+.milestone-add-box .btn-primary:focus-visible,
+.milestone-form-box .btn-primary:focus-visible,
+.milestone-form-box .btn-secondary:focus-visible,
+.milestone-checkbox-label input[type="checkbox"]:focus-visible {
+  outline: 2px solid #0f172a;
+  outline-offset: 2px;
 }
 
 .form-btn-row {
   display: flex;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 /* Grilla de Archivos */
@@ -1794,6 +1882,30 @@
 
   .inline-add-box {
     padding: 12px;
+  }
+
+  .milestone-add-box,
+  .milestone-form-box {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .milestone-form-row {
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .milestone-checkbox-label {
+    min-height: 44px;
+  }
+
+  .milestone-submit-row {
+    justify-content: stretch;
+  }
+
+  .milestone-submit-btn {
+    width: 100%;
+    min-height: 44px;
   }
 
   .task-checklist-item {
