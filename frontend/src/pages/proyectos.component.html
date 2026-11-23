@@ -606,20 +606,35 @@
 
                   <!-- Edición inline de hito -->
                   <div *ngIf="editandoHitoId === hito.id" class="milestone-form-box">
-                    <label>Título <input class="form-control" [(ngModel)]="hitoBorrador.titulo" minlength="2"></label>
-                    <label>Descripción <textarea class="form-control" [(ngModel)]="hitoBorrador.descripcion"></textarea></label>
-                    <div class="form-row">
-                      <label>Estado
-                        <select class="form-control" [(ngModel)]="hitoBorrador.estado">
+                    <div class="form-group">
+                      <label [for]="'hito-edit-titulo-' + hito.id">Título</label>
+                      <input [id]="'hito-edit-titulo-' + hito.id" class="form-control" [(ngModel)]="hitoBorrador.titulo" minlength="2">
+                    </div>
+                    <div class="form-group">
+                      <label [for]="'hito-edit-desc-' + hito.id">Descripción</label>
+                      <textarea [id]="'hito-edit-desc-' + hito.id" class="form-control milestone-textarea" rows="3" [(ngModel)]="hitoBorrador.descripcion"></textarea>
+                    </div>
+                    <div class="form-row milestone-form-row">
+                      <div class="form-group">
+                        <label [for]="'hito-edit-estado-' + hito.id">Estado</label>
+                        <select [id]="'hito-edit-estado-' + hito.id" class="form-control" [(ngModel)]="hitoBorrador.estado">
                           <option value="PENDIENTE">Pendiente</option>
                           <option value="EN_PROGRESO">En progreso</option>
                           <option value="COMPLETADO">Completado</option>
                           <option value="VENCIDO">Vencido</option>
                         </select>
-                      </label>
-                      <label>Fecha objetivo <input class="form-control" type="date" [(ngModel)]="hitoBorrador.fechaObjetivo"></label>
+                      </div>
+                      <div class="form-group">
+                        <label [for]="'hito-edit-fecha-' + hito.id">Fecha objetivo</label>
+                        <input [id]="'hito-edit-fecha-' + hito.id" class="form-control" type="date" [(ngModel)]="hitoBorrador.fechaObjetivo">
+                      </div>
                     </div>
-                    <label><input type="checkbox" [(ngModel)]="hitoBorrador.visibleEnPortal"> Publicar en el portal del cliente</label>
+                    <div class="form-group milestone-checkbox-group">
+                      <label class="checkbox-label milestone-checkbox-label">
+                        <input type="checkbox" [(ngModel)]="hitoBorrador.visibleEnPortal">
+                        <span>Publicar en el portal del cliente</span>
+                      </label>
+                    </div>
                     <div class="form-btn-row">
                       <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="guardarHito(hito)">Guardar</button>
                       <button class="btn-secondary" type="button" (click)="editandoHitoId = null">Cancelar</button>
@@ -638,18 +653,32 @@
               </div>
 
               <!-- Formulario para nuevo hito -->
-              <div class="inline-add-box">
+              <div class="inline-add-box milestone-add-box">
                 <h4>+ Agregar nuevo hito</h4>
-                <label>Título <input class="form-control" [(ngModel)]="nuevoHito.titulo" minlength="2" placeholder="Ej. Aprobación de bocetos iniciales"></label>
-                <label>Descripción <textarea class="form-control" [(ngModel)]="nuevoHito.descripcion" placeholder="Detalles de lo que se entregará o revisará..."></textarea></label>
-                <div class="form-row">
-                  <label>Fecha objetivo <input class="form-control" type="date" [(ngModel)]="nuevoHito.fechaObjetivo"></label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" [(ngModel)]="nuevoHito.visibleEnPortal"> Visible en portal del cliente
-                  </label>
+                <div class="form-group">
+                  <label for="nuevo-hito-titulo">Título</label>
+                  <input id="nuevo-hito-titulo" class="form-control" [(ngModel)]="nuevoHito.titulo" minlength="2" placeholder="Ej. Aprobación de bocetos iniciales">
                 </div>
-                <p class="auth-error" *ngIf="errorHitos">{{ errorHitos }}</p>
-                <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="crearHito()">{{ guardandoHito ? 'Guardando…' : 'Crear hito' }}</button>
+                <div class="form-group">
+                  <label for="nuevo-hito-descripcion">Descripción</label>
+                  <textarea id="nuevo-hito-descripcion" class="form-control milestone-textarea" rows="3" [(ngModel)]="nuevoHito.descripcion" placeholder="Detalles de lo que se entregará o revisará..."></textarea>
+                </div>
+                <div class="form-row milestone-form-row">
+                  <div class="form-group">
+                    <label for="nuevo-hito-fecha">Fecha objetivo</label>
+                    <input id="nuevo-hito-fecha" class="form-control" type="date" [(ngModel)]="nuevoHito.fechaObjetivo">
+                  </div>
+                  <div class="form-group milestone-checkbox-group">
+                    <label class="checkbox-label milestone-checkbox-label">
+                      <input type="checkbox" [(ngModel)]="nuevoHito.visibleEnPortal">
+                      <span>Visible en portal del cliente</span>
+                    </label>
+                  </div>
+                </div>
+                <p class="auth-error" *ngIf="errorHitos" role="alert">{{ errorHitos }}</p>
+                <div class="milestone-submit-row">
+                  <button class="btn-primary milestone-submit-btn" type="button" [disabled]="guardandoHito" (click)="crearHito()">{{ guardandoHito ? 'Guardando…' : 'Crear hito' }}</button>
+                </div>
               </div>
             </div>
           </div>
