@@ -200,6 +200,7 @@ test('la carga de clientes no espera el contador de proyectos y guarda cliente s
   assert.equal(page.cargandoProyectosActivos, true);
   resolverProyectos([]); await Promise.resolve();
   page.modalFormulario = true;
+  page.formulario.nombre = 'Cliente nuevo';
   await page.guardar({ invalid: false });
   assert.equal(lecturasLista, 1);
   assert.equal(page.modalFormulario, false);

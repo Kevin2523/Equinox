@@ -40,6 +40,7 @@ function load(relative) {
 }
 
 const { ClientesComponent } = load('pages/clientes.component.ts');
+const { UiStateService } = load('state/ui-state.service.ts');
 
 function formComponent() {
   const saved = [];
@@ -70,4 +71,58 @@ test('sitio web inválido: explica el error y conserva el formulario sin llamar 
   assert.equal(saved.length, 0);
   assert.match(c.errorGuardar, /sitio web válido/);
   assert.equal(c.formulario.sitioWeb, 'no es una dirección');
+});
+
+test('ClientesComponent: nuevo() abre el modal y guardar() valida nombre mínimo tras trim', async () => {
+  const { c, saved } = formComponent();
+  c.nuevo();
+  assert.equal(c.modalFormulario, true);
+  c.formulario.nombre = '  A  ';
+  await c.guardar({ invalid: false });
+  assert.equal(saved.length, 0);
+  assert.match(c.errorGuardar, /al menos 2 caracteres/);
+  assert.equal(c.modalFormulario, true);
+
+  c.formulario.nombre = '  Ana Méndez  ';
+  await c.guardar({ invalid: false });
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].nombre, 'Ana Méndez');
+  assert.equal(c.modalFormulario, false);
+});
+
+test('UiStateService: creación rápida de cliente muestra error si nombre vacío y crea cliente cuando es válido', async () => {
+  const estado = Object.create(UiStateService.prototype);
+  estado.createModalOpen = false;
+  estado.activeCreateType = null;
+  estado.crearLoading = false;
+  estado.createError = '';
+  estado.nuevoCliente = { nombre: '', empresa: '', correo: '', telefono: '', notas: '' };
+  estado.nuevoProyecto = { nombre: '', clienteId: '', descripcion: '', estado: 'BORRADOR', presupuesto: 0, moneda: 'PAB', fechaInicio: '', fechaEntrega: '' };
+  estado.clientes = [];
+  const toasts = [];
+  const creados = [];
+  estado.equinox = { mostrarToast: (msg) => toasts.push(msg) };
+  estado.clientesProyectosApi = {
+    crearCliente: async (datos) => { creados.push(datos); return { id: 'c-nuevo', ...datos }; }
+  };
+
+  estado.openQuickCreate('Cliente');
+  assert.equal(estado.createModalOpen, true);
+  assert.equal(estado.activeCreateType, 'Cliente');
+
+  estado.nuevoCliente.nombre = '   ';
+  await estado.submitCreate();
+  assert.equal(creados.length, 0);
+  assert.match(estado.createError, /mínimo 2 caracteres/);
+  assert.equal(estado.createModalOpen, true);
+
+  estado.nuevoCliente.nombre = '  Café Unido  ';
+  estado.nuevoCliente.correo = '  hola@cafe.pa  ';
+  await estado.submitCreate();
+  assert.equal(creados.length, 1);
+  assert.equal(creados[0].nombre, 'Café Unido');
+  assert.equal(creados[0].correo, 'hola@cafe.pa');
+  assert.equal(estado.createModalOpen, false);
+  assert.equal(estado.activeCreateType, null);
+  assert.equal(toasts[0], 'Cliente creado con éxito');
 });
