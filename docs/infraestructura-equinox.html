@@ -141,7 +141,7 @@
     <header>
       <div>
         <h1>Arquitectura e Infraestructura — Equinox CRM</h1>
-        <p>Docker Compose, Nginx, volúmenes privados, env.js, GitHub Actions CI/CD, dominio <code>mena.date</code> y servidor Ubuntu LAN <code>192.168.50.142</code> (despliegue remoto aún pendiente).</p>
+        <p>Docker Compose, Nginx, volúmenes privados, env.js, GitHub Actions CI/CD, subdominio <code>equinox.mena.date</code> (con <code>mena.date</code> y <code>www.mena.date</code> intactos) y Ubuntu LAN <code>192.168.50.142</code>.</p>
       </div>
       <div class="legend" aria-label="Leyenda del diagrama">
         <span class="pill pill-impl"><span class="dot dot-impl"></span>IMPLEMENTADO (en repo)</span>
@@ -194,25 +194,25 @@
         <rect x="313" y="68" width="214" height="232" rx="10" fill="#ffffff" stroke="#b45309" stroke-width="2" stroke-dasharray="7 5"/>
         <rect x="323" y="78" width="76" height="19" rx="9" fill="#b45309"/>
         <text x="361" y="91" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">PENDIENTE</text>
-        <text x="325" y="116" font-size="14" font-weight="700" fill="#0f172a">DNS mena.date + TLS Edge</text>
-        <text x="325" y="138" font-size="11.5" fill="#334155">• Dominio público: mena.date</text>
-        <text x="325" y="156" font-size="11.5" fill="#334155">• Proxy TLS 1.3 (Nginx/Caddy/</text>
-        <text x="325" y="172" font-size="11.5" fill="#334155">  Cloudflare Tunnel) → :8080</text>
-        <text x="325" y="194" font-size="11" fill="#475569">• Certificados TLS aún no emitidos</text>
-        <text x="325" y="212" font-size="11" fill="#475569">• Inyecta X-Forwarded-For/Proto</text>
-        <text x="325" y="230" font-size="11" fill="#475569">• Exige URL_BASE y</text>
-        <text x="325" y="246" font-size="11" fill="#475569">  ORIGENES_PERMITIDOS reales</text>
-        <text x="325" y="264" font-size="11" fill="#475569">  en compose.prod.yml</text>
+        <text x="325" y="116" font-size="13.5" font-weight="700" fill="#0f172a">DNS equinox.mena.date + TLS</text>
+        <text x="325" y="138" font-size="11.5" fill="#334155">• Solo subdominio equinox.mena.date</text>
+        <text x="325" y="156" font-size="11" fill="#be123c" font-weight="600">• mena.date / www.mena.date intactos</text>
+        <text x="325" y="174" font-size="11.5" fill="#334155">• Tunnel/Proxy TLS 1.3 aislado</text>
+        <text x="325" y="190" font-size="11" fill="#334155">  (solo equinox.* → :8081 / prod)</text>
+        <text x="325" y="210" font-size="11" fill="#475569">• :8080 queda libre para mena.date</text>
+        <text x="325" y="228" font-size="11" fill="#475569">• Inyecta X-Forwarded-For/Proto</text>
+        <text x="325" y="246" font-size="11" fill="#475569">• URL_BASE / ORIGENES_PERMITIDOS:</text>
+        <text x="325" y="264" font-size="11" fill="#475569">  https://equinox.mena.date</text>
 
         <rect x="313" y="320" width="214" height="168" rx="10" fill="#fff1f2" stroke="#be123c" stroke-width="1.8" stroke-dasharray="5 4"/>
         <text x="325" y="344" font-size="12.5" font-weight="700" fill="#be123c">Límites de Red y Secretos</text>
-        <text x="325" y="366" font-size="11" fill="#334155">• Host expone solo 127.0.0.1:8080</text>
-        <text x="325" y="384" font-size="11" fill="#334155">• backend:3000 y db:5432 cerrados</text>
-        <text x="325" y="402" font-size="11" fill="#334155">• Red interna Docker: equinox_net</text>
-        <text x="325" y="420" font-size="11" fill="#334155">• Referrer-Policy: no-referrer</text>
-        <text x="325" y="438" font-size="11" fill="#334155">• Sin URLs públicas de fotos</text>
-        <text x="325" y="456" font-size="11" fill="#334155">• Redacción de tokens en Morgan</text>
-        <text x="325" y="474" font-size="11" fill="#334155">• .env excluido por .gitignore</text>
+        <text x="325" y="366" font-size="11" fill="#334155">• Equinox en puerto propio :8081</text>
+        <text x="325" y="384" font-size="11" fill="#334155">  (:8080 intacto para mena.date)</text>
+        <text x="325" y="402" font-size="11" fill="#334155">• backend:3000 y db:5432 cerrados</text>
+        <text x="325" y="420" font-size="11" fill="#334155">• Red interna Docker: equinox_net</text>
+        <text x="325" y="438" font-size="11" fill="#334155">• Referrer-Policy: no-referrer</text>
+        <text x="325" y="456" font-size="11" fill="#334155">• Sin URLs públicas de fotos</text>
+        <text x="325" y="474" font-size="11" fill="#334155">• Redacción Morgan + .env fuera Git</text>
 
         <!-- ================= ZONA 3: SERVIDOR UBUNTU LAN + DOCKER ================= -->
         <rect x="575" y="20" width="845" height="545" rx="14" fill="#f1f5f9" stroke="#334155" stroke-width="2"/>
@@ -224,7 +224,7 @@
         <text x="652" y="91" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
         <text x="607" y="116" font-size="14" font-weight="700" fill="#0f172a">frontend (Nginx + Angular)</text>
         <text x="607" y="136" font-size="11.5" fill="#334155">• frontend/Dockerfile + nginx.conf</text>
-        <text x="607" y="154" font-size="11.5" fill="#334155">• Bind 127.0.0.1:8080 → :80</text>
+        <text x="607" y="154" font-size="11" fill="#334155">• Bind 127.0.0.1:8081 → :80 (aislado)</text>
         <text x="607" y="172" font-size="11.5" fill="#334155">• docker-entrypoint.sh genera</text>
         <text x="607" y="188" font-size="11.5" fill="#334155">  /assets/env.js (same-origin)</text>
         <text x="607" y="206" font-size="11.5" fill="#334155">• Proxy /api/, /salud → backend:3000</text>
@@ -340,7 +340,7 @@
 
         <!-- DNS/TLS -> Frontend Nginx -->
         <path d="M 527 155 L 593 155" stroke="#b45309" stroke-width="2.2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
-        <text x="560" y="145" font-size="10.5" font-weight="600" fill="#b45309" text-anchor="middle">:8080</text>
+        <text x="560" y="145" font-size="10.5" font-weight="600" fill="#b45309" text-anchor="middle">:8081</text>
 
         <!-- Frontend Nginx -> Backend API -->
         <path d="M 722 273 L 722 293" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
@@ -391,7 +391,7 @@
       <div class="card">
         <h2><span class="dot dot-plan"></span>Pendiente (sin despliegue hecho aún)</h2>
         <ul>
-          <li><strong>TLS y dominio <code>mena.date</code></strong>: aprovisionar proxy TLS 1.3 delante de <code>127.0.0.1:8080</code>, DNS público y variables <code>URL_BASE</code> / <code>ORIGENES_PERMITIDOS</code> reales.</li>
+          <li><strong>Subdominio <code>equinox.mena.date</code> y TLS aislado</strong>: aprovisionar tunnel/proxy TLS 1.3 exclusivo para <code>equinox.mena.date</code> → <code>127.0.0.1:8081</code> (staging aislado; puerto final prod por confirmar si cambia), manteniendo <code>127.0.0.1:8080</code>, <code>mena.date</code> y <code>www.mena.date</code> intactos (nunca sustituir el sitio raíz), y fijar <code>URL_BASE</code> / <code>ORIGENES_PERMITIDOS</code> en <code>https://equinox.mena.date</code>.</li>
           <li><strong>CD remoto hacia <code>192.168.50.142</code></strong>: configurar runner self-hosted en LAN o túnel/SSH público, cargar Secrets de entorno, activar flags <code>*_DEPLOY_ENABLED</code> y crear <code>.env</code> desde <code>.env.production.example</code>.</li>
           <li><strong>BD inicial y backups</strong>: ejecutar el primer despliegue en servidor (<code>prisma migrate deploy</code> + <code>admin:bootstrap</code>), automatizar backups de volúmenes y configurar <code>SMTP_HOST</code>.</li>
         </ul>
@@ -400,7 +400,7 @@
       <div class="card">
         <h2><span class="dot dot-sec"></span>Límites de red y gestión de secretos</h2>
         <ul>
-          <li><strong>Superficie mínima</strong>: solo <code>127.0.0.1:8080</code> publicado en host; <code>backend:3000</code> y <code>db:5432</code> aislados en <code>equinox_net</code>.</li>
+          <li><strong>Superficie mínima</strong>: Equinox publica solo puerto propio <code>127.0.0.1:8081</code> (<code>FRONTEND_PORT=8081</code> en staging, dejando <code>:8080</code> intacto para <code>mena.date</code>); <code>backend:3000</code> y <code>db:5432</code> aislados en <code>equinox_net</code>.</li>
           <li><strong>Secretos fuera de Git</strong>: <code>.env</code> y <code>.env.*</code> ignorados; secretos SSH y GHCR separados por environment <code>staging</code> y <code>production</code> en GitHub.</li>
           <li><strong>Calidad y auditoría</strong>: <code>validar-visual-admin.cjs</code> actualizado con rutas portables Windows/Linux y script <code>prueba:separacion-identidad</code> integrado en <code>package.json</code>; <code>npm audit fix</code> compatible aplicado en <code>frontend/</code>.</li>
         </ul>
