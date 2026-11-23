@@ -16,6 +16,7 @@ let hitosPayload = [];
 let demorarHitos = false;
 const hitosEnEspera = [];
 let resolverSolicitudHitos;
+let onLoadEvent;
 let server, origin, browser, socket, sessionId, profile, nextId = 0;
 const pending = new Map();
 const exceptions = [];
@@ -49,7 +50,18 @@ async function key(keyName, modifiers = 0) {
 }
 async function go(route, width = 1280, height = 800) {
   await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+  const loaded = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      onLoadEvent = undefined;
+      reject(new Error(`Timeout cargando ruta ${route}`));
+    }, 10000);
+    onLoadEvent = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+  });
   await send('Page.navigate', { url: origin + route });
+  await loaded;
   await wait('document.querySelector("#openSearch") || document.querySelector(".portal-custom-header")');
 }
 async function viewport(width, height = 800) {
@@ -86,7 +98,7 @@ before(async () => {
       return res.end(fs.readFileSync(file));
     }
     const html = fs.readFileSync(path.join(bundle, 'index.html'), 'utf8').replace('<head>', `<head><script>window.__EQUINOX_API_ORIGIN__=location.origin;sessionStorage.setItem('equinox_sesion_token','sesion-ficticia-org');</script>`);
-    res.setHeader('Content-Type', 'text/html'); res.end(html);
+    res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' }); res.end(html);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   origin = `http://localhost:${server.address().port}`;
@@ -108,6 +120,9 @@ before(async () => {
       exceptions.push(event.params.exceptionDetails.exception?.description || event.params.exceptionDetails.text);
     } else if (event.method === 'Log.entryAdded' && event.params.entry.level === 'error' && event.params.entry.source === 'javascript') {
       exceptions.push(event.params.entry.text);
+    } else if (event.method === 'Page.loadEventFired') {
+      onLoadEvent?.();
+      onLoadEvent = undefined;
     } else if (event.method === 'Fetch.requestPaused') {
       const own = new URL(event.params.request.url).origin === origin;
       void send(own ? 'Fetch.continueRequest' : 'Fetch.failRequest', { requestId: event.params.requestId, ...(!own ? { errorReason: 'BlockedByClient' } : {}) }).catch(error => exceptions.push(String(error)));
@@ -123,7 +138,7 @@ afterEach(() => {
   for (const res of hitosEnEspera.splice(0)) {
     if (!res.writableEnded) { res.writeHead(503, { 'Content-Type': 'application/json' }); res.end('{}'); }
   }
-  hitosStatus = 200; hitosPayload = []; demorarHitos = false; resolverSolicitudHitos = undefined;
+  hitosStatus = 200; hitosPayload = []; demorarHitos = false; resolverSolicitudHitos = undefined; onLoadEvent = undefined;
 });
 
 test('Hoy: la consulta pendiente muestra carga sin afirmar que no hay hitos', { timeout: 15000 }, async () => {
@@ -133,22 +148,23 @@ test('Hoy: la consulta pendiente muestra carga sin afirmar que no hay hitos', { 
   await wait('document.querySelector(".milestones-block [role=status]")');
   await solicitudRecibida;
   assert.ok(hitosEnEspera.length > 0);
+  assert.match(await evalDOM('document.querySelector(".milestones-block [role=status]")?.textContent || ""'), /cargando hitos/i);
   assert.equal(await evalDOM('document.querySelector(".milestones-block")?.textContent.includes("Sin hitos registrados")'), false);
+  demorarHitos = false;
   for (const res of hitosEnEspera.splice(0)) {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end('[]');
   }
-  demorarHitos = false;
-  await wait('document.querySelector(".milestones-block")?.textContent.includes("Sin hitos registrados")');
+  await wait('!document.querySelector(".milestones-block [role=status]") && document.querySelector(".milestones-block")?.textContent.includes("Sin hitos registrados")');
 });
 
 test('Hoy: proyecto ACTIVO sin hitos ni tareas muestra estado vacío y ningún avance inventado', { timeout: 15000 }, async () => {
   await go('/hoy');
-  await wait('document.querySelector(".project-headline") && document.querySelector(".milestones-block .empty-block-hint")');
+  await wait('document.querySelector(".project-headline") && !document.querySelector(".milestones-block [role=status]") && document.querySelector(".milestones-block .empty-block-hint:not([role=status])")');
   const vista = await evalDOM(`({
     titulo: document.querySelector('.project-headline')?.textContent?.trim(),
     texto: document.querySelector('.milestones-block')?.innerText || '',
     hitos: document.querySelectorAll('.milestones-list .milestone-item').length,
-    vacio: document.querySelector('.milestones-block .empty-block-hint')?.innerText || '',
+    vacio: document.querySelector('.milestones-block .empty-block-hint:not([role=status])')?.innerText || '',
     progreso: document.querySelector('.progress-percentage')?.innerText || ''
   })`);
   assert.equal(vista.titulo, 'San Carlos Surf Resort');
@@ -252,9 +268,9 @@ test('búsqueda: Tab y Shift+Tab quedan dentro, Enter abre resultado y cierre re
 
 test('creación: trampa de foco y restauración; acciones alcanzables a 390×560', { timeout: 20000 }, async () => {
   await go('/hoy', 390, 560);
-  await wait('document.querySelector("#createBtn")');
-  await evalDOM('document.querySelector("#createBtn").focus()');
-  await click('#createBtn');
+  await wait('document.querySelector(".mobile-hoy-dock__create-btn")?.offsetParent !== null');
+  await evalDOM('document.querySelector(".mobile-hoy-dock__create-btn").focus()');
+  await click('.mobile-hoy-dock__create-btn');
   await wait('document.querySelector(".quick-modal")');
   assert.equal(await evalDOM('document.querySelector(".quick-modal").contains(document.activeElement)'), true);
   if (await evalDOM('!!document.querySelector(".quick-modal .back-link")')) {
@@ -283,15 +299,25 @@ test('creación: trampa de foco y restauración; acciones alcanzables a 390×560
   }
   await key('Escape');
   await wait('!document.querySelector(".quick-modal")');
+  assert.equal(await evalDOM('document.activeElement === document.querySelector(".mobile-hoy-dock__create-btn")'), true);
+
+  await go('/hoy', 1280, 800);
+  await wait('document.querySelector("#createBtn")?.offsetParent !== null');
+  await evalDOM('document.querySelector("#createBtn").focus()');
+  await click('#createBtn');
+  await wait('document.querySelector(".quick-modal")');
+  assert.equal(await evalDOM('document.querySelector(".quick-modal").contains(document.activeElement)'), true);
+  await key('Escape');
+  await wait('!document.querySelector(".quick-modal")');
   assert.equal(await evalDOM('document.activeElement?.id'), 'createBtn');
 });
 
-test('vistas principales: 390, 768, 1280 sin overflow horizontal ni excepciones JS', { timeout: 60000 }, async () => {
+test('vistas principales: 390, 768, 820, 1024, 1280 sin overflow horizontal ni excepciones JS', { timeout: 60000 }, async () => {
   const findings = [];
   for (const route of ['/hoy', '/clientes', '/proyectos', '/tareas', '/finanzas', '/vista-previa-portal']) {
     await go(route);
     await frame();
-    for (const width of [390, 768, 1280]) {
+    for (const width of [390, 768, 820, 1024, 1280]) {
       await viewport(width, width === 390 ? 560 : 800);
       const result = await evalDOM('({ width: document.documentElement.scrollWidth, viewport: innerWidth, path: location.pathname, content: document.body.innerText.length })');
       assert.ok(result.path === route || (route === '/hoy' && result.path === '/dashboard'), `Ruta inesperada: ${route} -> ${result.path}`);

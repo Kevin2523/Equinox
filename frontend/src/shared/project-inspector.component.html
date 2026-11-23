@@ -35,11 +35,23 @@
         </div>
       </div>
 
-      <!-- Delivery Deadline Box (Orange Highlight Box) -->
+      <!-- Delivery Deadline Box -->
       <div class="delivery-highlight-box" *ngIf="fechaEntregaFormateada">
+        <svg class="delivery-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
         <span>ENTREGA {{ fechaEntregaFormateada }}</span>
       </div>
       <div class="delivery-highlight-box delivery-box-muted" *ngIf="!fechaEntregaFormateada">
+        <svg class="delivery-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
         <span>SIN FECHA DE ENTREGA ASIGNADA</span>
       </div>
 
@@ -66,7 +78,7 @@
                 [class.node-pending]="h.estado === 'PENDIENTE'"
               >
                 <!-- Checkmark for completed -->
-                <svg *ngIf="h.estado === 'COMPLETADO'" viewBox="0 0 16 16" fill="currentColor">
+                <svg *ngIf="h.estado === 'COMPLETADO'" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                   <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
                 </svg>
               </div>
@@ -81,19 +93,29 @@
           </div>
         </div>
         <div class="empty-block-hint" *ngIf="!cargandoDetalles && !errorHitos && hitos.length === 0">
+          <svg class="empty-hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+            <line x1="4" y1="22" x2="4" y2="15"></line>
+          </svg>
           <p>Sin hitos registrados para este proyecto.</p>
         </div>
       </div>
 
       <!-- Next Tasks Section ("Lo siguiente") -->
-      <div class="next-tasks-block">
-        <div class="next-tasks-header">
+      <div class="next-tasks-block" *ngIf="tareasMostradas.length > 0 || !cargandoDetalles">
+        <div class="next-tasks-header" *ngIf="tareasMostradas.length > 0">
           <h3 class="next-tasks-title">Lo siguiente</h3>
-          <span class="tasks-counter" *ngIf="tareasMostradas.length > 0">{{ tareasPendientesCount }} pendientes</span>
+          <span class="tasks-counter">{{ tareasPendientesCount }} pendientes</span>
         </div>
         <div class="task-checkbox-list" *ngIf="tareasMostradas.length > 0">
-          <label class="task-checkbox-item" *ngFor="let t of tareasMostradas" (click)="$event.preventDefault(); toggleTarea(t)">
-            <span class="custom-checkbox" [class.checked]="t.estado === 'COMPLETADA'">
+          <label class="task-checkbox-item" *ngFor="let t of tareasMostradas">
+            <input
+              type="checkbox"
+              class="sr-only-checkbox"
+              [checked]="t.estado === 'COMPLETADA'"
+              (change)="toggleTarea(t)"
+            />
+            <span class="custom-checkbox" [class.checked]="t.estado === 'COMPLETADA'" aria-hidden="true">
               <svg *ngIf="t.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
               </svg>
@@ -102,6 +124,10 @@
           </label>
         </div>
         <div class="empty-block-hint" *ngIf="!cargandoDetalles && tareasMostradas.length === 0">
+          <svg class="empty-hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
           <p>Sin tareas registradas en este proyecto.</p>
         </div>
       </div>

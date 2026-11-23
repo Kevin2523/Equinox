@@ -254,6 +254,26 @@
   flex-wrap: wrap;
 }
 
+.admin-mfa-copy-row .admin-btn-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 7px 12px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-mfa-copy-row .admin-btn-sm:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
 .admin-mfa-code-input {
   letter-spacing: 0.22em;
   font-weight: 700;
@@ -278,6 +298,35 @@
   color: var(--navy);
 }
 
+@media (max-width: 768px) {
+  .form-control {
+    min-height: 44px;
+  }
+
+  .admin-toggle-pass {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-link-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-mfa-toggle-btn,
+  .admin-mfa-copy-row .admin-btn-sm,
+  .admin-auth-card .btn-secondary {
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 480px) {
   .admin-auth-shell {
     padding: 16px 12px;
@@ -289,6 +338,16 @@
 
   .admin-mfa-qr-img {
     width: 196px;
+  }
+
+  .admin-mfa-copy-row {
+    width: 100%;
+  }
+
+  .admin-mfa-copy-row .admin-btn-sm,
+  .admin-auth-card .btn-secondary {
+    width: 100%;
+    justify-content: center;
   }
 
   .admin-recovery-grid {

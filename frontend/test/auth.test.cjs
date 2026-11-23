@@ -14,8 +14,9 @@ const sessionStorage = {
 };
 const window = { location: { hostname: 'localhost', port: '4200', origin: 'http://localhost:4200' } };
 let services;
+let devMode = false;
 const cache = new Map();
-const angularCore = { Injectable: () => (target) => target, Component: () => (target) => target, inject: (token) => services.get(token) };
+const angularCore = { Injectable: () => (target) => target, Component: () => (target) => target, inject: (token) => services.get(token), isDevMode: () => devMode };
 class Router {}
 
 function load(relativePath) {
@@ -172,10 +173,19 @@ test('el cierre del CRM ofrece la misma salida local confirmada si falla el serv
 });
 
 test('el origen local y el origen explícito de API se resuelven de forma segura', () => {
+  devMode = false;
   assert.equal(resolverOrigenApi('localhost'), 'http://localhost:3000');
+  assert.equal(resolverOrigenApi('192.168.50.186'), null);
   assert.equal(resolverOrigenApi('app.example.test'), null);
   assert.equal(resolverOrigenApi('app.example.test', 'https://api.example.test'), 'https://api.example.test');
   assert.equal(resolverOrigenApi('app.example.test', 'https://api.example.test/ruta'), null);
+  assert.equal(resolverOrigenApi('app.example.test', 'http://api.example.test'), null);
+  assert.equal(resolverOrigenApi('192.168.50.186', 'http://192.168.50.186:8080', 'http:'), 'http://192.168.50.186:8080');
+  assert.equal(resolverOrigenApi('192.168.50.186', 'http://192.168.50.186:8080', 'https:'), null);
+  devMode = true;
+  assert.equal(resolverOrigenApi('192.168.50.186'), 'http://192.168.50.186:3000');
+  assert.equal(resolverOrigenApi('app.example.test'), null);
+  devMode = false;
   assert.equal(esPeticionDelOrigenApi('https://api.example.test/api/yo', 'https://api.example.test', 'https://app.example.test'), true);
   assert.equal(esPeticionDelOrigenApi('https://evil.example/api/yo', 'https://api.example.test', 'https://app.example.test'), false);
   assert.equal(esPeticionDelOrigenApi('https://api.example.test/otro', 'https://api.example.test', 'https://app.example.test'), false);

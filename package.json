@@ -14,6 +14,7 @@
     "prisma:verificar-semilla": "node node_modules/tsx/dist/cli.mjs prisma/verificar-semilla.ts",
     "admin:bootstrap": "node node_modules/tsx/dist/cli.mjs src/cli/bootstrap-admin.ts",
     "admin:rotar-mfa-pendiente": "node node_modules/tsx/dist/cli.mjs src/cli/rotar-mfa-pendiente.ts",
+    "admin:separar-identidad": "node node_modules/tsx/dist/cli.mjs src/cli/separar-identidad.ts",
     "compilar:pruebas": "node node_modules/typescript/bin/tsc -p tsconfig.pruebas.json --noEmit",
     "prueba:migracion": "node node_modules/tsx/dist/cli.mjs test/test-migracion-permanente.ts",
     "prueba:integracion": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-integracion.ts",
@@ -28,7 +29,8 @@
     "prueba:archivos": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue11.ts",
     "prueba:finanzas": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue12.ts",
     "prueba:limpieza": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue13.ts",
-    "prueba:qa": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue14.ts"
+    "prueba:qa": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-issue14.ts",
+    "prueba:separacion-identidad": "npm run compilar:pruebas && node node_modules/tsx/dist/cli.mjs test/ejecutar-separacion-identidad.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",

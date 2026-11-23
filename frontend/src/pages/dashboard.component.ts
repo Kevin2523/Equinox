@@ -9,7 +9,8 @@ import { UiStateService } from '../state/ui-state.service';
   selector: 'app-dashboard',
   standalone: true,
   imports: [CommonModule, FormsModule, WorkMapComponent, ProjectInspectorComponent],
-  templateUrl: './dashboard.component.html'
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent {
   constructor(public state: UiStateService) {}

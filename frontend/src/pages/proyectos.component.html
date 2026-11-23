@@ -394,7 +394,7 @@
      MODAL CONFIRMAR ELIMINACIÓN DE PROYECTO
      ========================================================================== -->
 <div class="overlay" *ngIf="confirmandoEliminarId" (click)="confirmandoEliminarId = null">
-  <section class="quick-modal modal-confirm" (click)="$event.stopPropagation()">
+  <section class="quick-modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="proyecto-confirm-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
     <button class="close" type="button" (click)="confirmandoEliminarId = null" aria-label="Cerrar">×</button>
     <div class="confirm-icon-wrap">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
@@ -403,7 +403,7 @@
         <line x1="12" y1="17" x2="12.01" y2="17"></line>
       </svg>
     </div>
-    <h2>¿Eliminar este proyecto?</h2>
+    <h2 id="proyecto-confirm-title">¿Eliminar este proyecto?</h2>
     <p>Esta acción eliminará de forma permanente el proyecto, sus tareas, hitos, archivos y comentarios asociados en la base de datos.</p>
     <div class="modal-actions">
       <button class="btn-secondary" type="button" (click)="confirmandoEliminarId = null" [disabled]="eliminandoProyecto">Cancelar</button>

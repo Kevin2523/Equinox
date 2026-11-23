@@ -222,7 +222,7 @@
    ========================================================================== */
 .sesiones-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: 16px;
 }
 
@@ -256,6 +256,8 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
+  flex: 1;
 }
 
 .sesion-nombre {
@@ -264,6 +266,7 @@
   font-weight: 600;
   color: #111827;
   line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .sesion-fecha {
@@ -453,6 +456,8 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  flex: 1 1 260px;
 }
 
 .hero-title-row {
@@ -469,6 +474,7 @@
   font-weight: 800;
   color: #111827;
   letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
 }
 
 .hero-subline {
@@ -478,6 +484,10 @@
   font-size: 13px;
   color: #6b7280;
   flex-wrap: wrap;
+}
+
+.subline-desc {
+  overflow-wrap: anywhere;
 }
 
 .subline-separator {
@@ -581,7 +591,7 @@
 
 .photos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
   gap: 16px;
 }
 
@@ -681,6 +691,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .photo-filename {
@@ -820,13 +831,16 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 16px;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
   overflow-y: auto;
 }
 
 .modal-card {
   width: 100%;
   max-width: 520px;
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  margin: auto;
   background-color: #ffffff;
   border-radius: 10px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
@@ -876,6 +890,7 @@
   font-size: 18px;
   font-weight: 700;
   color: #111827;
+  overflow-wrap: anywhere;
 }
 
 .modal-close {
@@ -1012,13 +1027,15 @@
 .lightbox-backdrop {
   background-color: rgba(10, 10, 10, 0.85);
   backdrop-filter: blur(4px);
-  padding: 24px;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
 }
 
 .lightbox-content {
   position: relative;
-  max-width: 90vw;
-  max-height: 90vh;
+  width: 100%;
+  max-width: min(960px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  margin: auto;
   display: flex;
   flex-direction: column;
   background-color: #18181b;
@@ -1052,17 +1069,19 @@
 
 .lightbox-img-wrapper {
   position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #09090b;
-  max-height: 75vh;
+  max-height: 75dvh;
   overflow: hidden;
 }
 
 .lightbox-img {
   max-width: 100%;
-  max-height: 75vh;
+  max-height: 100%;
   object-fit: contain;
 }
 
@@ -1093,15 +1112,179 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .lightbox-title {
   font-size: 14px;
   font-weight: 500;
   color: #f4f4f5;
+  overflow-wrap: anywhere;
 }
 
 .lightbox-sub {
   font-size: 12px;
   color: #a1a1aa;
+}
+
+.sesiones-container button:focus-visible,
+.modal-backdrop button:focus-visible,
+.sesion-card:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+@media (max-width: 860px) {
+  .photo-actions-toolbar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .btn-photo-action,
+  .btn-order-action,
+  .btn-photo-delete {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  .btn-photo-action {
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .section-header,
+  .session-hero {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .btn-primary-action,
+  .btn-secondary-action,
+  .btn-danger-action,
+  .btn-back,
+  .btn-retry,
+  .btn-card-open,
+  .btn-card-toggle,
+  .btn-card-icon,
+  .btn-page-nav,
+  .btn-modal-cancel,
+  .btn-modal-submit,
+  .btn-danger-submit,
+  .modal-close,
+  .lightbox-close-btn {
+    min-height: 44px;
+  }
+
+  .btn-card-icon,
+  .modal-close,
+  .lightbox-close-btn {
+    min-width: 44px;
+  }
+
+  .photo-actions-toolbar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .btn-photo-action,
+  .btn-order-action,
+  .btn-photo-delete {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  .btn-photo-action {
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-actions,
+  .header-actions .btn-primary-action {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .session-headline {
+    font-size: 22px;
+  }
+
+  .sesion-card-actions,
+  .hero-actions,
+  .modal-actions-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .hero-actions {
+    width: 100%;
+  }
+
+  .hero-actions > button {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+  }
+
+  .progress-info-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .progress-filename {
+    max-width: 100%;
+  }
+
+  .photos-pagination-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .pagination-buttons {
+    width: 100%;
+  }
+
+  .btn-page-nav {
+    flex: 1;
+    text-align: center;
+  }
+
+  .modal-card {
+    padding: 18px 16px;
+  }
+
+  .lightbox-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-actions > button {
+    flex: 1 1 100%;
+  }
+
+  .modal-actions-bar {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .modal-actions-bar > button {
+    width: 100%;
+    justify-content: center;
+  }
 }

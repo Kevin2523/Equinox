@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -33,7 +33,7 @@ export interface ProyectoVisual extends ProyectoApi {
   templateUrl: './work-map.component.html',
   styleUrls: ['./work-map.component.css']
 })
-export class WorkMapComponent implements OnInit, OnDestroy {
+export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
   cargando = false;
   error = '';
 
@@ -46,12 +46,20 @@ export class WorkMapComponent implements OnInit, OnDestroy {
   private dragStartY = 0;
   private dragMoved = false;
   private lastDragEndTime = 0;
+  private pinchStartDist = 0;
+  private pinchStartZoom = 80;
+  private userAdjustedView = false;
+  private containerWidth = 0;
+  private containerHeight = 0;
+  private resizeObserver: ResizeObserver | null = null;
 
   // Caching / memoization to avoid re-rendering and identity churn on every change detection
   private cachedProyectosVisuales: ProyectoVisual[] = [];
   private lastProyectosRef: ProyectoApi[] | null = null;
   private lastSeleccionadoId: string | null = null;
   private lastStudioName = '';
+  private lastViewportBucket: 'xs' | 'sm' | 'md' | 'desktop' = 'desktop';
+  private lastResponsiveBand: 'xs' | 'sm' | 'md' | 'stacked' | 'tablet-2col' | 'desktop' = 'desktop';
 
   // Studio and Hub identity
   studioName = 'EQUINOX';
@@ -77,13 +85,105 @@ export class WorkMapComponent implements OnInit, OnDestroy {
     public api: ClientesProyectosApiService,
     private http: HttpClient,
     private router: Router,
-    private auth: AuthService
+    private auth: AuthService,
+    private ngZone: NgZone,
+    private hostElement: ElementRef<HTMLElement>
   ) {}
 
   ngOnInit(): void {
+    this.lastResponsiveBand = this.obtenerResponsiveBand();
+    this.zoomLevel = this.obtenerZoomInicial();
     void this.cargar();
     void this.cargarDatosOrganizacion();
   }
+
+  ngAfterViewInit(): void {
+    if (typeof window !== 'undefined') window.addEventListener('resize', this.onWindowResize);
+    const el = this.hostElement?.nativeElement.querySelector('.map-canvas-container');
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const w = Math.round(entry.contentRect.width);
+      const h = Math.round(entry.contentRect.height);
+      if (w <= 0 || h <= 0) return;
+      if (w === this.containerWidth && h === this.containerHeight) return;
+
+      this.containerWidth = w;
+      this.containerHeight = h;
+      this.ngZone.run(() => {
+        this.sincronizarZoomPorContenedor(false);
+      });
+    });
+    this.resizeObserver.observe(el);
+  }
+
+  private obtenerViewportBucket(): 'xs' | 'sm' | 'md' | 'desktop' {
+    if (typeof window === 'undefined') return 'desktop';
+    if (window.innerWidth <= 360) return 'xs';
+    if (window.innerWidth <= 480) return 'sm';
+    if (window.innerWidth <= 780) return 'md';
+    return 'desktop';
+  }
+
+  private obtenerResponsiveBand(): 'xs' | 'sm' | 'md' | 'stacked' | 'tablet-2col' | 'desktop' {
+    if (typeof window === 'undefined') return 'desktop';
+    const vw = window.innerWidth;
+    if (vw <= 360) return 'xs';
+    if (vw <= 640) return 'sm';
+    if (vw <= 780) return 'md';
+    if (vw <= 900) return 'stacked';
+    if (vw < 1100) return 'tablet-2col';
+    return 'desktop';
+  }
+
+  private obtenerZoomInicial(containerW = this.containerWidth, containerH = this.containerHeight): number {
+    if (typeof window === 'undefined') return 80;
+    const vw = window.innerWidth;
+    if (vw <= 360) return 45;
+    if (vw <= 640) return 55;
+    if (vw <= 780) return 68;
+    if (vw <= 900 || vw >= 1100) return 80;
+
+    // 901-1099px (modo dos columnas): adaptar al ancho y alto real del contenedor
+    const realW = containerW > 0 ? containerW : Math.max(580, vw - 310);
+    const realH = containerH > 0 ? containerH : Math.max(500, window.innerHeight - 64);
+    const total = this.api.proyectos.length;
+    const contentW = total <= 2 ? 760 : 880;
+    const contentH = total <= 2 ? 490 : 690;
+
+    const zoomW = ((realW - 24) / contentW) * 100;
+    const zoomH = ((realH - 130) / contentH) * 100;
+    const fitted = Math.floor(Math.min(80, zoomW, zoomH));
+    return Math.max(52, Math.min(80, fitted));
+  }
+
+  private sincronizarZoomPorContenedor(forzarResetPan: boolean): void {
+    const band = this.obtenerResponsiveBand();
+    const cambioBand = band !== this.lastResponsiveBand;
+    this.lastResponsiveBand = band;
+
+    if (cambioBand) {
+      this.userAdjustedView = false;
+      this.zoomLevel = this.obtenerZoomInicial();
+      this.panX = 0;
+      this.panY = 0;
+      return;
+    }
+
+    if (band === 'tablet-2col' && !this.userAdjustedView) {
+      this.zoomLevel = this.obtenerZoomInicial();
+      if (forzarResetPan) {
+        this.panX = 0;
+        this.panY = 0;
+      }
+    }
+  }
+
+  private onWindowResize = (): void => {
+    this.ngZone.run(() => this.sincronizarZoomPorContenedor(true));
+  };
 
   async cargarDatosOrganizacion(): Promise<void> {
     try {
@@ -146,6 +246,9 @@ export class WorkMapComponent implements OnInit, OnDestroy {
       this.error = 'No se pudo cargar el mapa de proyectos.';
     } finally {
       this.cargando = false;
+      if (!this.userAdjustedView && this.obtenerResponsiveBand() === 'tablet-2col') {
+        this.zoomLevel = this.obtenerZoomInicial();
+      }
     }
   }
 
@@ -194,23 +297,33 @@ export class WorkMapComponent implements OnInit, OnDestroy {
   } {
     let offsetX = 0;
     let offsetY = 0;
+    const bucket = this.obtenerViewportBucket();
 
     if (total === 1) {
-      offsetX = 195;
-      offsetY = -95;
-    } else if (total === 2) {
-      if (idx === 0) {
-        offsetX = -195;
-        offsetY = 125;
+      if (bucket === 'xs' || bucket === 'sm') {
+        offsetX = -125;
+        offsetY = 142;
       } else {
         offsetX = 195;
-        offsetY = -125;
+        offsetY = -95;
+      }
+    } else if (total === 2) {
+      const spanX = bucket === 'xs' || bucket === 'sm' ? 168 : bucket === 'md' ? 180 : 195;
+      const spanY = bucket === 'xs' || bucket === 'sm' ? 121 : bucket === 'md' ? 126 : 125;
+      if (idx === 0) {
+        offsetX = -spanX;
+        offsetY = spanY;
+      } else {
+        offsetX = spanX;
+        offsetY = -spanY;
       }
     } else if (idx < 6) {
       const angulos = [-150, -30, 30, 150, -90, 90];
       const rad = (angulos[idx] * Math.PI) / 180;
-      offsetX = Math.cos(rad) * 340;
-      offsetY = Math.sin(rad) * 240;
+      const rx = bucket === 'xs' ? 235 : bucket === 'sm' ? 255 : bucket === 'md' ? 295 : 340;
+      const ry = bucket === 'xs' ? 185 : bucket === 'sm' ? 195 : bucket === 'md' ? 220 : 240;
+      offsetX = Math.cos(rad) * rx;
+      offsetY = Math.sin(rad) * ry;
     } else {
       // Anillos exteriores para 7+ proyectos sin superposición
       let restante = idx - 6;
@@ -262,12 +375,14 @@ export class WorkMapComponent implements OnInit, OnDestroy {
   get proyectosVisuales(): ProyectoVisual[] {
     const proyectos = this.api.proyectos;
     const seleccionadoId = this.api.proyectoSeleccionado?.id ?? null;
+    const viewportBucket = this.obtenerViewportBucket();
 
     if (
       this.cachedProyectosVisuales.length === proyectos.length &&
       this.lastProyectosRef === proyectos &&
       this.lastSeleccionadoId === seleccionadoId &&
-      this.lastStudioName === this.studioName
+      this.lastStudioName === this.studioName &&
+      this.lastViewportBucket === viewportBucket
     ) {
       return this.cachedProyectosVisuales;
     }
@@ -275,6 +390,7 @@ export class WorkMapComponent implements OnInit, OnDestroy {
     this.lastProyectosRef = proyectos;
     this.lastSeleccionadoId = seleccionadoId;
     this.lastStudioName = this.studioName;
+    this.lastViewportBucket = viewportBucket;
 
     const total = proyectos.length;
     if (total > 6) {
@@ -293,7 +409,13 @@ export class WorkMapComponent implements OnInit, OnDestroy {
       this.stageHeight = 760;
     }
     this.hubX = Math.round(this.stageWidth / 2);
-    this.hubY = Math.round(this.stageHeight / 2) + 10;
+    if (viewportBucket === 'desktop') {
+      this.hubY = Math.round(this.stageHeight / 2) + 10;
+    } else if (total === 0) {
+      this.hubY = Math.round(this.stageHeight / 2) - 55;
+    } else {
+      this.hubY = Math.round(this.stageHeight / 2) + 31;
+    }
 
     this.cachedProyectosVisuales = proyectos.map((p, idx) => {
       const tabNum = idx < 9 ? `0${idx + 1}` : `${idx + 1}`;
@@ -366,15 +488,18 @@ export class WorkMapComponent implements OnInit, OnDestroy {
   }
 
   zoomIn(): void {
+    this.userAdjustedView = true;
     this.zoomLevel = Math.min(130, this.zoomLevel + 10);
   }
 
   zoomOut(): void {
-    this.zoomLevel = Math.max(60, this.zoomLevel - 10);
+    this.userAdjustedView = true;
+    this.zoomLevel = Math.max(45, this.zoomLevel - 10);
   }
 
   resetZoom(): void {
-    this.zoomLevel = 80;
+    this.userAdjustedView = false;
+    this.zoomLevel = this.obtenerZoomInicial();
     this.panX = 0;
     this.panY = 0;
   }
@@ -385,6 +510,7 @@ export class WorkMapComponent implements OnInit, OnDestroy {
     const nextY = e.clientY - this.dragStartY;
     if (Math.hypot(nextX - this.panX, nextY - this.panY) > 3) {
       this.dragMoved = true;
+      this.userAdjustedView = true;
     }
     this.panX = nextX;
     this.panY = nextY;
@@ -404,7 +530,7 @@ export class WorkMapComponent implements OnInit, OnDestroy {
 
   onMouseDown(e: MouseEvent): void {
     const target = e.target as HTMLElement;
-    if (target.closest('.folder-node') || target.closest('.central-hub') || target.closest('.zoom-dock') || target.closest('.command-dock') || target.closest('.empty-map-node')) {
+    if (target.closest('.folder-node') || target.closest('.central-hub') || target.closest('.zoom-dock') || target.closest('.command-dock') || target.closest('.empty-map-node') || target.closest('.canvas-header')) {
       return;
     }
     this.isDragging = true;
@@ -417,10 +543,20 @@ export class WorkMapComponent implements OnInit, OnDestroy {
 
   onTouchStart(e: TouchEvent): void {
     const target = e.target as HTMLElement;
-    if (target.closest('.folder-node') || target.closest('.central-hub') || target.closest('.zoom-dock') || target.closest('.command-dock') || target.closest('.empty-map-node')) {
+    if (target.closest('.folder-node') || target.closest('.central-hub') || target.closest('.zoom-dock') || target.closest('.command-dock') || target.closest('.empty-map-node') || target.closest('.canvas-header')) {
+      return;
+    }
+    if (e.touches && e.touches.length === 2) {
+      this.isDragging = false;
+      this.pinchStartDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      this.pinchStartZoom = this.zoomLevel;
       return;
     }
     if (e.touches && e.touches.length === 1) {
+      this.pinchStartDist = 0;
       this.isDragging = true;
       this.dragMoved = false;
       this.dragStartX = e.touches[0].clientX - this.panX;
@@ -429,17 +565,29 @@ export class WorkMapComponent implements OnInit, OnDestroy {
   }
 
   onTouchMove(e: TouchEvent): void {
+    if (e.touches && e.touches.length === 2 && this.pinchStartDist > 0) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const nextZoom = Math.round(this.pinchStartZoom * (dist / this.pinchStartDist));
+      this.userAdjustedView = true;
+      this.zoomLevel = Math.max(45, Math.min(130, nextZoom));
+      return;
+    }
     if (!this.isDragging || !e.touches || e.touches.length !== 1) return;
     const nextX = e.touches[0].clientX - this.dragStartX;
     const nextY = e.touches[0].clientY - this.dragStartY;
     if (Math.hypot(nextX - this.panX, nextY - this.panY) > 3) {
       this.dragMoved = true;
+      this.userAdjustedView = true;
     }
     this.panX = nextX;
     this.panY = nextY;
   }
 
   onTouchEnd(): void {
+    this.pinchStartDist = 0;
     if (this.dragMoved) {
       this.lastDragEndTime = Date.now();
     }
@@ -448,6 +596,9 @@ export class WorkMapComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    if (typeof window !== 'undefined') window.removeEventListener('resize', this.onWindowResize);
     document.removeEventListener('mousemove', this.onDocMouseMove);
     document.removeEventListener('mouseup', this.onDocMouseUp);
   }

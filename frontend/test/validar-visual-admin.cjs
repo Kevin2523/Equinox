@@ -6,14 +6,18 @@ const { spawn } = require('node:child_process');
 const { once } = require('node:events');
 const assert = require('node:assert/strict');
 
-const repoRoot = 'C:/Users/kjmg2/Documents/hermes/equinox';
+const repoRoot = path.resolve(__dirname, '../..');
 const bundle = path.resolve(repoRoot, 'frontend/dist/equinox/browser');
-const chrome = [
+const chrome = process.env.EQUINOX_TEST_BROWSER || [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/snap/bin/chromium'
 ].find(fs.existsSync);
 
-const outDir = 'C:/Users/kjmg2/.gemini/antigravity-cli/brain/3c4063c4-90b9-4ee1-b57e-55ccf2449d9c/scratch/evidencias-admin';
+const outDir = process.env.EQUINOX_EVIDENCIAS_DIR || path.join(os.tmpdir(), 'equinox-evidencias-admin');
 fs.mkdirSync(outDir, { recursive: true });
 
 let server, origin, browser, socket, sessionId, profile;
@@ -36,11 +40,11 @@ const evaluar = async (expression) => {
 const esperarTexto = async (texto, timeoutMs = 8000) => {
   const inicio = Date.now();
   while (Date.now() - inicio < timeoutMs) {
-    const body = await evaluar('document.body.innerText');
+    const body = await evaluar('document.body?.innerText || ""');
     if (body && body.includes(texto)) return body;
     await new Promise((r) => setTimeout(r, 150));
   }
-  const actual = await evaluar('document.body.innerText');
+  const actual = await evaluar('document.body?.innerText || ""');
   throw new Error(`No apareció "${texto}" en ${timeoutMs}ms. Contenido actual: ${String(actual).slice(0, 350)}`);
 };
 
@@ -117,6 +121,24 @@ function manejarApi(req, res) {
         id: 'ev-1', accion: 'ORGANIZACION_ACTUALIZADA', entidad: 'Organizacion', entidadId: 'org-1',
         actorUsuarioId: 'adm-1', actorCorreo: 'admin@equinox.pa', creadoEn: '2026-11-17T15:00:00.000Z'
       }]
+    }));
+    return;
+  }
+
+  if (url.pathname === '/api/admin/organizaciones/org-1') {
+    res.writeHead(200);
+    res.end(JSON.stringify({
+      organizacion: {
+        id: 'org-1', nombre: 'Estudio Demo PA', slug: 'estudio-demo', correoContacto: 'contacto@demo.pa',
+        ruc: '12345-1-67890', moneda: 'PAB', tipoFreelance: 'FOTOGRAFIA', portalMostrarFinanzas: true,
+        creadoEn: '2026-10-01T12:00:00.000Z', actualizadoEn: '2026-11-17T10:00:00.000Z',
+        suspendidaEn: null, motivoSuspension: null,
+        conteos: { miembros: 2, clientes: 8, proyectos: 5, facturas: 3, sesionesFotograficas: 2, fotos: 25 },
+        miembros: [
+          { id: 'm-1', rol: 'PROPIETARIO', creadoEn: '2026-10-01T12:00:00.000Z', usuario: { id: 'u-1', nombre: 'Ana', apellido: 'Pérez', correo: 'ana@demo.pa', ultimoAccesoEn: '2026-11-17T09:00:00.000Z' } }
+        ],
+        suscripcion: { id: 's-1', estado: 'ACTIVA', plan: { id: 'p-1', codigo: 'BASE_MANUAL', nombre: 'Plan Base' }, fechaInicio: '2026-11-01T00:00:00.000Z', fechaFin: null, modalidadGestion: 'MANUAL_SIN_COBRO' }
+      }
     }));
     return;
   }
@@ -280,7 +302,7 @@ async function iniciar() {
 
   // 3. Verificar /admin/resumen
   await esperarTexto('Resumen de plataforma');
-  await esperarTexto('Por modalidad de estudio');
+  await esperarTexto('Modalidades de estudio');
   const shot2 = await send('Page.captureScreenshot', { format: 'png' });
   fs.writeFileSync(path.join(outDir, '02-admin-resumen-desktop.png'), Buffer.from(shot2.data, 'base64'));
 
@@ -295,7 +317,8 @@ async function iniciar() {
   await evaluar(`document.querySelector('a[href="/admin/organizaciones"]').click()`);
   await esperarTexto('Estudio Demo PA');
   await esperarTexto('Acceso activo');
-  await evaluar(`Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Suspender').click()`);
+  await evaluar(`document.querySelector('.orgs-kebab-btn').click()`);
+  await evaluar(`Array.from(document.querySelectorAll('.orgs-popover-menu button')).find(b => b.textContent.includes('Suspender acceso')).click()`);
   await esperarTexto('Suspender acceso de Estudio Demo PA');
   await evaluar(`document.querySelector('.admin-modal-close').click()`);
   await evaluar(`document.querySelector('a[href="/admin/usuarios"]').click()`);
@@ -303,9 +326,78 @@ async function iniciar() {
   await evaluar(`document.querySelector('a[href="/admin/auditoria"]').click()`);
   await esperarTexto('SUSCRIPCION_ASIGNADA');
 
-  // 6. Verificar responsive móvil (390x844)
+  // 6. Verificar responsive móvil y tabletas (320..1440 + breakpoints +/-1)
+  const verificarSinDesbordamiento = async (contexto) => {
+    const hallazgos = await evaluar(`
+      (() => {
+        const vw = window.innerWidth;
+        const docScrollW = document.documentElement.scrollWidth;
+        const docClientW = document.documentElement.clientWidth;
+        const problemas = [];
+        if (docScrollW > docClientW) {
+          problemas.push('page-overflow:' + docScrollW + '>' + docClientW);
+        }
+        for (const el of document.querySelectorAll('body *')) {
+          const st = window.getComputedStyle(el);
+          if (st.display === 'none' || st.visibility === 'hidden') continue;
+          const r = el.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) continue;
+          if (r.right > vw + 1) {
+            problemas.push('clip-right:' + el.tagName.toLowerCase() + '.' + String(el.className || '').slice(0, 40));
+          }
+          if (el.scrollWidth > el.clientWidth + 2 && el.clientWidth > 0 && st.textOverflow !== 'ellipsis') {
+            if (!['INPUT', 'TEXTAREA', 'SELECT', 'HTML', 'BODY'].includes(el.tagName)) {
+              problemas.push('internal-overflow:' + el.tagName.toLowerCase() + '.' + String(el.className || '').slice(0, 40));
+            }
+          }
+        }
+        return Array.from(new Set(problemas));
+      })()
+    `);
+    assert.equal(hallazgos.length, 0, `Desbordamiento en ${contexto}: ${hallazgos.join(', ')}`);
+  };
+
+  const viewportsResponsive = [
+    [320, 640], [390, 844], [430, 932],
+    [600, 900], [639, 900], [640, 900], [641, 900],
+    [767, 1024], [768, 1024], [769, 1024], [820, 1180],
+    [899, 1024], [900, 1024], [901, 1024],
+    [980, 1024], [981, 1024], [1024, 768],
+    [1080, 800], [1081, 800], [1180, 820], [1200, 800], [1280, 800], [1440, 900]
+  ];
+
+  const rutasAudit = [
+    { href: '/admin/resumen', texto: 'Resumen de plataforma' },
+    { href: '/admin/organizaciones', texto: 'Estudio Demo PA' },
+    { href: '/admin/usuarios', texto: 'Ana Pérez' },
+    { href: '/admin/suscripciones', texto: 'Plan Base' },
+    { href: '/admin/auditoria', texto: 'SUSCRIPCION_ASIGNADA' }
+  ];
+
+  for (const ruta of rutasAudit) {
+    await send('Page.navigate', { url: `${origin}${ruta.href}` });
+    await esperarTexto(ruta.texto);
+    for (const [w, h] of viewportsResponsive) {
+      await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: w < 768 });
+      await new Promise((r) => setTimeout(r, 40));
+      await verificarSinDesbordamiento(`${ruta.href} (${w}x${h})`);
+    }
+  }
+
+  // Verificar modal detalle en tabletas (768x1024 y 820x1180) + cierre por Escape
+  await send('Page.navigate', { url: `${origin}/admin/organizaciones` });
+  await esperarTexto('Estudio Demo PA');
+  for (const [w, h] of [[768, 1024], [820, 1180]]) {
+    await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+    await new Promise((r) => setTimeout(r, 60));
+    await evaluar(`Array.from(document.querySelectorAll('.orgs-mobile-actions button')).find(b => b.textContent.includes('Ver detalle')).click()`);
+    await esperarTexto('Miembros (1)');
+    await verificarSinDesbordamiento(`/admin/organizaciones modal (${w}x${h})`);
+    await evaluar(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  }
+
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-  await evaluar(`document.querySelector('a[href="/admin/resumen"]').click()`);
+  await send('Page.navigate', { url: `${origin}/admin/resumen` });
   await esperarTexto('Resumen de plataforma');
   const shot4 = await send('Page.captureScreenshot', { format: 'png' });
   fs.writeFileSync(path.join(outDir, '04-admin-resumen-mobile.png'), Buffer.from(shot4.data, 'base64'));

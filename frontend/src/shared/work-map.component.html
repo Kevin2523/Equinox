@@ -11,20 +11,25 @@
   (touchmove)="onTouchMove($event)"
   (touchend)="onTouchEnd()"
   (touchcancel)="onTouchEnd()"
-  aria-label="Lienzo de mapa de trabajo interactivo"
+  aria-label="Panel de proyectos del estudio"
 >
-  <!-- Canvas Header (Top-Left) -->
+  <!-- Canvas Header (Top-Left on Desktop, External Header above Map on Mobile) -->
   <div class="canvas-header">
-    <p class="canvas-eyebrow">{{ studioName }} / ESPACIO 01</p>
-    <h1 class="canvas-title">Todo conectado.</h1>
-    <p class="canvas-subtitle">{{ totalProyectosVisibles === 0 ? 'Sin proyectos en movimiento' : (totalProyectosVisibles + (totalProyectosVisibles === 1 ? ' proyecto en movimiento' : ' proyectos en movimiento')) }}</p>
+    <div class="canvas-heading-copy">
+      <p class="canvas-eyebrow">{{ studioName }} / ESPACIO 01</p>
+      <h1 class="canvas-title">Todo conectado.</h1>
+      <p class="canvas-subtitle">{{ totalProyectosVisibles === 0 ? 'Sin proyectos en movimiento' : (totalProyectosVisibles + (totalProyectosVisibles === 1 ? ' proyecto en movimiento' : ' proyectos en movimiento')) }}</p>
+    </div>
   </div>
 
-  <!-- Interactive Pan & Zoom Viewport -->
-  <div
-    class="canvas-viewport"
-    [style.transform]="'translate(' + panX + 'px, ' + panY + 'px) scale(' + (zoomLevel / 100) + ')'"
-  >
+  <!-- Interactive Map Frame (Transparent wrapper on desktop, rounded grid container on mobile) -->
+  <div class="map-frame">
+    <!-- Interactive Pan & Zoom Viewport -->
+    <div
+      id="proyectos-mapa"
+      class="canvas-viewport"
+      [style.transform]="'translate(' + panX + 'px, ' + panY + 'px) scale(' + (zoomLevel / 100) + ')'"
+    >
     <div class="canvas-stage" [style.width.px]="stageWidth" [style.height.px]="stageHeight">
       <!-- SVG Curved Connection Lines Layer -->
       <svg class="connections-svg" [attr.viewBox]="'0 0 ' + stageWidth + ' ' + stageHeight" preserveAspectRatio="none" aria-hidden="true">
@@ -213,9 +218,10 @@
     </button>
   </div>
 
-  <!-- State Toasts -->
-  <div class="map-status-toast" *ngIf="cargando">Cargando proyectos…</div>
-  <div class="map-status-toast map-status-error" *ngIf="error" role="alert">
-    {{ error }} <button type="button" (click)="cargar()">Reintentar</button>
+    <!-- State Toasts -->
+    <div class="map-status-toast" *ngIf="cargando">Cargando proyectos…</div>
+    <div class="map-status-toast map-status-error" *ngIf="error" role="alert">
+      {{ error }} <button type="button" (click)="cargar()">Reintentar</button>
+    </div>
   </div>
 </section>

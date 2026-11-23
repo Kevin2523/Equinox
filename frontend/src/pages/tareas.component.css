@@ -780,6 +780,9 @@
 .modal-card {
   width: 100%;
   max-width: 520px;
+  max-height: calc(100dvh - 40px);
+  display: flex;
+  flex-direction: column;
   background-color: #ffffff;
   border-radius: 12px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
@@ -796,6 +799,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
   padding: 20px 24px 16px;
   border-bottom: 1px solid #f1f5f9;
 }
@@ -825,6 +829,9 @@
 
 .modal-body {
   padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .form-field {
@@ -832,6 +839,7 @@
   flex-direction: column;
   gap: 6px;
   margin-bottom: 16px;
+  min-width: 0;
 }
 
 .form-field label {
@@ -895,6 +903,7 @@
   color: #1e293b;
   margin: 0 0 8px;
   line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .modal-confirm-subtext {
@@ -971,9 +980,73 @@
 }
 
 /* Responsividad Desktop / Tablet / Móvil */
+@media (max-width: 1024px) {
+  .btn-nueva-tarea,
+  .tab-btn,
+  .search-trigger-btn,
+  .search-clear-btn,
+  .btn-add-inline,
+  .btn-retry,
+  .btn-empty-action,
+  .btn-submit,
+  .btn-cancel,
+  .btn-danger,
+  .btn-cancel-sm,
+  .btn-submit-sm,
+  .menu-item,
+  .modal-close-btn {
+    min-height: 44px;
+  }
+
+  .search-trigger-btn,
+  .search-clear-btn,
+  .modal-close-btn,
+  .btn-modal-close,
+  .action-alert-close,
+  .btn-dots {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .task-project {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .form-input,
+  .form-select,
+  .input-text,
+  .input-select,
+  .input-date {
+    min-height: 44px;
+    min-width: 0;
+  }
+
+  .task-checkbox-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .task-row-actions button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 900px) {
+  .tabs-and-search-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
 @media (max-width: 768px) {
   .tareas-page-wrapper {
-    padding: 24px 16px 60px;
+    padding: 20px 16px 56px;
   }
 
   .page-title {
@@ -986,5 +1059,120 @@
 
   .task-project {
     max-width: 180px;
+  }
+}
+
+@media (max-width: 640px) {
+  .tareas-page-wrapper {
+    padding: 16px 12px 48px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .btn-nueva-tarea {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tabs-and-search-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .tabs-nav {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .tabs-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .search-container,
+  .search-box,
+  .search-box.is-open {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .task-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 10px;
+  }
+
+  .task-meta {
+    width: 100%;
+    padding-left: 44px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .inline-input-title,
+  .inline-select-project,
+  .inline-input-date {
+    min-width: 0;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .inline-quick-actions {
+    flex-wrap: wrap;
+  }
+
+  .error-state-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .btn-retry {
+    margin-left: 0;
+  }
+
+  .task-project {
+    max-width: 100%;
+  }
+
+  .modal-backdrop {
+    padding: 12px;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 24px);
+  }
+
+  .modal-header {
+    padding: 16px 16px 14px;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .form-field-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .modal-footer {
+    flex-wrap: wrap;
+    margin-top: 20px;
   }
 }

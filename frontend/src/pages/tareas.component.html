@@ -721,7 +721,7 @@
 
   <!-- ================= MODAL: NUEVA TAREA ================= -->
   <div class="modal-backdrop" *ngIf="modalCrear" (click)="cerrarModalCrear()">
-    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="modal-crear-title">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-crear-title" tabindex="-1" appDialogFocus>
       <header class="modal-header">
         <h2 id="modal-crear-title">Nueva tarea</h2>
         <button type="button" class="btn-modal-close" (click)="cerrarModalCrear()" aria-label="Cerrar modal">×</button>
@@ -803,7 +803,7 @@
 
   <!-- ================= MODAL: EDITAR TAREA ================= -->
   <div class="modal-backdrop" *ngIf="modalEditar" (click)="cerrarModalEditar()">
-    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="modal-editar-title">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-editar-title" tabindex="-1" appDialogFocus>
       <header class="modal-header">
         <h2 id="modal-editar-title">Editar tarea</h2>
         <button type="button" class="btn-modal-close" (click)="cerrarModalEditar()" aria-label="Cerrar modal">×</button>
@@ -893,7 +893,7 @@
 
   <!-- ================= MODAL: CONFIRMAR ELIMINAR ================= -->
   <div class="modal-backdrop" *ngIf="modalEliminar" (click)="cerrarModalEliminar()">
-    <div class="modal-card modal-card-sm" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="modal-eliminar-title">
+    <div class="modal-card modal-card-sm" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-title" tabindex="-1" appDialogFocus>
       <header class="modal-header">
         <h2 id="modal-eliminar-title">Eliminar tarea</h2>
         <button type="button" class="btn-modal-close" (click)="cerrarModalEliminar()" aria-label="Cerrar modal">×</button>

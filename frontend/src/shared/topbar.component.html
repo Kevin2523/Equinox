@@ -45,7 +45,7 @@
 
     <!-- Notifications Bell -->
     <div class="notif-wrapper" style="position: relative;">
-      <button class="icon-btn notif-bell" (click)="state.toggleNotifications()" aria-label="Notificaciones" title="Notificaciones">
+      <button class="icon-btn notif-bell" (click)="toggleNotificaciones($event)" [attr.aria-expanded]="state.notificationsOpen" aria-label="Notificaciones" title="Notificaciones">
         <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M14 21h-4"/></svg>
         <span class="badge-dot" *ngIf="state.unreadNotifsCount > 0"></span>
       </button>
@@ -62,9 +62,6 @@
             <b>{{ n.titulo }}</b>
             <p>{{ n.descripcion }}</p>
             <small>{{ n.tiempo }}</small>
-          </div>
-          <div class="notif-empty" *ngIf="state.notificaciones.length === 0">
-            <p>No tienes notificaciones pendientes.</p>
           </div>
         </div>
       </div>
@@ -95,8 +92,48 @@
     </div>
 
     <!-- Mobile Menu Trigger -->
-    <button class="mobile-toggle" (click)="state.mobileMenuOpen = !state.mobileMenuOpen" aria-label="Menú móvil">
-      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    <button
+      class="mobile-toggle"
+      type="button"
+      (click)="toggleMenuMovil($event)"
+      [attr.aria-expanded]="state.mobileMenuOpen"
+      aria-controls="mobile-nav-drawer"
+      aria-label="Menú móvil">
+      <svg viewBox="0 0 24 24">
+        <path *ngIf="!state.mobileMenuOpen" d="M4 6h16M4 12h16M4 18h16"/>
+        <path *ngIf="state.mobileMenuOpen" d="M6 6l12 12M18 6L6 18"/>
+      </svg>
     </button>
   </div>
 </header>
+
+<!-- Mobile Navigation Drawer -->
+<nav
+  id="mobile-nav-drawer"
+  class="mobile-nav-drawer"
+  *ngIf="state.mobileMenuOpen"
+  aria-label="Navegación móvil"
+  (click)="$event.stopPropagation()">
+  <button *ngIf="!esFotografia" type="button" class="mobile-nav-link" (click)="navegarMobile('hoy')" [class.active]="state.page === 'hoy'">
+    Hoy
+  </button>
+  <button type="button" class="mobile-nav-link" (click)="navegarMobile('clientes')" [class.active]="state.page === 'clientes'">
+    Clientes
+  </button>
+  <button *ngIf="!esFotografia" type="button" class="mobile-nav-link" (click)="navegarMobile('proyectos')" [class.active]="state.page === 'proyectos'">
+    Proyectos
+  </button>
+  <button *ngIf="!esFotografia" type="button" class="mobile-nav-link" (click)="navegarMobile('tareas')" [class.active]="state.page === 'tareas'">
+    Tareas
+  </button>
+  <button type="button" class="mobile-nav-link" (click)="navegarMobile('finanzas')" [class.active]="state.page === 'finanzas'">
+    Finanzas
+  </button>
+  <div class="mobile-nav-divider"></div>
+  <button type="button" class="mobile-nav-link" (click)="navegarMobile('configuracion')" [class.active]="state.page === 'configuracion'">
+    Mi perfil y configuración
+  </button>
+  <a class="mobile-nav-link mobile-nav-danger" routerLink="/cerrar-sesion" (click)="state.mobileMenuOpen = false">
+    Cerrar sesión
+  </a>
+</nav>

@@ -407,7 +407,7 @@
   <!-- VISOR AMPLIADO ACCESIBLE (LIGHTBOX MODAL) -->
   <div *ngIf="fotoSeleccionada as actualFoto" class="editorial-lightbox-backdrop"
     role="dialog" aria-modal="true" aria-labelledby="visor-titulo" (click)="cerrarVisor()">
-    <div class="editorial-lightbox-dialog" (click)="$event.stopPropagation()">
+    <div class="editorial-lightbox-dialog" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
 
       <header class="lightbox-header">
         <div>

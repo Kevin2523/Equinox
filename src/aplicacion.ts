@@ -18,13 +18,49 @@ import {
   exigirCliente,
   exigirSuperadmin,
 } from "./middleware/autenticacion.js";
+import { prisma } from "./prisma.js";
 import { manejarErrores } from "./utilidades/errores.js";
 import { obtenerHorasExpiracion } from "./utilidades/invitaciones.js";
+
+function esEntornoProduccion(): boolean {
+  return [process.env.ENTORNO, process.env.NODE_ENV].some((valor) =>
+    /^(produccion|production)$/i.test((valor || "").trim())
+  );
+}
+
+export function obtenerOrigenesPermitidos(): string[] {
+  const crudo = (process.env.ORIGENES_PERMITIDOS || "").trim();
+  if (!crudo) {
+    return esEntornoProduccion() ? [] : ["http://localhost:4200"];
+  }
+
+  const origenes = crudo
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  if (origenes.length === 0 || origenes.includes("*")) {
+    throw new Error("[SEGURIDAD] ORIGENES_PERMITIDOS no puede estar vacío ni incluir comodín '*'.");
+  }
+
+  return origenes.map((origen) => {
+    let url: URL;
+    try {
+      url = new URL(origen);
+    } catch {
+      throw new Error(`[SEGURIDAD] Origen CORS inválido en ORIGENES_PERMITIDOS: '${origen}'.`);
+    }
+    if (!["http:", "https:"].includes(url.protocol) || url.pathname !== "/" || url.search || url.hash) {
+      throw new Error(`[SEGURIDAD] Origen CORS inválido en ORIGENES_PERMITIDOS: '${origen}'.`);
+    }
+    return url.origin;
+  });
+}
 
 export const aplicacion = express();
 aplicacion.use(helmet());
 aplicacion.use(cors({
-  origin: (process.env.ORIGENES_PERMITIDOS || "http://localhost:4200").split(","),
+  origin: obtenerOrigenesPermitidos(),
   credentials: true,
   exposedHeaders: ["X-Portal-Finanzas"],
 }));
@@ -133,6 +169,14 @@ const formatoMorgan = process.env.ENTORNO === "produccion"
 aplicacion.use(morgan(formatoMorgan));
 
 aplicacion.get("/salud", (_req, res) => res.json({ estado: "disponible", servicio: "equinox-api" }));
+aplicacion.get("/salud/listo", async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ estado: "listo", servicio: "equinox-api", baseDatos: "conectada" });
+  } catch {
+    res.status(503).json({ estado: "no_disponible", servicio: "equinox-api", baseDatos: "desconectada" });
+  }
+});
 aplicacion.use("/api/autenticacion", rutasAutenticacion);
 aplicacion.use("/api/invitaciones", rutasInvitacionesPublicas);
 aplicacion.use("/api/admin/suscripciones", exigirAutenticacion, exigirSuperadmin, rutasAdminSuscripciones);

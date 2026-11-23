@@ -73,36 +73,66 @@ export interface AlmacenArchivos {
   apartar(clave: string): Promise<{ confirmar(): Promise<void>; restaurar(): Promise<void> }>;
 }
 
+function esEntornoProduccion(): boolean {
+  return [process.env.ENTORNO, process.env.NODE_ENV].some((valor) =>
+    /^(produccion|production)$/i.test((valor || "").trim())
+  );
+}
+
 export class AlmacenLocal implements AlmacenArchivos {
-  private raiz = path.resolve(process.env.EQUINOX_ARCHIVOS_DIR || ".archivos-desarrollo");
-  private async asegurarRaiz(): Promise<void> {
-    if ([process.env.ENTORNO, process.env.NODE_ENV].some((valor) => /^(produccion|production)$/i.test(valor || ""))) throw new ErrorHttp(503, "Almacenamiento de producción no configurado");
-    await mkdir(this.raiz, { recursive: true, mode: 0o700 });
-    if ((await lstat(this.raiz)).isSymbolicLink()) throw new ErrorHttp(503, "Directorio de archivos inválido");
+  private obtenerRaiz(): string {
+    const dir = (process.env.EQUINOX_ARCHIVOS_DIR || "").trim();
+    if (esEntornoProduccion()) {
+      if (!dir) {
+        throw new ErrorHttp(503, "Almacenamiento de producción no configurado");
+      }
+      return path.resolve(dir);
+    }
+    return path.resolve(dir || ".archivos-desarrollo");
   }
-  private ruta(clave: string): string {
+
+  private async asegurarRaiz(): Promise<string> {
+    const raiz = this.obtenerRaiz();
+    await mkdir(raiz, { recursive: true, mode: 0o700 });
+    const stats = await lstat(raiz);
+    if (stats.isSymbolicLink() || !stats.isDirectory()) {
+      throw new ErrorHttp(503, "Directorio de archivos inválido");
+    }
+    return raiz;
+  }
+
+  private ruta(raiz: string, clave: string): string {
     if (!claveLocalValida(clave)) throw new ErrorHttp(404, "Archivo no disponible");
-    return path.join(this.raiz, clave);
+    const destino = path.resolve(raiz, clave);
+    if (path.dirname(destino) !== raiz) throw new ErrorHttp(404, "Archivo no disponible");
+    return destino;
   }
+
   async guardar(bytes: Buffer, extension: string): Promise<string> {
-    await this.asegurarRaiz();
+    const raiz = await this.asegurarRaiz();
     if (!(extension in tipos)) throw new ErrorHttp(422, "Extensión no permitida");
     const clave = `${randomUUID()}${extension}`;
-    await writeFile(this.ruta(clave), bytes, { flag: "wx", mode: 0o600 });
+    await writeFile(this.ruta(raiz, clave), bytes, { flag: "wx", mode: 0o600 });
     return clave;
   }
+
   async leer(clave: string): Promise<Buffer> {
-    await this.asegurarRaiz();
-    const ruta = this.ruta(clave);
+    const raiz = await this.asegurarRaiz();
+    const ruta = this.ruta(raiz, clave);
     if (!(await lstat(ruta)).isFile()) throw new ErrorHttp(404, "Archivo no disponible");
     return readFile(ruta);
   }
-  async eliminar(clave: string): Promise<void> { await this.asegurarRaiz(); await unlink(this.ruta(clave)); }
+
+  async eliminar(clave: string): Promise<void> {
+    const raiz = await this.asegurarRaiz();
+    await unlink(this.ruta(raiz, clave));
+  }
+
   async apartar(clave: string): Promise<{ confirmar(): Promise<void>; restaurar(): Promise<void> }> {
-    await this.asegurarRaiz();
-    const origen = this.ruta(clave);
+    const raiz = await this.asegurarRaiz();
+    const origen = this.ruta(raiz, clave);
     if (!(await lstat(origen)).isFile()) throw new ErrorHttp(404, "Archivo no disponible");
-    const temporal = path.join(this.raiz, `.${randomUUID()}.borrando`);
+    const temporal = path.join(raiz, `.${randomUUID()}.borrando`);
     await rename(origen, temporal);
     return { confirmar: () => unlink(temporal), restaurar: () => rename(temporal, origen) };
   }

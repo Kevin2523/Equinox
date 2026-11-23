@@ -6,6 +6,8 @@
 .portal-preview-stage {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid #dce2ee;
@@ -46,8 +48,29 @@
 
 .is-mobile-preview .preview-shell-nav {
   grid-template-columns: auto 1fr;
-  padding: 0 16px;
+  padding: 0 12px;
   height: 52px;
+  gap: 8px;
+}
+
+.is-mobile-preview .preview-shell-user {
+  min-width: 0;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.is-mobile-preview .preview-client-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+}
+
+.is-mobile-preview .preview-client-name {
+  max-width: 76px;
+}
+
+.is-mobile-preview .preview-client-divider {
+  display: none;
 }
 
 .preview-brand {
@@ -99,6 +122,7 @@
   align-items: center;
   gap: 10px;
   font-size: 13px;
+  min-width: 0;
 }
 
 .preview-client-avatar {
@@ -117,6 +141,9 @@
 .preview-client-name {
   font-weight: 600;
   color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .preview-client-divider {

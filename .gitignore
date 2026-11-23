@@ -4,6 +4,7 @@ dist/
 .env
 .env.*
 !.env.ejemplo
+!.env.production.example
 almacenamiento_privado/
 *.db
 *.sqlite

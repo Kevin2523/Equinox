@@ -110,7 +110,7 @@
    ========================================================================== */
 .editorial-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 48px;
   align-items: start;
 }
@@ -301,13 +301,18 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .session-selector-list {
   display: flex;
   gap: 10px;
   overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
   padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .session-tab-card {
@@ -378,8 +383,14 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 6px;
+}
+
+.session-view-header > div:first-child {
+  min-width: 0;
+  flex: 1 1 200px;
 }
 
 .session-view-eyebrow {
@@ -396,6 +407,7 @@
   font-weight: 700;
   color: #111827;
   margin: 3px 0 0 0;
+  overflow-wrap: anywhere;
 }
 
 .session-view-desc {
@@ -436,16 +448,18 @@
 
 .photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr));
   gap: 12px;
 }
 
 .photo-card {
   width: 100%;
+  min-width: 0;
 }
 
 .photo-button {
   width: 100%;
+  min-width: 0;
   border: 1px solid #e5e2da;
   border-radius: 10px;
   background: #faf8f5;
@@ -574,13 +588,18 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .project-selector-list {
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
   padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .project-tab-card {
@@ -612,7 +631,13 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 12px;
+}
+
+.project-view-header > div:first-child {
+  min-width: 0;
+  flex: 1 1 200px;
 }
 
 .project-view-eyebrow {
@@ -744,14 +769,21 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 8px 0;
   border-bottom: 1px solid #f4f2ec;
+}
+
+.files-list li > div {
+  min-width: 0;
+  flex: 1;
 }
 
 .files-list strong {
   display: block;
   font-size: 13px;
   color: #111827;
+  word-break: break-word;
 }
 
 .files-list small {
@@ -965,7 +997,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   animation: fadeIn 0.2s ease;
 }
 
@@ -973,7 +1005,7 @@
   position: relative;
   width: 100%;
   max-width: 1060px;
-  max-height: 92vh;
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   background: #14171f;
   color: #f1f3f7;
   border-radius: 18px;
@@ -988,8 +1020,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 16px 22px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lightbox-header > div:first-child {
+  min-width: 0;
 }
 
 .lightbox-title {
@@ -997,6 +1034,7 @@
   font-size: 17px;
   color: #ffffff;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .lightbox-subtitle {
@@ -1016,6 +1054,7 @@
   color: #ffffff;
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
   border-radius: 50%;
   font-size: 16px;
   cursor: pointer;
@@ -1039,8 +1078,9 @@
   justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
-  flex: 1;
-  min-height: 360px;
+  flex: 1 1 auto;
+  min-height: min(360px, 45dvh);
+  min-width: 0;
   position: relative;
 }
 
@@ -1078,13 +1118,14 @@
   justify-content: center;
   position: relative;
   height: 100%;
-  max-height: 64vh;
+  max-height: 60dvh;
+  min-width: 0;
   overflow: hidden;
 }
 
 .lightbox-img {
   max-width: 100%;
-  max-height: 64vh;
+  max-height: 60dvh;
   object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
@@ -1169,7 +1210,37 @@
     gap: 36px;
   }
   .photo-grid {
-    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 108px), 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .project-tab-card {
+    min-height: 42px;
+    padding: 9px 14px;
+  }
+  .session-tab-card {
+    min-height: 48px;
+  }
+  .pagination-btn {
+    min-height: 42px;
+    padding: 8px 14px;
+  }
+  .btn-editorial-download {
+    min-height: 40px;
+    padding: 8px 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .btn-editorial-primary {
+    min-height: 42px;
+    padding: 9px 16px;
+  }
+  .btn-editorial-retry {
+    min-height: 40px;
+    padding: 8px 14px;
   }
 }
 
@@ -1211,14 +1282,19 @@
     gap: 28px;
   }
   .photo-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
   .editorial-lightbox-backdrop {
-    padding: 10px;
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   }
   .editorial-lightbox-dialog {
-    max-height: 96vh;
+    max-height: calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+  .gallery-pagination {
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
   }
   .lightbox-header {
     padding: 12px 14px;
@@ -1227,12 +1303,36 @@
     padding: 8px;
     min-height: 260px;
   }
+  .btn-lightbox-close,
   .btn-lightbox-nav {
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     font-size: 22px;
   }
   .lightbox-footer {
     padding: 10px 14px;
+  }
+}
+
+@media (max-width: 430px) {
+  .photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .files-list li {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .btn-editorial-download {
+    width: 100%;
+  }
+  .comment-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .btn-editorial-primary {
+    width: 100%;
   }
 }

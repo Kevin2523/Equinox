@@ -62,36 +62,69 @@
     <button type="button" class="btn-secondary" (click)="limpiarFiltros()">Restablecer filtros</button>
   </div>
 
-  <div *ngIf="!cargando && eventos.length > 0" class="admin-table-wrap">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Acción</th>
-          <th>Entidad</th>
-          <th>Actor</th>
-          <th>IP</th>
-          <th>Detalle</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let ev of eventos">
-          <td>{{ formatearFecha(ev.creadoEn) }}</td>
-          <td><span class="admin-badge admin-badge-blue">{{ ev.accion }}</span></td>
-          <td>
+  <ng-container *ngIf="!cargando && eventos.length > 0">
+    <div class="admin-table-wrap admin-desktop-only">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Acción</th>
+            <th>Entidad</th>
+            <th>Actor</th>
+            <th>IP</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ev of eventos">
+            <td>{{ formatearFecha(ev.creadoEn) }}</td>
+            <td><span class="admin-badge admin-badge-blue">{{ ev.accion }}</span></td>
+            <td>
+              <span class="admin-cell-primary">{{ ev.entidad }}</span>
+              <span class="admin-cell-secondary" *ngIf="ev.entidadId">{{ ev.entidadId }}</span>
+            </td>
+            <td>{{ ev.actorCorreo || ev.actorUsuarioId || 'Sistema' }}</td>
+            <td>{{ ev.ip || '—' }}</td>
+            <td>
+              <button type="button" class="admin-btn-sm" (click)="seleccionado = ev">Ver detalle</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="admin-mobile-list admin-mobile-only">
+      <article class="admin-mobile-card" *ngFor="let ev of eventos">
+        <div class="admin-mobile-card-head">
+          <div>
+            <span class="admin-badge admin-badge-blue">{{ ev.accion }}</span>
+            <span class="admin-cell-secondary" style="margin-top: 6px;">{{ formatearFecha(ev.creadoEn) }}</span>
+          </div>
+        </div>
+
+        <div class="admin-mobile-card-grid">
+          <div class="admin-mobile-card-field">
+            <small>Entidad</small>
             <span class="admin-cell-primary">{{ ev.entidad }}</span>
             <span class="admin-cell-secondary" *ngIf="ev.entidadId">{{ ev.entidadId }}</span>
-          </td>
-          <td>{{ ev.actorCorreo || ev.actorUsuarioId || 'Sistema' }}</td>
-          <td>{{ ev.ip || '—' }}</td>
-          <td>
-            <button type="button" class="admin-btn-sm" (click)="seleccionado = ev">Ver detalle</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          </div>
+          <div class="admin-mobile-card-field">
+            <small>Actor</small>
+            <span class="admin-cell-secondary">{{ ev.actorCorreo || ev.actorUsuarioId || 'Sistema' }}</span>
+          </div>
+          <div class="admin-mobile-card-field">
+            <small>IP</small>
+            <span class="admin-cell-secondary">{{ ev.ip || '—' }}</span>
+          </div>
+        </div>
 
-    <div class="admin-pagination">
+        <div class="admin-mobile-card-actions">
+          <button type="button" class="admin-btn-sm" (click)="seleccionado = ev">Ver detalle</button>
+        </div>
+      </article>
+    </div>
+
+    <div class="admin-pagination" style="margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-md);">
       <span>Página {{ paginacion.pagina }} de {{ paginacion.totalPaginas || 1 }} · {{ paginacion.total }} eventos</span>
       <div class="admin-pagination-controls">
         <button type="button" class="admin-btn-sm" (click)="cargar(paginacion.pagina - 1)" [disabled]="paginacion.pagina <= 1">
@@ -102,7 +135,7 @@
         </button>
       </div>
     </div>
-  </div>
+  </ng-container>
 
   <!-- Modal Detalle Evento -->
   <div class="admin-modal-backdrop" *ngIf="seleccionado as ev" (click)="seleccionado = null">
@@ -136,7 +169,7 @@
 
       <div class="form-group">
         <label>Metadatos</label>
-        <pre style="margin: 0; padding: 14px; background: #f8faff; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; overflow-x: auto;">{{ formatearMetadatos(ev.metadatos) }}</pre>
+        <pre style="margin: 0; padding: 14px; background: #f8faff; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; white-space: pre-wrap; word-break: break-word; overflow-x: auto;">{{ formatearMetadatos(ev.metadatos) }}</pre>
       </div>
 
       <div class="admin-modal-footer">

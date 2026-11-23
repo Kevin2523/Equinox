@@ -97,6 +97,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .sidebar-item {
@@ -167,6 +168,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
 }
 
 .studio-summary-card {
@@ -253,7 +255,7 @@
 .color-fields-row,
 .two-col-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -620,6 +622,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
 }
 
 .preview-toolbar {
@@ -854,34 +857,88 @@
 }
 
 /* Responsive */
-@media (max-width: 1120px) {
+@media (max-width: 1180px) {
   .config-grid {
     grid-template-columns: 210px minmax(0, 1fr);
+    gap: 22px;
   }
   .config-preview-pane {
     grid-column: 1 / -1;
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .config-page {
-    padding: 20px 16px 36px;
+    padding: 20px 14px 36px;
   }
   .config-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
+  }
+  .config-sidebar,
+  .config-controls,
+  .config-preview-pane {
+    min-width: 0;
   }
   .config-sidebar {
     flex-direction: row;
     overflow-x: auto;
+    max-width: 100%;
     padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
   }
   .sidebar-item {
-    min-width: 175px;
-    flex-shrink: 0;
+    width: auto;
+    flex: 0 0 auto;
+    min-width: 165px;
+    min-height: 44px;
+  }
+  .config-controls {
+    padding: 18px 16px;
+  }
+  .studio-summary-card {
+    flex-wrap: wrap;
+  }
+  .btn-edit-studio-link {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+  }
+  .device-btn {
+    min-height: 38px;
+    padding: 8px 12px;
+  }
+  .preview-stage {
+    padding: 8px;
   }
   .color-fields-row,
   .two-col-row {
     grid-template-columns: 1fr;
+  }
+  .btn-save-primary {
+    min-height: 44px;
+  }
+  .invoices-toggle-row,
+  .finanzas-card-head {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .config-header-actions {
+    width: 100%;
+  }
+  .btn-save-primary {
+    width: 100%;
+  }
+  .device-toggle {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .device-btn {
+    justify-content: center;
+    min-height: 40px;
   }
 }

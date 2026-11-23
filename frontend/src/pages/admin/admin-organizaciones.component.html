@@ -418,11 +418,11 @@
             </thead>
             <tbody>
               <tr *ngFor="let m of detalle.miembros">
-                <td>{{ m.usuario.nombre }} {{ m.usuario.apellido || '' }}</td>
-                <td>{{ m.usuario.correo }}</td>
-                <td><span class="admin-badge admin-badge-blue">{{ m.rol }}</span></td>
-                <td>{{ formatearFecha(m.usuario.ultimoAccesoEn) }}</td>
-                <td *ngIf="esAdminGlobal">
+                <td data-label="Nombre">{{ m.usuario.nombre }} {{ m.usuario.apellido || '' }}</td>
+                <td data-label="Correo">{{ m.usuario.correo }}</td>
+                <td data-label="Rol"><span class="admin-badge admin-badge-blue">{{ m.rol }}</span></td>
+                <td data-label="Último acceso">{{ formatearFecha(m.usuario.ultimoAccesoEn) }}</td>
+                <td *ngIf="esAdminGlobal" data-label="Acciones">
                   <button type="button" class="admin-btn-sm" (click)="pedirCambiarRol(detalle.id, m)">
                     Cambiar a {{ m.rol === 'PROPIETARIO' ? 'COLABORADOR' : 'PROPIETARIO' }}
                   </button>

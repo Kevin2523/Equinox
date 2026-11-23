@@ -1,0 +1,94 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-equinox}
+      POSTGRES_USER: ${POSTGRES_USER:-equinox}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Definir POSTGRES_PASSWORD}
+    volumes:
+      - equinox_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-equinox} -d $${POSTGRES_DB:-equinox}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - equinox_net
+
+  backend:
+    image: ${BACKEND_IMAGE:-equinox-backend}:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      ENTORNO: produccion
+      PUERTO: 3000
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-equinox}:${POSTGRES_PASSWORD:?Definir POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-equinox}?schema=public
+      SECRETO_JWT: ${SECRETO_JWT:?Definir SECRETO_JWT}
+      SECRETO_MFA: ${SECRETO_MFA:-}
+      VENCIMIENTO_JWT: ${VENCIMIENTO_JWT:-7d}
+      VENCIMIENTO_JWT_ADMIN: ${VENCIMIENTO_JWT_ADMIN:-8h}
+      URL_BASE: ${URL_BASE:-http://localhost:8080}
+      ORIGENES_PERMITIDOS: ${ORIGENES_PERMITIDOS:-http://localhost:8080}
+      CONFIAR_PROXY: ${CONFIAR_PROXY:-1}
+      VENCIMIENTO_INVITACION_HORAS: ${VENCIMIENTO_INVITACION_HORAS:-168}
+      EQUINOX_ARCHIVOS_DIR: /data/archivos
+      ALMACENAMIENTO_FOTOS_DIR: /data/fotos
+      ALMACENAMIENTO_MAX_BYTES: ${ALMACENAMIENTO_MAX_BYTES:-52428800}
+      MIGRAR_AL_INICIAR: ${MIGRAR_AL_INICIAR:-true}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-Equinox <no-reply@equinox.app>}
+    volumes:
+      - equinox_archivos:/data/archivos
+      - equinox_fotos:/data/fotos
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/salud/listo').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - equinox_net
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-equinox-frontend}:${IMAGE_TAG:-local}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_BIND_IP:-127.0.0.1}:${FRONTEND_PORT:-8080}:80"
+    environment:
+      EQUINOX_API_ORIGIN: ${EQUINOX_API_ORIGIN:-same-origin}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/nginx-salud >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - equinox_net
+
+volumes:
+  equinox_pgdata:
+  equinox_archivos:
+  equinox_fotos:
+
+networks:
+  equinox_net:
+    driver: bridge

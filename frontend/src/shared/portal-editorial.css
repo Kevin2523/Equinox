@@ -41,7 +41,7 @@
 /* Editorial Two-Column Grid */
 .editorial-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 48px;
   align-items: start;
 }
@@ -133,6 +133,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -377,7 +378,18 @@
   font-weight: 700;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
+  .portal-root {
+    padding: 20px 20px 48px;
+  }
+
+  .editorial-grid {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+}
+
+@media (max-width: 768px) {
   .portal-root {
     padding: 18px 16px 48px;
   }
@@ -389,6 +401,34 @@
   .editorial-grid {
     grid-template-columns: 1fr;
     gap: 32px;
+  }
+
+  .project-detail-view,
+  .session-detail-view {
+    padding: 18px 16px;
+  }
+
+  .project-view-title,
+  .session-view-title {
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 480px) {
+  .invoice-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .invoice-status-col {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 8px;
+    border-top: 1px dashed #ebe8e2;
   }
 }
 

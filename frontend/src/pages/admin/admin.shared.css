@@ -167,6 +167,7 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .admin-card-title {
@@ -270,6 +271,7 @@
   font-weight: 700;
   color: var(--navy);
   display: block;
+  overflow-wrap: anywhere;
 }
 
 .admin-cell-secondary {
@@ -277,6 +279,7 @@
   color: var(--muted);
   display: block;
   margin-top: 2px;
+  overflow-wrap: anywhere;
 }
 
 .admin-row-actions {
@@ -295,7 +298,9 @@
   font-weight: 700;
   padding: 4px 10px;
   border-radius: var(--radius-full);
-  white-space: nowrap;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
 }
 
 .admin-badge-neutral {
@@ -467,17 +472,24 @@
   border-bottom: 1px solid var(--line);
 }
 
+.admin-modal-header > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
 .admin-modal-title {
   font-family: var(--font-display);
   font-size: 19px;
   font-weight: 800;
   color: var(--navy);
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .admin-modal-close {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
   border-radius: 8px;
   display: inline-flex;
   align-items: center;
@@ -499,6 +511,7 @@
   margin-top: 22px;
   padding-top: 16px;
   border-top: 1px solid var(--line);
+  flex-wrap: wrap;
 }
 
 .admin-kv-grid {
@@ -548,6 +561,70 @@
   color: #ffffff;
 }
 
+/* Mobile Cards for Tables */
+.admin-mobile-only {
+  display: none;
+}
+
+.admin-mobile-list {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-mobile-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-mobile-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-mobile-card-head > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-mobile-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  padding: 10px 0;
+  border-top: 1px solid #eef2f7;
+  border-bottom: 1px solid #eef2f7;
+  margin-bottom: 12px;
+}
+
+.admin-mobile-card-field {
+  min-width: 0;
+}
+
+.admin-mobile-card-field small {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+
+.admin-mobile-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 960px) {
   .admin-hero-dark {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -560,9 +637,137 @@
   }
 }
 
+@media (max-width: 1080px) {
+  .admin-desktop-only {
+    display: none;
+  }
+  .admin-mobile-only,
+  .admin-mobile-list {
+    display: flex;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-modal .admin-table-wrap {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    overflow: visible;
+  }
+  .admin-modal .admin-table thead {
+    display: none;
+  }
+  .admin-modal .admin-table,
+  .admin-modal .admin-table tbody,
+  .admin-modal .admin-table tr,
+  .admin-modal .admin-table td {
+    display: block;
+    width: 100%;
+  }
+  .admin-modal .admin-table tr {
+    background: #f8faff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .admin-modal .admin-table td {
+    padding: 6px 0;
+    border-bottom: 1px solid #eef2f7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .admin-modal .admin-table td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .admin-modal .admin-table td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .admin-modal .admin-table td[data-label="Acción"],
+  .admin-modal .admin-table td[data-label="Acciones"] {
+    justify-content: flex-start;
+    padding-top: 10px;
+  }
+  .admin-modal .admin-table td[data-label="Acción"]::before,
+  .admin-modal .admin-table td[data-label="Acciones"]::before {
+    display: none;
+  }
+  .admin-modal .admin-table td[data-label="Acción"] .admin-btn-sm,
+  .admin-modal .admin-table td[data-label="Acciones"] .admin-btn-sm {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-page {
+    padding: 22px 20px 44px;
+  }
+  .admin-btn-sm {
+    min-height: 44px;
+    padding: 8px 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .admin-subtab {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .admin-modal-close {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .admin-search-input,
+  .admin-select,
+  .admin-page .form-control {
+    min-height: 44px;
+  }
+  .admin-page .btn-primary,
+  .admin-page .btn-secondary {
+    min-height: 44px;
+  }
+  .admin-modal-footer button {
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 640px) {
   .admin-page {
-    padding: 20px 16px 40px;
+    padding: 20px 14px 40px;
+  }
+  .admin-toast {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    max-width: calc(100vw - 28px);
+  }
+  .admin-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-search-input,
+  .admin-select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .admin-toolbar .admin-btn-sm {
+    width: 100%;
   }
   .admin-hero-dark {
     grid-template-columns: 1fr;
@@ -580,5 +785,30 @@
   }
   .admin-kv-grid {
     grid-template-columns: 1fr;
+  }
+  .admin-mobile-card-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-pagination-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .admin-pagination-controls .admin-btn-sm {
+    flex: 1;
+  }
+  .admin-modal-backdrop {
+    padding: 12px;
+  }
+  .admin-modal {
+    padding: 18px 16px;
+    max-height: 92vh;
+  }
+  .admin-modal-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .admin-modal-footer button {
+    width: 100%;
+    min-height: 44px;
   }
 }

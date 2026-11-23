@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService, extraerErrorAdmin } from '../../services/admin-api.service';
 import {
@@ -112,6 +112,25 @@ export class AdminSuscripcionesComponent implements OnInit {
   ngOnInit(): void {
     void this.cargarPlanesActivos();
     void this.cargarSuscripciones(1);
+  }
+
+  @HostListener('document:keydown.escape')
+  alPresionarEscape(): void {
+    if (this.confirmacionSusc && !this.ejecutandoConfirm) {
+      this.confirmacionSusc = null;
+      return;
+    }
+    if (this.modalSuscripcion && !this.guardandoSusc) {
+      this.modalSuscripcion = null;
+      return;
+    }
+    if (this.modalPlan && !this.guardandoPlan) {
+      this.modalPlan = null;
+      return;
+    }
+    if (this.historialItem) {
+      this.historialItem = null;
+    }
   }
 
   async cargarPlanesActivos(): Promise<void> {

@@ -22,7 +22,8 @@ import { UiStateService } from '../state/ui-state.service';
 export class ProyectosComponent implements OnInit, OnDestroy {
   @HostListener('document:keydown.escape')
   cerrarModalConEscape(): void {
-    if (this.modalDetalle) this.cerrarDetalle();
+    if (this.confirmandoEliminarId) this.confirmandoEliminarId = null;
+    else if (this.modalDetalle) this.cerrarDetalle();
     else this.modalFormulario = false;
   }
   private archivoInput?: HTMLInputElement;

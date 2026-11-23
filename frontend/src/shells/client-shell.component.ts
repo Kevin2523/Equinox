@@ -65,6 +65,7 @@ import { AuthService } from '../auth/auth.service';
       display: flex;
       align-items: center;
       gap: 12px;
+      min-width: 0;
     }
     .client-avatar {
       width: 32px;
@@ -84,6 +85,10 @@ import { AuthService } from '../auth/auth.service';
       font-weight: 600;
       color: #111827;
       letter-spacing: -0.01em;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .client-divider {
       width: 1px;
@@ -115,12 +120,20 @@ import { AuthService } from '../auth/auth.service';
       opacity: 0.6;
       cursor: wait;
     }
+    @media (max-width: 900px) {
+      .client-shell-nav {
+        padding: 0 24px;
+      }
+      .client-name {
+        max-width: 150px;
+      }
+    }
     @media (max-width: 780px) {
       .client-shell-nav {
         grid-template-columns: auto 1fr;
         grid-template-rows: auto;
         height: 60px;
-        padding: 0 18px;
+        padding: 0 max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left));
         gap: 12px;
       }
       .client-shell-title {
@@ -138,18 +151,30 @@ import { AuthService } from '../auth/auth.service';
       .client-divider {
         display: none;
       }
+      .client-logout-btn {
+        min-height: 40px;
+        padding: 8px 10px;
+        display: inline-flex;
+        align-items: center;
+      }
     }
     @media (max-width: 480px) {
+      .client-shell-nav {
+        padding: 0 max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+        gap: 8px;
+      }
       .client-avatar {
         width: 28px;
         height: 28px;
         font-size: 12px;
       }
       .client-name {
-        max-width: 90px;
+        max-width: 82px;
         font-size: 13px;
       }
       .client-logout-btn {
+        min-height: 44px;
+        padding: 8px;
         font-size: 12.5px;
       }
     }

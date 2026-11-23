@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { UiStateService } from '../state/ui-state.service';
 import { AuthService } from '../auth/auth.service';
+import { DialogFocusDirective } from '../shared/dialog-focus.directive';
 import { obtenerBaseApi } from '../auth/api.config';
 import { ClientesProyectosApiService, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import {
@@ -24,7 +25,7 @@ export type PestanaTareas = 'PENDIENTES' | 'COMPLETADAS';
 @Component({
   selector: 'app-tareas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DialogFocusDirective],
   templateUrl: './tareas.component.html',
   styleUrl: './tareas.component.css'
 })

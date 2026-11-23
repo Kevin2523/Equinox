@@ -1347,6 +1347,16 @@ textarea.form-input {
     grid-template-columns: minmax(0, 1fr) 340px;
     gap: 20px;
   }
+
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .clients-table th,
+  .clients-table td {
+    padding: 12px 14px;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1355,7 +1365,14 @@ textarea.form-input {
   }
 
   .clientes-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .main-column,
+  .table-column,
+  .inspector-column {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .inspector-column {
@@ -1642,7 +1659,7 @@ textarea.form-input {
 
 @media (max-width: 1024px) {
   .fotografia-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -2255,7 +2272,232 @@ textarea.form-input {
 }
 
 /* Responsividad */
+@media (max-width: 1024px) {
+  .btn-new-client,
+  .search-input,
+  .btn-filter-icon,
+  .portal-status-btn,
+  .btn-inspector-action,
+  .btn-inspector-invite,
+  .tab-item,
+  .filter-tab,
+  .btn-reset-filters,
+  .form-input,
+  .form-select,
+  .form-textarea,
+  .btn-modal-cancel,
+  .btn-modal-submit,
+  .btn-modal-secondary,
+  .btn-modal-primary-session,
+  .btn-copy-link,
+  .btn-inv-action,
+  .btn-inv-cancel,
+  .btn-retry {
+    min-height: 44px;
+  }
+
+  .btn-filter-icon,
+  .modal-close,
+  .modal-close-btn,
+  .invite-hero .invite-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .btn-inv-action {
+    padding: 8px 12px;
+  }
+}
+
 @media (max-width: 640px) {
+  .clientes-page-container {
+    padding: 16px 12px 44px;
+  }
+
+  .page-header,
+  .page-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .btn-new-client {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .tabs-group,
+  .filter-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 100%;
+  }
+
+  .tab-item,
+  .filter-tab,
+  .btn-filter-icon,
+  .btn-reset-filters,
+  .btn-modal-secondary,
+  .foto-client-item {
+    min-height: 44px;
+  }
+
+  .foto-workspace-column,
+  .foto-client-header,
+  .foto-header-right,
+  .foto-portal-widget,
+  .foto-client-actions-bar {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .foto-client-header,
+  .foto-header-right,
+  .foto-client-actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .foto-portal-widget {
+    align-items: flex-start;
+  }
+
+  .widget-pill {
+    width: 100%;
+    min-height: 44px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .btn-inspector-action {
+    min-height: 44px;
+    flex: 1 1 auto;
+  }
+
+  .btn-filter-icon {
+    min-width: 44px;
+  }
+
+  .page-arrow,
+  .page-num {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .pagination-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .table-card {
+    overflow-x: visible;
+  }
+
+  .clients-table {
+    min-width: 0;
+    width: 100%;
+    display: block;
+  }
+
+  .clients-table thead {
+    display: none;
+  }
+
+  .clients-table tbody {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .clients-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f4f9;
+  }
+
+  .clients-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .clients-table tbody tr.selected {
+    border-left: 3px solid #2563eb;
+  }
+
+  .clients-table tbody tr.selected td:first-child {
+    border-left: none;
+    padding-left: 0;
+  }
+
+  .clients-table td {
+    padding: 0;
+    border: none;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .clients-table td.col-cliente {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .clients-table td.col-proyectos {
+    grid-column: 1;
+    width: auto;
+  }
+
+  .clients-table td.col-actividad {
+    display: none;
+  }
+
+  .clients-table td.col-estado {
+    grid-column: 2;
+    justify-self: end;
+    width: auto;
+  }
+
+  .search-input,
+  .portal-status-btn,
+  .form-input,
+  .form-select,
+  .form-textarea {
+    min-height: 44px;
+  }
+
+  .modal-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .btn-modal-cancel {
+    min-height: 44px;
+  }
+
+  .inspector-actions {
+    flex-wrap: wrap;
+  }
+
+  .inspector-actions button {
+    min-height: 44px;
+    flex: 1 1 auto;
+  }
+
+  .modal-close-btn,
+  .invite-hero .invite-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
   .modal-form-grid-2col {
     grid-template-columns: 1fr;
     gap: 14px;
@@ -2302,10 +2544,114 @@ textarea.form-input {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .modal-backdrop {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+
+  .modal-card {
+    padding: 20px 16px;
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    border-radius: 12px;
+  }
+
+  .modal-header {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .modal-title {
+    font-size: 19px;
+    overflow-wrap: anywhere;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-group,
+  .form-input {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .form-validation-error,
+  .form-server-error,
+  .form-server-success {
+    overflow-wrap: anywhere;
+  }
+
+  .detail-hero {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .badge-row {
+    flex-wrap: wrap;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .detail-project-list li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .modal-actions-bar,
+  .modal-actions-photo {
+    flex-wrap: wrap;
+    justify-content: stretch;
+    gap: 8px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+
+  .modal-actions-bar button,
+  .modal-actions-photo button,
+  .invitation-submit-row .btn-modal-submit {
+    flex: 1 1 100%;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+  }
+
+  .link-input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .invitations-list li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .inv-item-info {
+    width: 100%;
+  }
+
+  .inv-item-info strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .inv-meta {
+    flex-wrap: wrap;
+  }
+
+  .inv-item-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
 }
 
 /* ===== Modal de invitaciones (estructura plana para conservar selectores) ===== */
-.quick-modal.invitation-modal { width: min(600px, 94vw) !important; padding: 0 0 4px !important; border-radius: 20px !important; overflow-x: hidden; background: #fff !important; box-shadow: 0 25px 50px -12px rgba(15,23,42,.28), 0 0 0 1px rgba(15,23,42,.05) !important; }
+.quick-modal.invitation-modal { width: min(600px, 94vw) !important; padding: 0 0 4px !important; border-radius: 20px !important; overflow-wrap: anywhere; background: #fff !important; box-shadow: 0 25px 50px -12px rgba(15,23,42,.28), 0 0 0 1px rgba(15,23,42,.05) !important; }
 .invitation-modal > *:not(.invite-hero) { margin-left: 28px; margin-right: 28px; }
 .invite-hero { position: relative; margin: 0 0 20px; padding: 22px 28px 24px; color: #fff; background: radial-gradient(rgba(255,255,255,.08) 1px, transparent 1px) 0 0/16px 16px, linear-gradient(135deg,#0d1b2a 0%,#1b263b 60%,#1e3a5f 100%); }
 .invite-hero-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }

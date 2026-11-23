@@ -1,0 +1,11 @@
+services:
+  backend:
+    image: ${BACKEND_IMAGE:?Definir BACKEND_IMAGE}:${IMAGE_TAG:-latest}
+    pull_policy: always
+    environment:
+      URL_BASE: ${URL_BASE:?Definir URL_BASE}
+      ORIGENES_PERMITIDOS: ${ORIGENES_PERMITIDOS:?Definir ORIGENES_PERMITIDOS}
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?Definir FRONTEND_IMAGE}:${IMAGE_TAG:-latest}
+    pull_policy: always

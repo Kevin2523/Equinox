@@ -25,13 +25,30 @@
             "styles": [
               "src/styles.css"
             ]
-          }
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": {
-            "buildTarget": "equinox:build"
-          }
+          "configurations": {
+            "production": {
+              "buildTarget": "equinox:build:production"
+            },
+            "development": {
+              "buildTarget": "equinox:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
         }
       }
     }

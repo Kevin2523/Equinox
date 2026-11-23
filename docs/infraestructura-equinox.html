@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Infraestructura Equinox — Docker, Nginx, CI/CD, Red y Pendientes</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --ink: #0f172a;
+      --muted: #475569;
+      --border: #cbd5e1;
+      --impl: #0f766e;
+      --impl-bg: #f0fdfa;
+      --plan: #b45309;
+      --plan-bg: #fffbeb;
+      --sec: #be123c;
+      --sec-bg: #fff1f2;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.45;
+    }
+    .page {
+      max-width: 1480px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    header h1 {
+      margin: 0 0 4px 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13.5px;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border: 1.5px solid;
+    }
+    .pill-impl { color: var(--impl); background: var(--impl-bg); border-color: var(--impl); }
+    .pill-plan { color: var(--plan); background: var(--plan-bg); border-color: var(--plan); border-style: dashed; }
+    .pill-sec  { color: var(--sec);  background: var(--sec-bg);  border-color: var(--sec);  border-style: dotted; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .dot-impl { background: var(--impl); }
+    .dot-plan { background: var(--plan); }
+    .dot-sec  { background: var(--sec); }
+
+    .diagram-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+    svg.infra {
+      width: 100%;
+      min-width: 1140px;
+      height: auto;
+      display: block;
+      font-family: var(--sans);
+    }
+    .grid-notes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .card h2 {
+      margin: 0 0 10px 0;
+      font-size: 14.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .card li { margin-bottom: 6px; }
+    code {
+      font-family: var(--mono);
+      font-size: 11.8px;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #0f172a;
+    }
+    @media print {
+      body { padding: 0; background: #fff; }
+      .diagram-card, header, .card { border-color: #94a3b8; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1>Arquitectura e Infraestructura — Equinox CRM</h1>
+        <p>Docker Compose, Nginx, volúmenes privados, env.js, GitHub Actions CI/CD, dominio <code>mena.date</code> y servidor Ubuntu LAN <code>192.168.50.142</code> (despliegue remoto aún pendiente).</p>
+      </div>
+      <div class="legend" aria-label="Leyenda del diagrama">
+        <span class="pill pill-impl"><span class="dot dot-impl"></span>IMPLEMENTADO (en repo)</span>
+        <span class="pill pill-plan"><span class="dot dot-plan"></span>PENDIENTE (TLS / CD remoto / backups)</span>
+        <span class="pill pill-sec"><span class="dot dot-sec"></span>Límite de red / Secretos</span>
+      </div>
+    </header>
+
+    <div class="diagram-card">
+      <svg class="infra" viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama de infraestructura de Equinox">
+        <defs>
+          <marker id="arrow-solid" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#0f766e"/>
+          </marker>
+          <marker id="arrow-plan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#b45309"/>
+          </marker>
+          <marker id="arrow-sec" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#be123c"/>
+          </marker>
+        </defs>
+
+        <!-- ================= ZONA 1: INTERNET PÚBLICO ================= -->
+        <rect x="20" y="20" width="245" height="545" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="36" y="46" font-size="12" font-weight="700" fill="#334155">ZONA 1 · INTERNET PÚBLICO</text>
+
+        <rect x="38" y="68" width="210" height="195" rx="10" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+        <rect x="48" y="78" width="94" height="19" rx="9" fill="#0f766e"/>
+        <text x="95" y="91" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+        <text x="50" y="116" font-size="14" font-weight="700" fill="#0f172a">Usuario Navegador / Mobile</text>
+        <text x="50" y="136" font-size="11.5" fill="#334155">• Freelancer (CRM responsive)</text>
+        <text x="50" y="154" font-size="11.5" fill="#334155">• Cliente (Portal /portal)</text>
+        <text x="50" y="172" font-size="11.5" fill="#334155">• Superadmin (/admin + TOTP)</text>
+        <text x="50" y="196" font-size="11" fill="#475569">JWT en sessionStorage</text>
+        <text x="50" y="213" font-size="11" fill="#475569">Fotos vía Blob + ObjectURL</text>
+        <text x="50" y="230" font-size="11" fill="#475569">viewport-fit=cover (320px+)</text>
+
+        <rect x="38" y="420" width="210" height="125" rx="10" fill="#fffbeb" stroke="#b45309" stroke-width="2" stroke-dasharray="7 5"/>
+        <rect x="48" y="430" width="76" height="19" rx="9" fill="#b45309"/>
+        <text x="86" y="443" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">PENDIENTE</text>
+        <text x="50" y="468" font-size="13.5" font-weight="700" fill="#0f172a">Proveedor SMTP</text>
+        <text x="50" y="488" font-size="11.5" fill="#334155">Recuperación de contraseña</text>
+        <text x="50" y="506" font-size="11" fill="#475569">Nodemailer listo en API;</text>
+        <text x="50" y="522" font-size="11" fill="#475569">SMTP_HOST vacío (responde 503)</text>
+
+        <!-- ================= ZONA 2: DNS / TLS / BORDE ================= -->
+        <rect x="295" y="20" width="250" height="545" rx="14" fill="#fffbeb" stroke="#be123c" stroke-width="2" stroke-dasharray="4 4"/>
+        <text x="311" y="46" font-size="12" font-weight="700" fill="#be123c">ZONA 2 · DNS / TLS / BORDE</text>
+
+        <rect x="313" y="68" width="214" height="232" rx="10" fill="#ffffff" stroke="#b45309" stroke-width="2" stroke-dasharray="7 5"/>
+        <rect x="323" y="78" width="76" height="19" rx="9" fill="#b45309"/>
+        <text x="361" y="91" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">PENDIENTE</text>
+        <text x="325" y="116" font-size="14" font-weight="700" fill="#0f172a">DNS mena.date + TLS Edge</text>
+        <text x="325" y="138" font-size="11.5" fill="#334155">• Dominio público: mena.date</text>
+        <text x="325" y="156" font-size="11.5" fill="#334155">• Proxy TLS 1.3 (Nginx/Caddy/</text>
+        <text x="325" y="172" font-size="11.5" fill="#334155">  Cloudflare Tunnel) → :8080</text>
+        <text x="325" y="194" font-size="11" fill="#475569">• Certificados TLS aún no emitidos</text>
+        <text x="325" y="212" font-size="11" fill="#475569">• Inyecta X-Forwarded-For/Proto</text>
+        <text x="325" y="230" font-size="11" fill="#475569">• Exige URL_BASE y</text>
+        <text x="325" y="246" font-size="11" fill="#475569">  ORIGENES_PERMITIDOS reales</text>
+        <text x="325" y="264" font-size="11" fill="#475569">  en compose.prod.yml</text>
+
+        <rect x="313" y="320" width="214" height="168" rx="10" fill="#fff1f2" stroke="#be123c" stroke-width="1.8" stroke-dasharray="5 4"/>
+        <text x="325" y="344" font-size="12.5" font-weight="700" fill="#be123c">Límites de Red y Secretos</text>
+        <text x="325" y="366" font-size="11" fill="#334155">• Host expone solo 127.0.0.1:8080</text>
+        <text x="325" y="384" font-size="11" fill="#334155">• backend:3000 y db:5432 cerrados</text>
+        <text x="325" y="402" font-size="11" fill="#334155">• Red interna Docker: equinox_net</text>
+        <text x="325" y="420" font-size="11" fill="#334155">• Referrer-Policy: no-referrer</text>
+        <text x="325" y="438" font-size="11" fill="#334155">• Sin URLs públicas de fotos</text>
+        <text x="325" y="456" font-size="11" fill="#334155">• Redacción de tokens en Morgan</text>
+        <text x="325" y="474" font-size="11" fill="#334155">• .env excluido por .gitignore</text>
+
+        <!-- ================= ZONA 3: SERVIDOR UBUNTU LAN + DOCKER ================= -->
+        <rect x="575" y="20" width="845" height="545" rx="14" fill="#f1f5f9" stroke="#334155" stroke-width="2"/>
+        <text x="593" y="46" font-size="12" font-weight="700" fill="#0f172a">ZONA 3 · SERVIDOR UBUNTU LAN (192.168.50.142) — STACK DOCKER COMPOSE (SIN DESPLIEGUE REMOTO AÚN)</text>
+
+        <!-- Contenedor Frontend Nginx -->
+        <rect x="595" y="68" width="255" height="205" rx="10" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+        <rect x="605" y="78" width="94" height="19" rx="9" fill="#0f766e"/>
+        <text x="652" y="91" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+        <text x="607" y="116" font-size="14" font-weight="700" fill="#0f172a">frontend (Nginx + Angular)</text>
+        <text x="607" y="136" font-size="11.5" fill="#334155">• frontend/Dockerfile + nginx.conf</text>
+        <text x="607" y="154" font-size="11.5" fill="#334155">• Bind 127.0.0.1:8080 → :80</text>
+        <text x="607" y="172" font-size="11.5" fill="#334155">• docker-entrypoint.sh genera</text>
+        <text x="607" y="188" font-size="11.5" fill="#334155">  /assets/env.js (same-origin)</text>
+        <text x="607" y="206" font-size="11.5" fill="#334155">• Proxy /api/, /salud → backend:3000</text>
+        <text x="607" y="224" font-size="11.5" fill="#334155">• client_max_body_size 55M</text>
+        <text x="607" y="242" font-size="11" fill="#0f766e">Healthcheck: GET /nginx-salud</text>
+
+        <!-- Contenedor Backend API -->
+        <rect x="595" y="295" width="255" height="250" rx="10" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+        <rect x="605" y="305" width="94" height="19" rx="9" fill="#0f766e"/>
+        <text x="652" y="318" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+        <text x="607" y="343" font-size="14" font-weight="700" fill="#0f172a">backend (Node.js / Express 5)</text>
+        <text x="607" y="363" font-size="11.5" fill="#334155">• Dockerfile.backend (solo red interna)</text>
+        <text x="607" y="381" font-size="11.5" fill="#334155">• Puerto 3000, CONFIAR_PROXY=1</text>
+        <text x="607" y="399" font-size="11.5" fill="#334155">• Entrypoint: prisma migrate deploy</text>
+        <text x="607" y="417" font-size="11.5" fill="#334155">• Helmet + CORS + Auth JWT + MFA</text>
+        <text x="607" y="435" font-size="11.5" fill="#334155">• Healthcheck: GET /salud/listo</text>
+        <text x="607" y="461" font-size="11" fill="#be123c" font-weight="600">Secretos (.env en $APP_DIR):</text>
+        <text x="607" y="477" font-size="10.5" fill="#334155">POSTGRES_PASSWORD, SECRETO_JWT,</text>
+        <text x="607" y="493" font-size="10.5" fill="#334155">SECRETO_MFA, SMTP_PASS</text>
+        <text x="607" y="517" font-size="10.5" fill="#b45309">Pendiente crear .env en servidor</text>
+
+        <!-- Postgres Container + Volumen -->
+        <rect x="900" y="68" width="250" height="205" rx="10" fill="#ffffff" stroke="#0f766e" stroke-width="2"/>
+        <rect x="910" y="78" width="94" height="19" rx="9" fill="#0f766e"/>
+        <text x="957" y="91" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">COMPOSE LISTO</text>
+        <rect x="1011" y="78" width="128" height="19" rx="9" fill="#b45309"/>
+        <text x="1075" y="91" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">BD VACÍA EN SERVER</text>
+        <text x="912" y="118" font-size="14" font-weight="700" fill="#0f172a">db (PostgreSQL 16-alpine)</text>
+        <text x="912" y="138" font-size="11.5" fill="#334155">• Volumen: equinox_pgdata</text>
+        <text x="912" y="156" font-size="11.5" fill="#334155">• 11 migraciones Prisma listas</text>
+        <text x="912" y="174" font-size="11.5" fill="#334155">• Healthcheck: pg_isready</text>
+        <text x="912" y="196" font-size="11" fill="#b45309" font-weight="600">Pendiente en destino: primer up,</text>
+        <text x="912" y="212" font-size="11" fill="#b45309" font-weight="600">migrate deploy + admin:bootstrap</text>
+        <text x="912" y="236" font-size="11" fill="#be123c">Puerto 5432 sin bind al host</text>
+
+        <!-- Volúmenes de archivos -->
+        <rect x="900" y="295" width="250" height="250" rx="10" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+        <rect x="910" y="305" width="94" height="19" rx="9" fill="#0f766e"/>
+        <text x="957" y="318" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+        <text x="912" y="343" font-size="14" font-weight="700" fill="#0f172a">Volúmenes Privados Docker</text>
+        <text x="912" y="365" font-size="11.5" fill="#334155">• equinox_archivos → /data/archivos</text>
+        <text x="912" y="383" font-size="11.5" fill="#334155">• equinox_fotos → /data/fotos</text>
+        <text x="912" y="405" font-size="11.5" fill="#334155">• Fuera de webroot (sin static)</text>
+        <text x="912" y="423" font-size="11.5" fill="#334155">• Claves UUID v4 + path.resolve</text>
+        <text x="912" y="441" font-size="11.5" fill="#334155">• Firmas mágicas (máx 50 MB)</text>
+        <text x="912" y="459" font-size="11.5" fill="#334155">• Streaming sin Base64 (Nginx</text>
+        <text x="912" y="475" font-size="11.5" fill="#334155">  proxy_request_buffering off)</text>
+        <text x="912" y="501" font-size="11" fill="#0f766e">Declarados en compose.yml</text>
+
+        <!-- Backups -->
+        <rect x="1185" y="185" width="215" height="240" rx="10" fill="#fffbeb" stroke="#b45309" stroke-width="2" stroke-dasharray="7 5"/>
+        <rect x="1195" y="195" width="76" height="19" rx="9" fill="#b45309"/>
+        <text x="1233" y="208" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">PENDIENTE</text>
+        <text x="1197" y="234" font-size="14" font-weight="700" fill="#0f172a">Backups y Retención</text>
+        <text x="1197" y="256" font-size="11.5" fill="#334155">• pg_dump -Fc (doc. manual en</text>
+        <text x="1197" y="272" font-size="11.5" fill="#334155">  docs/MIGRACIONES.md)</text>
+        <text x="1197" y="294" font-size="11.5" fill="#334155">• Respaldo de volúmenes:</text>
+        <text x="1197" y="310" font-size="11" fill="#334155">  equinox_pgdata, equinox_archivos,</text>
+        <text x="1197" y="326" font-size="11" fill="#334155">  equinox_fotos</text>
+        <text x="1197" y="352" font-size="11" fill="#b45309">• Cron diario automatizado</text>
+        <text x="1197" y="368" font-size="11" fill="#b45309">• Copia cifrada off-site</text>
+        <text x="1197" y="384" font-size="11" fill="#b45309">• Prueba de restauración</text>
+
+        <!-- ================= ZONA 4: GITHUB + CI + CD ================= -->
+        <rect x="20" y="595" width="1400" height="285" rx="14" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+        <text x="38" y="621" font-size="12" font-weight="700" fill="#334155">ZONA 4 · GITHUB, CI DE SEGURIDAD, GHCR Y CD POR SSH</text>
+
+        <!-- GitHub develop / main -->
+        <rect x="38" y="640" width="320" height="218" rx="10" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+        <rect x="48" y="650" width="94" height="19" rx="9" fill="#0f766e"/>
+        <text x="95" y="663" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+        <text x="50" y="689" font-size="14" font-weight="700" fill="#0f172a">GitHub: develop / main</text>
+        <text x="50" y="711" font-size="11.5" fill="#334155">• develop → Staging (cd-staging.yml)</text>
+        <text x="50" y="729" font-size="11.5" fill="#334155">• main → Producción (cd-production.yml)</text>
+        <text x="50" y="747" font-size="11.5" fill="#334155">• .gitignore protege .env, dist/,</text>
+        <text x="50" y="763" font-size="11.5" fill="#334155">  almacenamiento_privado/, evidencias/</text>
+        <text x="50" y="790" font-size="11" fill="#be123c" font-weight="600">Pendiente integración local:</text>
+        <text x="50" y="807" font-size="11" fill="#334155">• Cambios locales aún sin commit/push</text>
+        <text x="50" y="824" font-size="11" fill="#334155">• Activar protección rama main</text>
+
+        <!-- CI Seguridad -->
+        <rect x="405" y="640" width="445" height="218" rx="10" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+        <rect x="415" y="650" width="94" height="19" rx="9" fill="#0f766e"/>
+        <text x="462" y="663" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">IMPLEMENTADO</text>
+        <text x="415" y="689" font-size="14" font-weight="700" fill="#0f172a">CI de Seguridad y Docker Build (.github/workflows/ci.yml)</text>
+        <text x="415" y="711" font-size="11.5" fill="#334155">• secret-scan: Gitleaks (--redact --exit-code 1)</text>
+        <text x="415" y="729" font-size="11.5" fill="#334155">• dependency-audit: npm audit --omit=dev --audit-level=critical</text>
+        <text x="415" y="747" font-size="11.5" fill="#334155">• prisma-and-backend: postgres:16-alpine + migrate deploy + tsc</text>
+        <text x="415" y="765" font-size="11.5" fill="#334155">• frontend-build-and-tests: ng build + 11 suites node --test</text>
+        <text x="415" y="783" font-size="11.5" fill="#334155">• docker-build-verify: Buildx Dockerfile.backend y frontend</text>
+        <text x="415" y="810" font-size="11" fill="#0f766e">Registry GHCR parametrizado en cd-staging / cd-production</text>
+        <text x="415" y="827" font-size="11" fill="#b45309">(push GHCR requiere vars.CD_IMAGES_ENABLED == 'true')</text>
+
+        <!-- CD SSH -->
+        <rect x="898" y="640" width="502" height="218" rx="10" fill="#ffffff" stroke="#0f766e" stroke-width="2"/>
+        <rect x="908" y="650" width="110" height="19" rx="9" fill="#0f766e"/>
+        <text x="963" y="663" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">WORKFLOW LISTO</text>
+        <rect x="1025" y="650" width="128" height="19" rx="9" fill="#b45309"/>
+        <text x="1089" y="663" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">CD REMOTO PEND.</text>
+        <text x="908" y="689" font-size="14" font-weight="700" fill="#0f172a">CD por SSH al Servidor (cd-staging / cd-production)</text>
+        <text x="908" y="711" font-size="11.5" fill="#334155">• compose.yml + compose.prod.yml (pull GHCR + prisma:desplegar)</text>
+        <text x="908" y="729" font-size="11.5" fill="#334155">• Verifica /salud/listo y /nginx-salud tras up -d</text>
+        <text x="908" y="753" font-size="11" fill="#b45309" font-weight="600">Falta para activar CD real hacia 192.168.50.142:</text>
+        <text x="908" y="771" font-size="11" fill="#334155">1. Runner self-hosted en LAN o túnel/SSH accesible</text>
+        <text x="908" y="788" font-size="11" fill="#334155">2. Secrets: *_SSH_HOST, *_SSH_USER, *_SSH_KEY, *_APP_DIR</text>
+        <text x="908" y="805" font-size="11" fill="#334155">3. Vars: CD_IMAGES_ENABLED + STAGING/PROD_DEPLOY_ENABLED</text>
+        <text x="908" y="822" font-size="11" fill="#be123c">Nota: ubuntu-latest no alcanza IP privada LAN 192.168.50.142</text>
+
+        <!-- ================= CONEXIONES / FLUJOS ================= -->
+        <!-- Usuario -> DNS/TLS -->
+        <path d="M 248 155 L 311 155" stroke="#b45309" stroke-width="2.2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+        <text x="279" y="145" font-size="10.5" font-weight="600" fill="#b45309" text-anchor="middle">HTTPS</text>
+
+        <!-- DNS/TLS -> Frontend Nginx -->
+        <path d="M 527 155 L 593 155" stroke="#b45309" stroke-width="2.2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+        <text x="560" y="145" font-size="10.5" font-weight="600" fill="#b45309" text-anchor="middle">:8080</text>
+
+        <!-- Frontend Nginx -> Backend API -->
+        <path d="M 722 273 L 722 293" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
+        <text x="732" y="287" font-size="10.5" font-weight="600" fill="#0f766e">proxy /api/ → :3000</text>
+
+        <!-- Backend -> SMTP (por debajo de Límites de Red) -->
+        <path d="M 595 512 L 250 512" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+        <text x="420" y="503" font-size="10.5" font-weight="600" fill="#b45309" text-anchor="middle">SMTP :587 (opcional / 503 si falta)</text>
+
+        <!-- Backend -> Postgres -->
+        <path d="M 850 350 L 875 350 L 875 170 L 898 170" fill="none" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
+        <text x="875" y="255" font-size="10.5" font-weight="600" fill="#0f766e" text-anchor="middle" transform="rotate(-90 868 255)">Prisma TCP :5432</text>
+
+        <!-- Backend -> Volúmenes -->
+        <path d="M 850 425 L 898 425" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
+        <text x="874" y="416" font-size="10" font-weight="600" fill="#0f766e" text-anchor="middle">FS</text>
+
+        <!-- Postgres -> Backups -->
+        <path d="M 1150 225 L 1183 225" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+
+        <!-- Volúmenes -> Backups -->
+        <path d="M 1150 375 L 1183 375" stroke="#b45309" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+
+        <!-- GitHub -> CI -->
+        <path d="M 358 748 L 403 748" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
+        <text x="380" y="739" font-size="10" font-weight="600" fill="#0f766e" text-anchor="middle">PR/Push</text>
+
+        <!-- CI -> CD -->
+        <path d="M 850 748 L 896 748" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arrow-solid)"/>
+        <text x="873" y="739" font-size="10" font-weight="600" fill="#0f766e" text-anchor="middle">Gate</text>
+
+        <!-- CD SSH -> Servidor Ubuntu -->
+        <path d="M 1149 640 L 1149 567" stroke="#be123c" stroke-width="2.2" stroke-dasharray="5 4" marker-end="url(#arrow-sec)"/>
+        <text x="1158" y="608" font-size="10.5" font-weight="700" fill="#be123c">SSH :22 (pendiente runner/túnel + secrets)</text>
+      </svg>
+    </div>
+
+    <section class="grid-notes">
+      <div class="card">
+        <h2><span class="dot dot-impl"></span>Implementado en el repositorio</h2>
+        <ul>
+          <li><strong>Contenedores y Compose</strong> (<code>compose.yml</code>, <code>compose.prod.yml</code>, <code>Dockerfile.backend</code>, <code>frontend/Dockerfile</code>): red interna <code>equinox_net</code>, volúmenes <code>equinox_pgdata</code>, <code>equinox_archivos</code> y <code>equinox_fotos</code>.</li>
+          <li><strong>Nginx y env.js</strong> (<code>frontend/nginx.conf</code>, <code>frontend/docker-entrypoint.sh</code>, <code>frontend/src/assets/env.js</code>): <code>env.js</code> dinámico con <code>same-origin</code>, proxy <code>/api/</code> hacia <code>backend:3000</code>, <code>client_max_body_size 55M</code> y <code>proxy_request_buffering off</code>.</li>
+          <li><strong>CI/CD Workflows</strong> (<code>.github/workflows/ci.yml</code>, <code>cd-staging.yml</code>, <code>cd-production.yml</code>): Gitleaks, <code>npm audit</code>, Prisma + PostgreSQL 16, Angular build + tests, Buildx y contratos SSH parametrizados.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot dot-plan"></span>Pendiente (sin despliegue hecho aún)</h2>
+        <ul>
+          <li><strong>TLS y dominio <code>mena.date</code></strong>: aprovisionar proxy TLS 1.3 delante de <code>127.0.0.1:8080</code>, DNS público y variables <code>URL_BASE</code> / <code>ORIGENES_PERMITIDOS</code> reales.</li>
+          <li><strong>CD remoto hacia <code>192.168.50.142</code></strong>: configurar runner self-hosted en LAN o túnel/SSH público, cargar Secrets de entorno, activar flags <code>*_DEPLOY_ENABLED</code> y crear <code>.env</code> desde <code>.env.production.example</code>.</li>
+          <li><strong>BD inicial y backups</strong>: ejecutar el primer despliegue en servidor (<code>prisma migrate deploy</code> + <code>admin:bootstrap</code>), automatizar backups de volúmenes y configurar <code>SMTP_HOST</code>.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot dot-sec"></span>Límites de red y gestión de secretos</h2>
+        <ul>
+          <li><strong>Superficie mínima</strong>: solo <code>127.0.0.1:8080</code> publicado en host; <code>backend:3000</code> y <code>db:5432</code> aislados en <code>equinox_net</code>.</li>
+          <li><strong>Secretos fuera de Git</strong>: <code>.env</code> y <code>.env.*</code> ignorados; secretos SSH y GHCR separados por environment <code>staging</code> y <code>production</code> en GitHub.</li>
+          <li><strong>Calidad y auditoría</strong>: <code>validar-visual-admin.cjs</code> actualizado con rutas portables Windows/Linux y script <code>prueba:separacion-identidad</code> integrado en <code>package.json</code>; <code>npm audit fix</code> compatible aplicado en <code>frontend/</code>.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService, extraerErrorAdmin } from '../../services/admin-api.service';
 import { EventoAuditoriaAdmin, PaginacionAdmin } from '../../models/admin.model';
@@ -32,6 +32,13 @@ export class AdminAuditoriaComponent implements OnInit {
 
   ngOnInit(): void {
     void this.cargar(1);
+  }
+
+  @HostListener('document:keydown.escape')
+  alPresionarEscape(): void {
+    if (this.seleccionado) {
+      this.seleccionado = null;
+    }
   }
 
   async cargar(pagina = this.paginacion.pagina): Promise<void> {

@@ -389,11 +389,11 @@
      MODAL: CREAR / EDITAR SESIÓN
      ========================================================================= -->
 <div class="modal-backdrop" *ngIf="modalSesion" (click)="cerrarModalSesion()">
-  <section class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+  <section class="modal-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-sesion-titulo">
     <div class="modal-header">
       <div>
         <span class="modal-eyebrow">{{ editandoSesionId ? 'EDITAR SESIÓN' : 'NUEVA SESIÓN' }}</span>
-        <h3 class="modal-title">{{ editandoSesionId ? 'Actualizar sesión fotográfica' : 'Crear sesión fotográfica' }}</h3>
+        <h3 id="modal-sesion-titulo" class="modal-title">{{ editandoSesionId ? 'Actualizar sesión fotográfica' : 'Crear sesión fotográfica' }}</h3>
       </div>
       <button class="modal-close" type="button" (click)="cerrarModalSesion()" aria-label="Cerrar modal">×</button>
     </div>
@@ -454,11 +454,11 @@
      MODAL: CONFIRMACIÓN DE PUBLICACIÓN / DESPUBLICACIÓN
      ========================================================================= -->
 <div class="modal-backdrop" *ngIf="confirmacionPublicar.abierta" (click)="cerrarConfirmacionPublicar()">
-  <section class="modal-card modal-confirm-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+  <section class="modal-card modal-confirm-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-publicar-titulo">
     <div class="modal-header">
       <div>
         <span class="modal-eyebrow">PORTAL DEL CLIENTE</span>
-        <h3 class="modal-title">
+        <h3 id="modal-publicar-titulo" class="modal-title">
           {{ confirmacionPublicar.nuevoEstado === 'PUBLICADA' ? '¿Publicar sesión fotográfica?' : '¿Despublicar sesión fotográfica?' }}
         </h3>
       </div>
@@ -492,11 +492,11 @@
      MODAL: CONFIRMACIÓN DE ELIMINACIÓN DE SESIÓN
      ========================================================================= -->
 <div class="modal-backdrop" *ngIf="confirmacionEliminarSesion.abierta" (click)="cerrarConfirmacionEliminarSesion()">
-  <section class="modal-card modal-confirm-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+  <section class="modal-card modal-confirm-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-sesion-titulo">
     <div class="modal-header">
       <div>
         <span class="modal-eyebrow eyebrow-danger">ELIMINAR SESIÓN</span>
-        <h3 class="modal-title">¿Eliminar esta sesión permanentemente?</h3>
+        <h3 id="modal-eliminar-sesion-titulo" class="modal-title">¿Eliminar esta sesión permanentemente?</h3>
       </div>
       <button class="modal-close" type="button" (click)="cerrarConfirmacionEliminarSesion()" aria-label="Cerrar modal">×</button>
     </div>
@@ -528,11 +528,11 @@
      MODAL: CONFIRMACIÓN DE ELIMINACIÓN DE FOTO
      ========================================================================= -->
 <div class="modal-backdrop" *ngIf="confirmacionEliminarFoto.abierta" (click)="cerrarConfirmacionEliminarFoto()">
-  <section class="modal-card modal-confirm-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+  <section class="modal-card modal-confirm-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-foto-titulo">
     <div class="modal-header">
       <div>
         <span class="modal-eyebrow eyebrow-danger">ELIMINAR FOTOGRAFÍA</span>
-        <h3 class="modal-title">¿Eliminar esta fotografía?</h3>
+        <h3 id="modal-eliminar-foto-titulo" class="modal-title">¿Eliminar esta fotografía?</h3>
       </div>
       <button class="modal-close" type="button" (click)="cerrarConfirmacionEliminarFoto()" aria-label="Cerrar modal">×</button>
     </div>
@@ -564,7 +564,7 @@
      MODAL: VISOR DE FOTO EN TAMAÑO COMPLETO
      ========================================================================= -->
 <div class="modal-backdrop lightbox-backdrop" *ngIf="fotoAmpliada as fa" (click)="cerrarFotoAmpliada()">
-  <div class="lightbox-content" (click)="$event.stopPropagation()">
+  <div class="lightbox-content" tabindex="-1" appDialogFocus role="dialog" aria-modal="true" [attr.aria-label]="'Visor de fotografía ' + fa.nombreOriginal" (click)="$event.stopPropagation()">
     <button class="lightbox-close-btn" type="button" (click)="cerrarFotoAmpliada()" aria-label="Cerrar visor">✕</button>
 
     <div class="lightbox-img-wrapper">

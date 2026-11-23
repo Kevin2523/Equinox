@@ -14,6 +14,7 @@ import {
 } from '../models/portal.model';
 import { PortalApiService } from '../services/portal-api.service';
 import { PortalHeroComponent } from '../shared/portal-hero.component';
+import { DialogFocusDirective } from '../shared/dialog-focus.directive';
 import { ArchivosApiService } from '../services/archivos-api.service';
 import {
   evaluarContrastePaleta,
@@ -22,7 +23,7 @@ import {
 } from '../utils/branding.util';
 
 @Component({
-  selector: 'app-client-home', standalone: true, imports: [CommonModule, FormsModule, PortalHeroComponent],
+  selector: 'app-client-home', standalone: true, imports: [CommonModule, FormsModule, PortalHeroComponent, DialogFocusDirective],
   templateUrl: './client-home.component.html', styleUrls: ['./client-home.component.css', '../shared/portal-editorial.css']
 })
 export class ClientHomeComponent implements OnInit, OnDestroy {

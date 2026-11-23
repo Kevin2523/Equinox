@@ -26,7 +26,7 @@ global.URL.revokeObjectURL = (url) => {
   urlsRevocadas.add(url);
 };
 
-const angular = { Component: () => (target) => target, Injectable: () => (target) => target, Input: () => () => {} };
+const angular = { Component: () => (target) => target, Directive: () => (target) => target, Injectable: () => (target) => target, Input: () => () => {}, HostListener: () => () => {} };
 const sourceRoot = path.resolve(__dirname, '../src');
 const moduleCache = new Map();
 

@@ -3,6 +3,7 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  HostListener,
   Input,
   OnChanges,
   OnDestroy,
@@ -11,6 +12,7 @@ import {
   ViewChild
 } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
+import { DialogFocusDirective } from '../shared/dialog-focus.directive';
 import { ClienteApi } from '../services/clientes-proyectos-api.service';
 import {
   EstadoSesion,
@@ -23,7 +25,7 @@ import {
 @Component({
   selector: 'app-sesiones-fotograficas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DialogFocusDirective],
   templateUrl: './sesiones-fotograficas.component.html',
   styleUrl: './sesiones-fotograficas.component.css'
 })
@@ -129,6 +131,29 @@ export class SesionesFotograficasComponent implements OnInit, OnChanges, OnDestr
     ++this.versionPeticionSesiones;
     ++this.versionPeticionFotos;
     this.limpiarFotosYMiniaturas();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.fotoAmpliada) {
+      this.cerrarFotoAmpliada();
+      return;
+    }
+    if (this.confirmacionEliminarFoto.abierta && !this.confirmacionEliminarFoto.procesando) {
+      this.cerrarConfirmacionEliminarFoto();
+      return;
+    }
+    if (this.confirmacionEliminarSesion.abierta && !this.confirmacionEliminarSesion.procesando) {
+      this.cerrarConfirmacionEliminarSesion();
+      return;
+    }
+    if (this.confirmacionPublicar.abierta && !this.confirmacionPublicar.procesando) {
+      this.cerrarConfirmacionPublicar();
+      return;
+    }
+    if (this.modalSesion && !this.guardandoSesion) {
+      this.cerrarModalSesion();
+    }
   }
 
   // =========================================================================

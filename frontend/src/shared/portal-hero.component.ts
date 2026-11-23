@@ -174,6 +174,7 @@ import { Component, Input } from '@angular/core';
       justify-content: center;
       padding: 38px 42px;
       max-width: 620px;
+      min-width: 0;
     }
 
     .portal-hero-compact .hero-text-pane {
@@ -207,6 +208,7 @@ import { Component, Input } from '@angular/core';
       margin: 0 0 10px 0;
       letter-spacing: -0.03em;
       line-height: 1.15;
+      overflow-wrap: anywhere;
     }
 
     .portal-hero-compact .hero-studio-name {

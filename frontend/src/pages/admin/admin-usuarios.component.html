@@ -55,58 +55,105 @@
     <button type="button" class="btn-secondary" (click)="limpiarFiltros()">Restablecer filtros</button>
   </div>
 
-  <div *ngIf="!cargando && usuarios.length > 0" class="admin-table-wrap">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>Usuario</th>
-          <th>Rol plataforma</th>
-          <th>Membresías / Accesos</th>
-          <th>Sesiones activas</th>
-          <th>Último acceso</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let u of usuarios">
-          <td>
+  <ng-container *ngIf="!cargando && usuarios.length > 0">
+    <div class="admin-table-wrap admin-desktop-only">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Rol plataforma</th>
+            <th>Membresías / Accesos</th>
+            <th>Sesiones activas</th>
+            <th>Último acceso</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of usuarios">
+            <td>
+              <span class="admin-cell-primary">{{ u.nombre }} {{ u.apellido || '' }}</span>
+              <span class="admin-cell-secondary">{{ u.correo }}</span>
+            </td>
+            <td>
+              <span class="admin-badge" [ngClass]="u.rolPlataforma === 'ADMIN_GLOBAL' ? 'admin-badge-purple' : 'admin-badge-neutral'">
+                {{ etiquetasRol[u.rolPlataforma] }}
+              </span>
+            </td>
+            <td>
+              <span class="admin-cell-primary">{{ u.membresias.length }} org(s)</span>
+              <span class="admin-cell-secondary">{{ u.accesosCliente.length }} acceso(s) cliente</span>
+            </td>
+            <td>
+              <span class="admin-badge" [ngClass]="u.sesionesActivasCount > 0 ? 'admin-badge-blue' : 'admin-badge-neutral'">
+                {{ u.sesionesActivasCount }} activa(s)
+              </span>
+            </td>
+            <td>{{ formatearFecha(u.ultimoAccesoEn) }}</td>
+            <td>
+              <div class="admin-row-actions">
+                <button type="button" class="admin-btn-sm" (click)="verDetalle(u.id)" [disabled]="cargandoDetalle">
+                  Ver detalle
+                </button>
+                <button
+                  type="button"
+                  class="admin-btn-sm danger"
+                  *ngIf="u.sesionesActivasCount > 0"
+                  (click)="pedirRevocarTodas(u)">
+                  Revocar sesiones
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="admin-mobile-list admin-mobile-only">
+      <article class="admin-mobile-card" *ngFor="let u of usuarios">
+        <div class="admin-mobile-card-head">
+          <div>
             <span class="admin-cell-primary">{{ u.nombre }} {{ u.apellido || '' }}</span>
             <span class="admin-cell-secondary">{{ u.correo }}</span>
-          </td>
-          <td>
-            <span class="admin-badge" [ngClass]="u.rolPlataforma === 'ADMIN_GLOBAL' ? 'admin-badge-purple' : 'admin-badge-neutral'">
-              {{ etiquetasRol[u.rolPlataforma] }}
-            </span>
-          </td>
-          <td>
+          </div>
+          <span class="admin-badge" [ngClass]="u.rolPlataforma === 'ADMIN_GLOBAL' ? 'admin-badge-purple' : 'admin-badge-neutral'">
+            {{ etiquetasRol[u.rolPlataforma] }}
+          </span>
+        </div>
+
+        <div class="admin-mobile-card-grid">
+          <div class="admin-mobile-card-field">
+            <small>Membresías / Accesos</small>
             <span class="admin-cell-primary">{{ u.membresias.length }} org(s)</span>
             <span class="admin-cell-secondary">{{ u.accesosCliente.length }} acceso(s) cliente</span>
-          </td>
-          <td>
+          </div>
+          <div class="admin-mobile-card-field">
+            <small>Sesiones activas</small>
             <span class="admin-badge" [ngClass]="u.sesionesActivasCount > 0 ? 'admin-badge-blue' : 'admin-badge-neutral'">
               {{ u.sesionesActivasCount }} activa(s)
             </span>
-          </td>
-          <td>{{ formatearFecha(u.ultimoAccesoEn) }}</td>
-          <td>
-            <div class="admin-row-actions">
-              <button type="button" class="admin-btn-sm" (click)="verDetalle(u.id)" [disabled]="cargandoDetalle">
-                Ver detalle
-              </button>
-              <button
-                type="button"
-                class="admin-btn-sm danger"
-                *ngIf="u.sesionesActivasCount > 0"
-                (click)="pedirRevocarTodas(u)">
-                Revocar sesiones
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          </div>
+          <div class="admin-mobile-card-field">
+            <small>Último acceso</small>
+            <span class="admin-cell-secondary">{{ formatearFecha(u.ultimoAccesoEn) }}</span>
+          </div>
+        </div>
 
-    <div class="admin-pagination">
+        <div class="admin-mobile-card-actions">
+          <button type="button" class="admin-btn-sm" (click)="verDetalle(u.id)" [disabled]="cargandoDetalle">
+            Ver detalle
+          </button>
+          <button
+            type="button"
+            class="admin-btn-sm danger"
+            *ngIf="u.sesionesActivasCount > 0"
+            (click)="pedirRevocarTodas(u)">
+            Revocar sesiones
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <div class="admin-pagination" style="margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-md);">
       <span>Página {{ paginacion.pagina }} de {{ paginacion.totalPaginas || 1 }} · {{ paginacion.total }} usuarios</span>
       <div class="admin-pagination-controls">
         <button type="button" class="admin-btn-sm" (click)="cargar(paginacion.pagina - 1)" [disabled]="paginacion.pagina <= 1">
@@ -117,7 +164,7 @@
         </button>
       </div>
     </div>
-  </div>
+  </ng-container>
 
   <!-- Modal Detalle Usuario -->
   <div class="admin-modal-backdrop" *ngIf="detalle" (click)="cerrarDetalle()">
@@ -167,11 +214,11 @@
           </thead>
           <tbody>
             <tr *ngFor="let s of detalle.sesionesActivas">
-              <td><span class="admin-badge admin-badge-blue">{{ s.tipoAcceso }}</span></td>
-              <td>{{ s.mfaVerificado ? 'Verificado' : 'No' }}</td>
-              <td>{{ formatearFecha(s.creadoEn) }}</td>
-              <td>{{ formatearFecha(s.expiraEn) }}</td>
-              <td>
+              <td data-label="Tipo"><span class="admin-badge admin-badge-blue">{{ s.tipoAcceso }}</span></td>
+              <td data-label="MFA">{{ s.mfaVerificado ? 'Verificado' : 'No' }}</td>
+              <td data-label="Creada">{{ formatearFecha(s.creadoEn) }}</td>
+              <td data-label="Expira">{{ formatearFecha(s.expiraEn) }}</td>
+              <td data-label="Acción">
                 <button type="button" class="admin-btn-sm danger" (click)="pedirRevocarSesion(detalle.id, s.id)">
                   Revocar
                 </button>
@@ -198,15 +245,15 @@
           </thead>
           <tbody>
             <tr *ngFor="let a of detalle.accesosCliente">
-              <td>{{ a.clienteNombre || a.clienteId }}</td>
-              <td>{{ a.organizacionNombre || a.organizacionId }}</td>
-              <td>{{ a.rol }}</td>
-              <td>
+              <td data-label="Cliente">{{ a.clienteNombre || a.clienteId }}</td>
+              <td data-label="Organización">{{ a.organizacionNombre || a.organizacionId }}</td>
+              <td data-label="Rol">{{ a.rol }}</td>
+              <td data-label="Estado">
                 <span class="admin-badge" [ngClass]="a.activo ? 'admin-badge-green' : 'admin-badge-coral'">
                   {{ a.activo ? 'Activo' : 'Desactivado' }}
                 </span>
               </td>
-              <td>
+              <td data-label="Acción">
                 <button
                   type="button"
                   class="admin-btn-sm"

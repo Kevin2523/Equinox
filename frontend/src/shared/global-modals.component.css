@@ -1,0 +1,229 @@
+:host {
+  display: contents;
+}
+
+/* Prevenir desbordamiento horizontal en resultados de búsqueda global */
+.search-result-row {
+  min-width: 0;
+}
+
+.search-result-details {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.search-result-details b,
+.search-result-details p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-row .badge,
+.search-result-row .priority-tag {
+  flex-shrink: 0;
+}
+
+.modal-choices button {
+  min-width: 0;
+}
+
+.auth-error,
+.notes-box,
+.quick-modal h2 {
+  overflow-wrap: anywhere;
+}
+
+.form-row > * {
+  min-width: 0;
+}
+
+.client-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.client-detail-stats > div {
+  min-width: 0;
+}
+
+.client-detail-stats small {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.client-detail-stats b {
+  display: block;
+  font-size: 13px;
+  color: var(--navy);
+  overflow-wrap: anywhere;
+}
+
+.search-modal-box {
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+}
+
+.search-results-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.toast {
+  max-width: calc(100vw - 44px);
+}
+
+@media (max-width: 860px) {
+  .quick-modal > .close {
+    width: 44px;
+    height: 44px;
+    right: 12px;
+    top: 12px;
+  }
+
+  .quick-modal h2 {
+    padding-right: 48px;
+  }
+
+  .back-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 6px;
+  }
+
+  .modal-actions .btn-primary,
+  .modal-actions .btn-secondary {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+
+  .quick-modal {
+    padding: 20px 16px;
+    border-radius: 16px;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  .quick-modal > .close {
+    right: 10px;
+    top: 10px;
+  }
+
+  .quick-modal h2 {
+    font-size: 19px;
+    padding-right: 44px;
+  }
+
+  .quick-modal .form-control {
+    font-size: 16px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .finance-share-new {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .finance-share-new input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .client-detail-stats {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .client-detail-stats b {
+    overflow-wrap: anywhere;
+  }
+
+  .search-overlay {
+    padding: max(24px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    align-items: flex-start;
+  }
+
+  .search-modal-box {
+    border-radius: 14px;
+    max-height: calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+  }
+
+  .search-bar-input {
+    height: 56px;
+    padding: 0 12px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .search-bar-input input {
+    font-size: 16px;
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .search-bar-input kbd {
+    min-height: 36px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .search-results-panel {
+    max-height: none;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .search-result-row {
+    min-height: 48px;
+  }
+
+  .toast {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    max-width: calc(100vw - 24px);
+    transform: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modal-actions .btn-primary,
+  .modal-actions .btn-secondary {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+}

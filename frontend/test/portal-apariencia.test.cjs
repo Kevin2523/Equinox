@@ -28,6 +28,7 @@ function loadTs(relPath, customMocks = {}) {
       const noop = () => () => {};
       return {
         Component: noop,
+        Directive: noop,
         Injectable: noop,
         Input: noop,
         ViewChild: noop,

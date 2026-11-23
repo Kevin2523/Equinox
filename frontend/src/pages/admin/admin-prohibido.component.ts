@@ -72,6 +72,22 @@ import { AuthService } from '../../auth/auth.service';
       gap: 12px;
       flex-wrap: wrap;
     }
+    @media (max-width: 768px) {
+      .prohibido-actions button {
+        min-height: 44px;
+      }
+    }
+    @media (max-width: 480px) {
+      .prohibido-shell {
+        padding: 16px 12px;
+      }
+      .prohibido-card {
+        padding: 24px 18px;
+      }
+      .prohibido-actions button {
+        width: 100%;
+      }
+    }
   `]
 })
 export class AdminProhibidoComponent {

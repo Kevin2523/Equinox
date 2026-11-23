@@ -94,86 +94,160 @@
       <button type="button" class="btn-secondary" (click)="limpiarFiltrosSusc()">Restablecer filtros</button>
     </div>
 
-    <div *ngIf="!cargandoSusc && suscripciones.length > 0" class="admin-table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Organización</th>
-            <th>Estado</th>
-            <th>Plan</th>
-            <th>Vigencia manual</th>
-            <th>Referencia</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let item of suscripciones">
-            <td>
+    <ng-container *ngIf="!cargandoSusc && suscripciones.length > 0">
+      <div class="admin-table-wrap admin-desktop-only">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Organización</th>
+              <th>Estado</th>
+              <th>Plan</th>
+              <th>Vigencia manual</th>
+              <th>Referencia</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of suscripciones">
+              <td>
+                <span class="admin-cell-primary">{{ item.organizacion.nombre }}</span>
+                <span class="admin-cell-secondary">/{{ item.organizacion.slug }} · {{ etiquetasTipo[item.organizacion.tipoFreelance] }}</span>
+              </td>
+              <td>
+                <span class="admin-badge" [ngClass]="claseEstado(item.suscripcion.estado)">
+                  {{ etiquetasEstado[item.suscripcion.estado] }}
+                </span>
+                <span class="admin-cell-secondary">Manual, sin cobro procesado</span>
+              </td>
+              <td>
+                <span class="admin-cell-primary">{{ item.suscripcion.plan?.nombre || 'Sin plan asignado' }}</span>
+                <span class="admin-cell-secondary" *ngIf="item.suscripcion.plan">{{ item.suscripcion.plan.codigo }}</span>
+              </td>
+              <td>
+                <span class="admin-cell-primary">Inicio: {{ formatearFecha(item.suscripcion.fechaInicio, false) }}</span>
+                <span class="admin-cell-secondary">Fin: {{ item.suscripcion.fechaFin ? formatearFecha(item.suscripcion.fechaFin, false) : 'Indefinida' }}</span>
+              </td>
+              <td>{{ item.suscripcion.referenciaManual || '—' }}</td>
+              <td>
+                <div class="admin-row-actions">
+                  <button
+                    type="button"
+                    class="admin-btn-sm primary"
+                    *ngIf="item.suscripcion.estado === 'SIN_SUSCRIPCION' || item.suscripcion.estado === 'CANCELADA'"
+                    (click)="abrirAsignar(item)">
+                    Asignar
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-btn-sm"
+                    *ngIf="item.suscripcion.estado !== 'SIN_SUSCRIPCION' && item.suscripcion.estado !== 'CANCELADA'"
+                    (click)="abrirEditarSuscripcion(item)">
+                    Gestionar
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-btn-sm"
+                    *ngIf="item.suscripcion.estado === 'ACTIVA' || item.suscripcion.estado === 'PRUEBA'"
+                    (click)="pedirConfirmacionSusc('SUSPENDER', item)">
+                    Suspender
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-btn-sm primary"
+                    *ngIf="item.suscripcion.estado === 'SUSPENDIDA'"
+                    (click)="pedirConfirmacionSusc('REACTIVAR', item)">
+                    Reactivar
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-btn-sm danger"
+                    *ngIf="item.suscripcion.estado !== 'SIN_SUSCRIPCION' && item.suscripcion.estado !== 'CANCELADA'"
+                    (click)="pedirConfirmacionSusc('CANCELAR', item)">
+                    Cancelar
+                  </button>
+                  <button type="button" class="admin-btn-sm" (click)="verHistorial(item)">
+                    Historial
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="admin-mobile-list admin-mobile-only">
+        <article class="admin-mobile-card" *ngFor="let item of suscripciones">
+          <div class="admin-mobile-card-head">
+            <div>
               <span class="admin-cell-primary">{{ item.organizacion.nombre }}</span>
               <span class="admin-cell-secondary">/{{ item.organizacion.slug }} · {{ etiquetasTipo[item.organizacion.tipoFreelance] }}</span>
-            </td>
-            <td>
-              <span class="admin-badge" [ngClass]="claseEstado(item.suscripcion.estado)">
-                {{ etiquetasEstado[item.suscripcion.estado] }}
-              </span>
-              <span class="admin-cell-secondary">Manual, sin cobro procesado</span>
-            </td>
-            <td>
+            </div>
+            <span class="admin-badge" [ngClass]="claseEstado(item.suscripcion.estado)">
+              {{ etiquetasEstado[item.suscripcion.estado] }}
+            </span>
+          </div>
+
+          <div class="admin-mobile-card-grid">
+            <div class="admin-mobile-card-field">
+              <small>Plan</small>
               <span class="admin-cell-primary">{{ item.suscripcion.plan?.nombre || 'Sin plan asignado' }}</span>
               <span class="admin-cell-secondary" *ngIf="item.suscripcion.plan">{{ item.suscripcion.plan.codigo }}</span>
-            </td>
-            <td>
+            </div>
+            <div class="admin-mobile-card-field">
+              <small>Vigencia manual</small>
               <span class="admin-cell-primary">Inicio: {{ formatearFecha(item.suscripcion.fechaInicio, false) }}</span>
               <span class="admin-cell-secondary">Fin: {{ item.suscripcion.fechaFin ? formatearFecha(item.suscripcion.fechaFin, false) : 'Indefinida' }}</span>
-            </td>
-            <td>{{ item.suscripcion.referenciaManual || '—' }}</td>
-            <td>
-              <div class="admin-row-actions">
-                <button
-                  type="button"
-                  class="admin-btn-sm primary"
-                  *ngIf="item.suscripcion.estado === 'SIN_SUSCRIPCION' || item.suscripcion.estado === 'CANCELADA'"
-                  (click)="abrirAsignar(item)">
-                  Asignar
-                </button>
-                <button
-                  type="button"
-                  class="admin-btn-sm"
-                  *ngIf="item.suscripcion.estado !== 'SIN_SUSCRIPCION' && item.suscripcion.estado !== 'CANCELADA'"
-                  (click)="abrirEditarSuscripcion(item)">
-                  Gestionar
-                </button>
-                <button
-                  type="button"
-                  class="admin-btn-sm"
-                  *ngIf="item.suscripcion.estado === 'ACTIVA' || item.suscripcion.estado === 'PRUEBA'"
-                  (click)="pedirConfirmacionSusc('SUSPENDER', item)">
-                  Suspender
-                </button>
-                <button
-                  type="button"
-                  class="admin-btn-sm primary"
-                  *ngIf="item.suscripcion.estado === 'SUSPENDIDA'"
-                  (click)="pedirConfirmacionSusc('REACTIVAR', item)">
-                  Reactivar
-                </button>
-                <button
-                  type="button"
-                  class="admin-btn-sm danger"
-                  *ngIf="item.suscripcion.estado !== 'SIN_SUSCRIPCION' && item.suscripcion.estado !== 'CANCELADA'"
-                  (click)="pedirConfirmacionSusc('CANCELAR', item)">
-                  Cancelar
-                </button>
-                <button type="button" class="admin-btn-sm" (click)="verHistorial(item)">
-                  Historial
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+            <div class="admin-mobile-card-field">
+              <small>Referencia</small>
+              <span class="admin-cell-secondary">{{ item.suscripcion.referenciaManual || '—' }}</span>
+            </div>
+          </div>
 
-      <div class="admin-pagination">
+          <div class="admin-mobile-card-actions">
+            <button
+              type="button"
+              class="admin-btn-sm primary"
+              *ngIf="item.suscripcion.estado === 'SIN_SUSCRIPCION' || item.suscripcion.estado === 'CANCELADA'"
+              (click)="abrirAsignar(item)">
+              Asignar
+            </button>
+            <button
+              type="button"
+              class="admin-btn-sm"
+              *ngIf="item.suscripcion.estado !== 'SIN_SUSCRIPCION' && item.suscripcion.estado !== 'CANCELADA'"
+              (click)="abrirEditarSuscripcion(item)">
+              Gestionar
+            </button>
+            <button
+              type="button"
+              class="admin-btn-sm"
+              *ngIf="item.suscripcion.estado === 'ACTIVA' || item.suscripcion.estado === 'PRUEBA'"
+              (click)="pedirConfirmacionSusc('SUSPENDER', item)">
+              Suspender
+            </button>
+            <button
+              type="button"
+              class="admin-btn-sm primary"
+              *ngIf="item.suscripcion.estado === 'SUSPENDIDA'"
+              (click)="pedirConfirmacionSusc('REACTIVAR', item)">
+              Reactivar
+            </button>
+            <button
+              type="button"
+              class="admin-btn-sm danger"
+              *ngIf="item.suscripcion.estado !== 'SIN_SUSCRIPCION' && item.suscripcion.estado !== 'CANCELADA'"
+              (click)="pedirConfirmacionSusc('CANCELAR', item)">
+              Cancelar
+            </button>
+            <button type="button" class="admin-btn-sm" (click)="verHistorial(item)">
+              Historial
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <div class="admin-pagination" style="margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-md);">
         <span>Página {{ pagSuscripciones.pagina }} de {{ pagSuscripciones.totalPaginas || 1 }} · {{ pagSuscripciones.total }} organizaciones</span>
         <div class="admin-pagination-controls">
           <button type="button" class="admin-btn-sm" (click)="cargarSuscripciones(pagSuscripciones.pagina - 1)" [disabled]="pagSuscripciones.pagina <= 1">
@@ -184,7 +258,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </ng-container>
   </ng-container>
 
   <!-- TAB 2: Catálogo de planes -->
@@ -218,42 +292,75 @@
       <button type="button" class="btn-primary" (click)="abrirNuevoPlan()">Nuevo plan manual</button>
     </div>
 
-    <div *ngIf="!cargandoPlanes && planes.length > 0" class="admin-table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Código / Nombre</th>
-            <th>Tipo</th>
-            <th>Duración sugerida</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let plan of planes">
-            <td>
+    <ng-container *ngIf="!cargandoPlanes && planes.length > 0">
+      <div class="admin-table-wrap admin-desktop-only">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Código / Nombre</th>
+              <th>Tipo</th>
+              <th>Duración sugerida</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let plan of planes">
+              <td>
+                <span class="admin-cell-primary">{{ plan.nombre }} ({{ plan.codigo }})</span>
+                <span class="admin-cell-secondary">{{ plan.descripcion || 'Sin descripción' }} · {{ plan.etiquetaCobro }}</span>
+              </td>
+              <td>
+                <span class="admin-badge" [ngClass]="plan.esPlanPrueba ? 'admin-badge-blue' : 'admin-badge-neutral'">
+                  {{ plan.esPlanPrueba ? 'Prueba manual' : 'Plan estándar' }}
+                </span>
+              </td>
+              <td>{{ plan.duracionSugeridaDias ? plan.duracionSugeridaDias + ' días' : 'Indefinida' }}</td>
+              <td>
+                <span class="admin-badge" [ngClass]="plan.activo ? 'admin-badge-green' : 'admin-badge-coral'">
+                  {{ plan.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>
+                <button type="button" class="admin-btn-sm" (click)="abrirEditarPlan(plan)">Editar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="admin-mobile-list admin-mobile-only">
+        <article class="admin-mobile-card" *ngFor="let plan of planes">
+          <div class="admin-mobile-card-head">
+            <div>
               <span class="admin-cell-primary">{{ plan.nombre }} ({{ plan.codigo }})</span>
-              <span class="admin-cell-secondary">{{ plan.descripcion || 'Sin descripción' }} · {{ plan.etiquetaCobro }}</span>
-            </td>
-            <td>
+              <span class="admin-cell-secondary">{{ plan.descripcion || 'Sin descripción' }}</span>
+            </div>
+            <span class="admin-badge" [ngClass]="plan.activo ? 'admin-badge-green' : 'admin-badge-coral'">
+              {{ plan.activo ? 'Activo' : 'Inactivo' }}
+            </span>
+          </div>
+
+          <div class="admin-mobile-card-grid">
+            <div class="admin-mobile-card-field">
+              <small>Tipo</small>
               <span class="admin-badge" [ngClass]="plan.esPlanPrueba ? 'admin-badge-blue' : 'admin-badge-neutral'">
                 {{ plan.esPlanPrueba ? 'Prueba manual' : 'Plan estándar' }}
               </span>
-            </td>
-            <td>{{ plan.duracionSugeridaDias ? plan.duracionSugeridaDias + ' días' : 'Indefinida' }}</td>
-            <td>
-              <span class="admin-badge" [ngClass]="plan.activo ? 'admin-badge-green' : 'admin-badge-coral'">
-                {{ plan.activo ? 'Activo' : 'Inactivo' }}
-              </span>
-            </td>
-            <td>
-              <button type="button" class="admin-btn-sm" (click)="abrirEditarPlan(plan)">Editar</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+            <div class="admin-mobile-card-field">
+              <small>Duración sugerida</small>
+              <span class="admin-cell-secondary">{{ plan.duracionSugeridaDias ? plan.duracionSugeridaDias + ' días' : 'Indefinida' }}</span>
+            </div>
+          </div>
 
-      <div class="admin-pagination">
+          <div class="admin-mobile-card-actions">
+            <button type="button" class="admin-btn-sm" (click)="abrirEditarPlan(plan)">Editar</button>
+          </div>
+        </article>
+      </div>
+
+      <div class="admin-pagination" style="margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-md);">
         <span>Página {{ pagPlanes.pagina }} de {{ pagPlanes.totalPaginas || 1 }} · {{ pagPlanes.total }} planes</span>
         <div class="admin-pagination-controls">
           <button type="button" class="admin-btn-sm" (click)="cargarPlanes(pagPlanes.pagina - 1)" [disabled]="pagPlanes.pagina <= 1">
@@ -264,7 +371,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </ng-container>
   </ng-container>
 
   <!-- Modal Asignar / Editar Suscripción -->
@@ -398,11 +505,11 @@
           </thead>
           <tbody>
             <tr *ngFor="let h of historial">
-              <td>{{ formatearFecha(h.creadoEn) }}</td>
-              <td><span class="admin-badge admin-badge-blue">{{ h.accion }}</span></td>
-              <td>{{ h.estadoAnterior }} -> {{ h.estadoNuevo }}</td>
-              <td>{{ h.motivo || '—' }}</td>
-              <td>{{ h.realizadoPorCorreo || h.realizadoPor?.correo || 'Sistema' }}</td>
+              <td data-label="Fecha">{{ formatearFecha(h.creadoEn) }}</td>
+              <td data-label="Acción"><span class="admin-badge admin-badge-blue">{{ h.accion }}</span></td>
+              <td data-label="Transición">{{ h.estadoAnterior }} -> {{ h.estadoNuevo }}</td>
+              <td data-label="Motivo">{{ h.motivo || '—' }}</td>
+              <td data-label="Realizado por">{{ h.realizadoPorCorreo || h.realizadoPor?.correo || 'Sistema' }}</td>
             </tr>
           </tbody>
         </table>

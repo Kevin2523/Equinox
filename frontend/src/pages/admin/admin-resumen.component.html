@@ -270,16 +270,16 @@
           </thead>
           <tbody>
             <tr *ngFor="let ev of r.actividadReciente">
-              <td class="resumen-date-cell">{{ formatearFecha(ev.creadoEn) }}</td>
-              <td>
+              <td class="resumen-date-cell" data-label="Fecha">{{ formatearFecha(ev.creadoEn) }}</td>
+              <td data-label="Acción">
                 <span class="admin-badge" [ngClass]="claseAccion(ev.accion)">
                   {{ etiquetaAccion(ev.accion) }}
                 </span>
               </td>
-              <td>
+              <td data-label="Entidad">
                 <span class="admin-cell-primary">{{ etiquetaEntidad(ev.entidad) }}</span>
               </td>
-              <td class="resumen-actor-cell">{{ formatearActor(ev) }}</td>
+              <td class="resumen-actor-cell" data-label="Actor">{{ formatearActor(ev) }}</td>
             </tr>
           </tbody>
         </table>

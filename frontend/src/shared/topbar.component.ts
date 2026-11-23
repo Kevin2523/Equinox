@@ -54,6 +54,28 @@ export class TopbarComponent {
   toggleMenu(evento: Event): void {
     evento.stopPropagation();
     this.menuAbierto = !this.menuAbierto;
+    if (this.menuAbierto) {
+      this.state.notificationsOpen = false;
+      this.state.mobileMenuOpen = false;
+    }
+  }
+
+  toggleNotificaciones(evento: Event): void {
+    evento.stopPropagation();
+    this.state.toggleNotifications();
+    if (this.state.notificationsOpen) {
+      this.menuAbierto = false;
+      this.state.mobileMenuOpen = false;
+    }
+  }
+
+  toggleMenuMovil(evento: Event): void {
+    evento.stopPropagation();
+    this.state.mobileMenuOpen = !this.state.mobileMenuOpen;
+    if (this.state.mobileMenuOpen) {
+      this.menuAbierto = false;
+      this.state.notificationsOpen = false;
+    }
   }
 
   irAConfiguracion(): void {
@@ -61,9 +83,17 @@ export class TopbarComponent {
     this.state.navigate('configuracion');
   }
 
+  navegarMobile(pagina: 'hoy' | 'clientes' | 'proyectos' | 'tareas' | 'finanzas' | 'configuracion'): void {
+    this.state.mobileMenuOpen = false;
+    this.menuAbierto = false;
+    this.state.navigate(pagina);
+  }
+
   @HostListener('document:click')
   @HostListener('document:keydown.escape')
   cerrarMenu(): void {
     this.menuAbierto = false;
+    this.state.mobileMenuOpen = false;
+    this.state.notificationsOpen = false;
   }
 }

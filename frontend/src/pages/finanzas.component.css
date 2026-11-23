@@ -855,12 +855,17 @@
 
 .form-group {
   margin-bottom: 18px;
+  min-width: 0;
 }
 
 .form-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+.form-grid-2 > * {
+  min-width: 0;
 }
 
 .form-label {
@@ -1396,5 +1401,319 @@
   }
   .accion-stack {
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .finanzas-page {
+    padding: 20px 16px 48px;
+  }
+
+  .btn-periodo,
+  .btn-nueva-factura,
+  .btn-secondary,
+  .btn-reintentar,
+  .btn-portal-visibilidad,
+  .periodo-dropdown-item,
+  .td-accion button,
+  .pill-btn,
+  .btn-exportar,
+  .filter-pills-group button,
+  .filter-pills button,
+  .estado-tabs button,
+  .btn-confirmar-crear,
+  .btn-confirmar-pago,
+  .btn-registrar-pago,
+  .btn-eliminar-factura,
+  .preset-btn,
+  .modal-close-btn,
+  .btn-close-modal {
+    min-height: 44px;
+  }
+
+  .btn-close-modal,
+  .preset-btn {
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-cancelar {
+    min-height: 44px;
+  }
+
+  .search-box-pill,
+  .search-input,
+  .form-input,
+  .form-select {
+    min-height: 44px;
+  }
+
+  .facturas-table-card {
+    overflow-x: visible;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .facturas-table {
+    min-width: 0;
+    width: 100%;
+    display: block;
+  }
+
+  .facturas-table thead {
+    display: none;
+  }
+
+  .facturas-table tbody {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .facturas-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .facturas-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .facturas-table td {
+    padding: 0;
+    border: none;
+  }
+
+  .facturas-table td.td-factura {
+    grid-column: 1;
+  }
+
+  .facturas-table td.td-estado {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .facturas-table td.td-concepto {
+    grid-column: 1 / -1;
+  }
+
+  .facturas-table td.td-vencimiento {
+    grid-column: 1;
+  }
+
+  .facturas-table td.td-monto {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .facturas-table td.td-accion {
+    grid-column: 1 / -1;
+    padding-top: 6px;
+  }
+
+  .facturas-table td.td-accion .accion-stack {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .finanzas-page {
+    padding: 16px 12px 44px;
+  }
+
+  .header-main-title {
+    font-size: 24px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .periodo-selector-container,
+  .btn-periodo,
+  .btn-nueva-factura {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .periodo-dropdown-menu {
+    left: 0;
+    right: 0;
+    min-width: 0;
+  }
+
+  .balance-hero-dark {
+    padding: 18px 16px;
+  }
+
+  .hero-amount-main {
+    font-size: 26px;
+    overflow-wrap: anywhere;
+  }
+
+  .filters-and-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .filter-pills-group,
+  .filter-pills,
+  .estado-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .filter-pills-group button,
+  .pill-btn,
+  .btn-exportar,
+  .filter-pills button,
+  .estado-tabs button {
+    min-height: 44px;
+    max-width: 100%;
+  }
+
+  .finanzas-toast {
+    left: 12px;
+    right: 12px;
+    bottom: 16px;
+  }
+
+  .detalle-monto-card,
+  .detalle-lista-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .monto-card-saldo {
+    text-align: left;
+  }
+
+  .finanzas-error-banner {
+    flex-wrap: wrap;
+  }
+
+  .modal-backdrop {
+    padding: 12px;
+  }
+
+  .modal-dialog {
+    max-height: calc(100dvh - 24px);
+    border-radius: 12px;
+  }
+
+  .modal-header {
+    padding: 16px 16px 14px;
+    gap: 8px;
+  }
+
+  .modal-header-titles {
+    min-width: 0;
+  }
+
+  .modal-subtitle {
+    overflow-wrap: anywhere;
+  }
+
+  .modal-form,
+  .detalle-body {
+    padding: 16px;
+  }
+
+  .pago-invoice-summary {
+    margin: 14px 16px 0;
+    padding: 12px 14px;
+  }
+
+  .summary-item,
+  .summary-item-monto {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .summary-value {
+    overflow-wrap: anywhere;
+  }
+
+  .contable-notice-box {
+    margin: 14px 16px 0;
+    padding: 10px 12px;
+  }
+
+  .label-with-presets {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .detalle-info-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .info-block {
+    min-width: 0;
+  }
+
+  .info-block.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .info-val,
+  .info-subval,
+  .info-notas {
+    overflow-wrap: anywhere;
+  }
+
+  .monto-card-val {
+    font-size: 26px;
+    overflow-wrap: anywhere;
+  }
+
+  .modal-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 14px;
+    margin-top: 18px;
+  }
+
+  .detalle-footer {
+    padding: 14px 16px;
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .detalle-footer-right {
+    flex-direction: column-reverse;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .detalle-footer .btn-eliminar-factura,
+  .detalle-footer .btn-registrar-pago,
+  .detalle-footer .btn-secondary {
+    width: 100%;
+    justify-content: center;
   }
 }
