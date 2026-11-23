@@ -128,7 +128,7 @@ Dado que el servidor Ubuntu casero opera tras NAT con **Cloudflare Tunnel** (sin
 ### Cómo funciona el flujo Pull-Based implementado
 
 1. **Staging (`develop` → `localhost:8081`)**:
-   - `.github/workflows/cd-staging.yml` ejecuta `ci.yml`, construye y publica `ghcr.io/kevin2523/equinox-backend:staging` y `equinox-frontend:staging` (cuando `vars.CD_IMAGES_ENABLED == 'true'` o `workflow_dispatch`), y **firma ambos digests `@sha256:...` con Cosign keyless OIDC**.
+   - `.github/workflows/cd-staging.yml` ejecuta `ci.yml`, construye y publica `ghcr.io/kevin2523/equinox-backend:staging`, `equinox-migrator:staging` y `equinox-frontend:staging` (cuando `vars.CD_IMAGES_ENABLED == 'true'` o `workflow_dispatch`), y **firma los 3 digests `@sha256:...` con Cosign keyless OIDC**.
 2. **Producción (`main` → `localhost:8082`)**:
    - `.github/workflows/cd-production.yml` ejecuta `ci.yml` y **se detiene en `publish-images` esperando aprobación manual en `environment: production`** (`Kevin2523`).
    - Solo tras la aprobación publica `:prod`/`:latest`/`sha-...` y los firma con Cosign OIDC ligado a `refs/heads/main`.
@@ -136,7 +136,7 @@ Dado que el servidor Ubuntu casero opera tras NAT con **Cloudflare Tunnel** (sin
    - Ejecutado por `equinox-cd@staging.timer` y `equinox-cd@production.timer` cada ~2 minutos como servicio `oneshot` aislado por `flock` y `COMPOSE_PROJECT_NAME` (`equinox-staging` vs `equinox-prod`).
    - Consulta el digest remoto vía API OCI v2 de `ghcr.io` sin descargar capas si no hay cambios.
    - Si el digest cambió, **verifica la firma Cosign OIDC** (`--certificate-oidc-issuer https://token.actions.githubusercontent.com` y `--certificate-identity` exacta del workflow y rama).
-   - Descarga por digest inmutable (`BACKEND_IMAGE_REF` / `FRONTEND_IMAGE_REF` en `compose.prod.yml`), ejecuta `prisma migrate deploy` idempotente, levanta con `up -d --remove-orphans` y valida `/salud/listo` + `/nginx-salud`.
+   - Descarga por digest inmutable (`BACKEND_IMAGE_REF`, `MIGRATOR_IMAGE_REF` y `FRONTEND_IMAGE_REF` en `compose.prod.yml`), ejecuta `docker compose ... run --rm migrator` (`prisma migrate deploy` idempotente), levanta con `up -d --remove-orphans` y valida `/salud/listo` + `/nginx-salud`.
    - **Rollback automático**: si `up -d` o el healthcheck fallan, restaura los digests previos registrados en `/var/lib/equinox-cd/<env>.state`.
    - *Nota:* Los jobs SSH (`deploy-staging` / `deploy-production`) permanecen deshabilitados por defecto (`STAGING_DEPLOY_ENABLED` / `PROD_DEPLOY_ENABLED` sin definir).
 

@@ -25,10 +25,12 @@ require_cmd() {
 : "${APP_DIR:?Definir APP_DIR (ruta absoluta al directorio del compose)}"
 : "${COMPOSE_PROJECT_NAME:?Definir COMPOSE_PROJECT_NAME (ej. equinox-staging o equinox-prod)}"
 : "${BACKEND_IMAGE:?Definir BACKEND_IMAGE (ej. ghcr.io/kevin2523/equinox-backend)}"
+: "${MIGRATOR_IMAGE:?Definir MIGRATOR_IMAGE (ej. ghcr.io/kevin2523/equinox-migrator)}"
 : "${FRONTEND_IMAGE:?Definir FRONTEND_IMAGE (ej. ghcr.io/kevin2523/equinox-frontend)}"
 : "${IMAGE_TAG:?Definir IMAGE_TAG (ej. staging o prod)}"
 
 BACKEND_IMAGE=$(printf '%s' "$BACKEND_IMAGE" | tr '[:upper:]' '[:lower:]')
+MIGRATOR_IMAGE=$(printf '%s' "$MIGRATOR_IMAGE" | tr '[:upper:]' '[:lower:]')
 FRONTEND_IMAGE=$(printf '%s' "$FRONTEND_IMAGE" | tr '[:upper:]' '[:lower:]')
 
 VERIFY_COSIGN="${VERIFY_COSIGN:-true}"
@@ -147,19 +149,25 @@ check_health() {
 
 write_state() {
   local backend_digest="$1"
-  local frontend_digest="$2"
-  local prev_backend="$3"
-  local prev_frontend="$4"
-  local failed_backend="${5:-}"
-  local failed_frontend="${6:-}"
+  local migrator_digest="$2"
+  local frontend_digest="$3"
+  local prev_backend="$4"
+  local prev_migrator="$5"
+  local prev_frontend="$6"
+  local failed_backend="${7:-}"
+  local failed_migrator="${8:-}"
+  local failed_frontend="${9:-}"
   local tmp_file
   tmp_file=$(mktemp "${STATE_DIR}/.${ENV_NAME}.state.XXXXXX")
   cat >"$tmp_file" <<EOF
 CURRENT_BACKEND_DIGEST=${backend_digest}
+CURRENT_MIGRATOR_DIGEST=${migrator_digest}
 CURRENT_FRONTEND_DIGEST=${frontend_digest}
 PREV_BACKEND_DIGEST=${prev_backend}
+PREV_MIGRATOR_DIGEST=${prev_migrator}
 PREV_FRONTEND_DIGEST=${prev_frontend}
 FAILED_BACKEND_DIGEST=${failed_backend}
+FAILED_MIGRATOR_DIGEST=${failed_migrator}
 FAILED_FRONTEND_DIGEST=${failed_frontend}
 UPDATED_AT=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 EOF
@@ -169,10 +177,13 @@ EOF
 
 # --- Cargar estado previo ---
 CURRENT_BACKEND_DIGEST=""
+CURRENT_MIGRATOR_DIGEST=""
 CURRENT_FRONTEND_DIGEST=""
 PREV_BACKEND_DIGEST=""
+PREV_MIGRATOR_DIGEST=""
 PREV_FRONTEND_DIGEST=""
 FAILED_BACKEND_DIGEST=""
+FAILED_MIGRATOR_DIGEST=""
 FAILED_FRONTEND_DIGEST=""
 if [ -f "$STATE_FILE" ]; then
   # shellcheck disable=SC1090
@@ -181,22 +192,27 @@ fi
 
 # --- Consultar digests remotos ---
 REMOTE_BACKEND_DIGEST=$(resolve_ghcr_digest "$BACKEND_IMAGE" "$IMAGE_TAG")
+REMOTE_MIGRATOR_DIGEST=$(resolve_ghcr_digest "$MIGRATOR_IMAGE" "$IMAGE_TAG")
 REMOTE_FRONTEND_DIGEST=$(resolve_ghcr_digest "$FRONTEND_IMAGE" "$IMAGE_TAG")
 
-if [ "$REMOTE_BACKEND_DIGEST" = "$CURRENT_BACKEND_DIGEST" ] && [ "$REMOTE_FRONTEND_DIGEST" = "$CURRENT_FRONTEND_DIGEST" ]; then
-  log "Sin cambios (${IMAGE_TAG}: backend=${REMOTE_BACKEND_DIGEST:0:19}..., frontend=${REMOTE_FRONTEND_DIGEST:0:19}...)."
+if [ "$REMOTE_BACKEND_DIGEST" = "$CURRENT_BACKEND_DIGEST" ] \
+  && [ "$REMOTE_MIGRATOR_DIGEST" = "$CURRENT_MIGRATOR_DIGEST" ] \
+  && [ "$REMOTE_FRONTEND_DIGEST" = "$CURRENT_FRONTEND_DIGEST" ]; then
+  log "Sin cambios (${IMAGE_TAG}: backend=${REMOTE_BACKEND_DIGEST:0:19}..., migrator=${REMOTE_MIGRATOR_DIGEST:0:19}..., frontend=${REMOTE_FRONTEND_DIGEST:0:19}...)."
   exit 0
 fi
 
-if [ -n "$FAILED_BACKEND_DIGEST" ] && [ -n "$FAILED_FRONTEND_DIGEST" ] \
+if [ -n "$FAILED_BACKEND_DIGEST" ] && [ -n "$FAILED_MIGRATOR_DIGEST" ] && [ -n "$FAILED_FRONTEND_DIGEST" ] \
   && [ "$REMOTE_BACKEND_DIGEST" = "$FAILED_BACKEND_DIGEST" ] \
+  && [ "$REMOTE_MIGRATOR_DIGEST" = "$FAILED_MIGRATOR_DIGEST" ] \
   && [ "$REMOTE_FRONTEND_DIGEST" = "$FAILED_FRONTEND_DIGEST" ]; then
-  die "Release fallido previamente (${IMAGE_TAG}: backend=${REMOTE_BACKEND_DIGEST:0:19}..., frontend=${REMOTE_FRONTEND_DIGEST:0:19}...); omitiendo reintento para evitar bucle de rollback."
+  die "Release fallido previamente (${IMAGE_TAG}: backend=${REMOTE_BACKEND_DIGEST:0:19}..., migrator=${REMOTE_MIGRATOR_DIGEST:0:19}..., frontend=${REMOTE_FRONTEND_DIGEST:0:19}...); omitiendo reintento para evitar bucle de rollback."
 fi
 
-log "Nuevo release detectado para ${IMAGE_TAG}: backend=${REMOTE_BACKEND_DIGEST}, frontend=${REMOTE_FRONTEND_DIGEST}"
+log "Nuevo release detectado para ${IMAGE_TAG}: backend=${REMOTE_BACKEND_DIGEST}, migrator=${REMOTE_MIGRATOR_DIGEST}, frontend=${REMOTE_FRONTEND_DIGEST}"
 
 NEW_BACKEND_REF="${BACKEND_IMAGE}@${REMOTE_BACKEND_DIGEST}"
+NEW_MIGRATOR_REF="${MIGRATOR_IMAGE}@${REMOTE_MIGRATOR_DIGEST}"
 NEW_FRONTEND_REF="${FRONTEND_IMAGE}@${REMOTE_FRONTEND_DIGEST}"
 
 if [ -n "${GHCR_READ_TOKEN:-}" ] && [ -n "${GHCR_READ_USER:-}" ]; then
@@ -206,6 +222,7 @@ fi
 # --- Verificación criptográfica Cosign antes de descargar/ejecutar ---
 if [ "$VERIFY_COSIGN" = "true" ]; then
   verify_cosign_digest "$NEW_BACKEND_REF"
+  verify_cosign_digest "$NEW_MIGRATOR_REF"
   verify_cosign_digest "$NEW_FRONTEND_REF"
   log "Firmas Cosign verificadas correctamente."
 else
@@ -216,6 +233,7 @@ fi
 cd "$APP_DIR"
 export COMPOSE_PROJECT_NAME
 export BACKEND_IMAGE_REF="$NEW_BACKEND_REF"
+export MIGRATOR_IMAGE_REF="$NEW_MIGRATOR_REF"
 export FRONTEND_IMAGE_REF="$NEW_FRONTEND_REF"
 
 ENV_BIND_IP=$(read_env_var "FRONTEND_BIND_IP" ".env")
@@ -240,22 +258,22 @@ fi
 log "Descargando imágenes por digest inmutable..."
 docker compose -f compose.yml -f compose.prod.yml pull
 
-log "Ejecutando migraciones Prisma (idempotentes)..."
-docker compose -f compose.yml -f compose.prod.yml run --rm backend npm run prisma:desplegar
-
-log "Actualizando servicios Compose (${COMPOSE_PROJECT_NAME})..."
+log "Ejecutando migraciones Prisma vía migrator one-shot (idempotentes)..."
 DEPLOY_OK=true
-if ! docker compose -f compose.yml -f compose.prod.yml up -d --remove-orphans; then
+if ! docker compose -f compose.yml -f compose.prod.yml run --rm migrator; then
+  DEPLOY_OK=false
+elif ! docker compose -f compose.yml -f compose.prod.yml up -d --remove-orphans; then
   DEPLOY_OK=false
 elif ! check_health "$CHECK_HOST" "$CHECK_PORT"; then
   DEPLOY_OK=false
 fi
 
 if [ "$DEPLOY_OK" = "true" ]; then
-  write_state "$REMOTE_BACKEND_DIGEST" "$REMOTE_FRONTEND_DIGEST" "$CURRENT_BACKEND_DIGEST" "$CURRENT_FRONTEND_DIGEST" "" ""
+  write_state "$REMOTE_BACKEND_DIGEST" "$REMOTE_MIGRATOR_DIGEST" "$REMOTE_FRONTEND_DIGEST" "$CURRENT_BACKEND_DIGEST" "$CURRENT_MIGRATOR_DIGEST" "$CURRENT_FRONTEND_DIGEST" "" "" ""
   cat >"${APP_DIR}/.cd-active-refs.env" <<EOF
 # Generado automáticamente por equinox-cd-pull.sh
 BACKEND_IMAGE_REF=${NEW_BACKEND_REF}
+MIGRATOR_IMAGE_REF=${NEW_MIGRATOR_REF}
 FRONTEND_IMAGE_REF=${NEW_FRONTEND_REF}
 EOF
   chmod 640 "${APP_DIR}/.cd-active-refs.env"
@@ -264,11 +282,12 @@ EOF
 fi
 
 # --- Rollback automático ---
-log "ERROR: Falló el despliegue o el healthcheck en ${CHECK_HOST}:${CHECK_PORT}."
-write_state "$CURRENT_BACKEND_DIGEST" "$CURRENT_FRONTEND_DIGEST" "$PREV_BACKEND_DIGEST" "$PREV_FRONTEND_DIGEST" "$REMOTE_BACKEND_DIGEST" "$REMOTE_FRONTEND_DIGEST"
-if [ -n "$CURRENT_BACKEND_DIGEST" ] && [ -n "$CURRENT_FRONTEND_DIGEST" ]; then
+log "ERROR: Falló el despliegue, la migración o el healthcheck en ${CHECK_HOST}:${CHECK_PORT}."
+write_state "$CURRENT_BACKEND_DIGEST" "$CURRENT_MIGRATOR_DIGEST" "$CURRENT_FRONTEND_DIGEST" "$PREV_BACKEND_DIGEST" "$PREV_MIGRATOR_DIGEST" "$PREV_FRONTEND_DIGEST" "$REMOTE_BACKEND_DIGEST" "$REMOTE_MIGRATOR_DIGEST" "$REMOTE_FRONTEND_DIGEST"
+if [ -n "$CURRENT_BACKEND_DIGEST" ] && [ -n "$CURRENT_MIGRATOR_DIGEST" ] && [ -n "$CURRENT_FRONTEND_DIGEST" ]; then
   log "Iniciando rollback automático a digests previos..."
   export BACKEND_IMAGE_REF="${BACKEND_IMAGE}@${CURRENT_BACKEND_DIGEST}"
+  export MIGRATOR_IMAGE_REF="${MIGRATOR_IMAGE}@${CURRENT_MIGRATOR_DIGEST}"
   export FRONTEND_IMAGE_REF="${FRONTEND_IMAGE}@${CURRENT_FRONTEND_DIGEST}"
   if ! docker compose -f compose.yml -f compose.prod.yml up -d --remove-orphans --pull never; then
     docker compose -f compose.yml -f compose.prod.yml up -d --remove-orphans || true
@@ -279,7 +298,7 @@ if [ -n "$CURRENT_BACKEND_DIGEST" ] && [ -n "$CURRENT_FRONTEND_DIGEST" ]; then
     log "CRÍTICO: Rollback ejecutado pero healthcheck sigue fallando. Revisar logs de contenedores."
   fi
 else
-  log "No hay digest previo registrado para rollback automático."
+  log "No hay digest previo completo registrado para rollback automático."
 fi
 
 exit 1
