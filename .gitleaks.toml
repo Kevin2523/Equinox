@@ -1,0 +1,22 @@
+title = "Gitleaks config for Equinox"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow test fixtures, example env templates, and CI dummy values"
+paths = [
+  '''^\.env\.ejemplo$''',
+  '''^\.env\.production\.example$''',
+  '''^test/''',
+  '''^frontend/test/''',
+  '''^\.github/workflows/ci\.yml$'''
+]
+regexes = [
+  '''tampered_signature''',
+  '''secreto-pruebas-.*''',
+  '''secreto-mfa-.*''',
+  '''JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP''',
+  '''cambia-esto-por-un-secreto.*''',
+  '''equinox_ci_password'''
+]

@@ -10,7 +10,11 @@ const assert = require('node:assert/strict');
 const bundle = path.resolve(__dirname, '../dist/equinox/browser');
 const chrome = process.env.EQUINOX_TEST_BROWSER || [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/snap/bin/chromium'
 ].find(fs.existsSync);
 
 const VIEWPORTS = [

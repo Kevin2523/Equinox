@@ -8,11 +8,15 @@ const assert = require('node:assert/strict');
 const QRCode = require(path.resolve(__dirname, '../node_modules/qrcode'));
 const { PNG } = require(path.resolve(__dirname, '../node_modules/pngjs'));
 
-const repoRoot = 'C:/Users/kjmg2/Documents/hermes/equinox';
+const repoRoot = path.resolve(__dirname, '../..');
 const bundle = path.resolve(repoRoot, 'frontend/dist/equinox/browser');
-const chrome = [
+const chrome = process.env.EQUINOX_TEST_BROWSER || [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/snap/bin/chromium'
 ].find(fs.existsSync);
 
 const FICTIONAL_SECRET = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';

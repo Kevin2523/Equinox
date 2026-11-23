@@ -103,8 +103,8 @@ jobs:
       SSH_PORT: ${{ secrets.PROD_SSH_PORT || '22' }}
       SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
       APP_DIR: ${{ secrets.PROD_APP_DIR }}
-      BACKEND_IMAGE: ${{ env.REGISTRY }}/${{ github.repository_owner }}/equinox-backend
-      FRONTEND_IMAGE: ${{ env.REGISTRY }}/${{ github.repository_owner }}/equinox-frontend
+      BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/equinox-backend
+      FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/equinox-frontend
       IMAGE_TAG: sha-${{ github.sha }}
       GHCR_USER: ${{ secrets.GHCR_READ_USER || github.actor }}
       GHCR_TOKEN: ${{ secrets.GHCR_READ_TOKEN || secrets.GITHUB_TOKEN }}

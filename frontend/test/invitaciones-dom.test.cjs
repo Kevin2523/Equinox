@@ -12,7 +12,11 @@ const { once } = require('node:events');
 const bundle = path.resolve(__dirname, '../dist/equinox/browser');
 const chrome = process.env.EQUINOX_TEST_BROWSER || [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/snap/bin/chromium'
 ].find(fs.existsSync);
 const cliente = (id) => ({ id, nombre: `Cliente ficticio ${id}`, correo: `${id}@example.invalid`, estado: 'ACTIVO', _count: { proyectos: 0 } });
 const invitacion = (id = 'i1', estado = 'PENDIENTE') => ({ id, correo: 'cuenta@example.invalid', rol: 'TITULAR', estado, expiraEn: '2099-01-01T00:00:00Z' });

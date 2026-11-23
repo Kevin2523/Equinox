@@ -8,7 +8,14 @@ const os = require('node:os');
 const { spawn } = require('node:child_process');
 
 const bundle = path.resolve(__dirname, '../dist/equinox/browser');
-const chrome = process.env.EQUINOX_TEST_BROWSER || ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(fs.existsSync);
+const chrome = process.env.EQUINOX_TEST_BROWSER || [
+  'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/snap/bin/chromium'
+].find(fs.existsSync);
 const client = { id: 'c1', nombre: 'Cliente Ficticio', empresa: 'Empresa de Prueba', estado: 'ACTIVO' };
 const project = { id: 'p1', clienteId: 'c1', nombre: 'San Carlos Surf Resort', estado: 'ACTIVO', descripcion: 'Proyecto QA', cliente: client };
 let hitosStatus = 200;

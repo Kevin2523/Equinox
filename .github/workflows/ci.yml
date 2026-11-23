@@ -41,7 +41,7 @@ jobs:
           docker run --rm \
             -v "${{ github.workspace }}:/repo" \
             zricethezav/gitleaks:latest \
-            detect --source=/repo --redact --exit-code 1 --no-banner
+            detect --source=/repo --config=/repo/.gitleaks.toml --redact --verbose --exit-code 1 --no-banner
 
   dependency-audit:
     name: Auditoría de dependencias (Backend y Frontend)
@@ -162,6 +162,18 @@ jobs:
       - name: Compilar frontend Angular (producción)
         working-directory: frontend
         run: npm run compilar
+
+      - name: Verificar o instalar Chrome para pruebas DOM
+        run: |
+          for bin in google-chrome chromium chromium-browser; do
+            if command -v "$bin" >/dev/null 2>&1; then
+              echo "EQUINOX_TEST_BROWSER=$(command -v "$bin")" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          npx --yes @puppeteer/browsers install chrome@stable --path /tmp/chrome
+          CHROME_BIN=$(find /tmp/chrome -name chrome -type f | head -n1)
+          echo "EQUINOX_TEST_BROWSER=$CHROME_BIN" >> "$GITHUB_ENV"
 
       - name: Ejecutar tests aislados esenciales frontend
         run: |
