@@ -3,7 +3,8 @@ Description=Equinox Pull-Based CD Timer (%i)
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=2min
+# Intervalo de 10min para respetar el límite de la API anónima de GitHub (60 req/h sin GITHUB_TOKEN)
+OnUnitActiveSec=10min
 RandomizedDelaySec=15s
 Persistent=true
 Unit=equinox-cd@%i.service
