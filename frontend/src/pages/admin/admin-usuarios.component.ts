@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService, extraerErrorAdmin } from '../../services/admin-api.service';
 import {
@@ -9,7 +9,9 @@ import {
   UsuarioAdminItem
 } from '../../models/admin.model';
 import { RolPlataforma } from '../../auth/auth.model';
-import { ETIQUETAS_ROL_PLATAFORMA, formatearFechaAdmin } from './admin-formatters';
+import { TPipe } from '../../shared/t.pipe';
+import { I18nService } from '../../state/i18n.service';
+import { CLAVES_ROL_PLATAFORMA, formatearFechaAdmin, formatearNumeroAdmin } from './admin-formatters';
 
 interface ConfirmacionUsuario {
   tipo: 'REVOCAR_TODAS' | 'REVOCAR_SESION' | 'TOGGLE_ACCESO';
@@ -24,11 +26,13 @@ interface ConfirmacionUsuario {
 @Component({
   selector: 'app-admin-usuarios',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TPipe],
   templateUrl: './admin-usuarios.component.html',
   styleUrls: ['./admin.shared.css']
 })
 export class AdminUsuariosComponent implements OnInit {
+  readonly i18n = inject(I18nService);
+
   usuarios: UsuarioAdminItem[] = [];
   paginacion: PaginacionAdmin = { pagina: 1, limite: 20, total: 0, totalPaginas: 0 };
 
@@ -47,10 +51,17 @@ export class AdminUsuariosComponent implements OnInit {
   ejecutandoAccion = false;
   errorAccion = '';
 
-  readonly etiquetasRol = ETIQUETAS_ROL_PLATAFORMA;
-  readonly formatearFecha = formatearFechaAdmin;
+  readonly clavesRol = CLAVES_ROL_PLATAFORMA;
 
   constructor(private adminApi: AdminApiService) {}
+
+  formatearFecha(valor?: string | null, incluirHora = true): string {
+    return formatearFechaAdmin(valor, incluirHora, this.i18n.bcp47());
+  }
+
+  formatearNumero(valor: number): string {
+    return formatearNumeroAdmin(valor, this.i18n.bcp47());
+  }
 
   ngOnInit(): void {
     void this.cargar(1);
@@ -81,7 +92,7 @@ export class AdminUsuariosComponent implements OnInit {
       this.usuarios = res.datos;
       this.paginacion = res.paginacion;
     } catch (err: any) {
-      this.error = extraerErrorAdmin(err, 'No se pudieron cargar los usuarios.');
+      this.error = extraerErrorAdmin(err, this.i18n.t('admin.usuarios.errorCargar'));
     } finally {
       this.cargando = false;
     }
@@ -104,7 +115,7 @@ export class AdminUsuariosComponent implements OnInit {
     try {
       this.detalle = await this.adminApi.obtenerUsuario(usuarioId);
     } catch (err: any) {
-      this.error = extraerErrorAdmin(err, 'No se pudo cargar el detalle del usuario.');
+      this.error = extraerErrorAdmin(err, this.i18n.t('admin.usuarios.errorDetalle'));
     } finally {
       this.cargandoDetalle = false;
     }
@@ -118,8 +129,8 @@ export class AdminUsuariosComponent implements OnInit {
     this.errorAccion = '';
     this.confirmacion = {
       tipo: 'REVOCAR_TODAS',
-      titulo: 'Revocar todas las sesiones activas',
-      descripcion: `Se cerrarán todas las sesiones activas de ${u.nombre} (${u.correo}), excepto tu propia sesión actual si corresponde.`,
+      titulo: this.i18n.t('admin.usuarios.confirmRevocarTodasTitulo'),
+      descripcion: this.i18n.t('admin.usuarios.confirmRevocarTodasDesc', { nombre: u.nombre, correo: u.correo }),
       usuarioId: u.id,
       motivo: ''
     };
@@ -129,8 +140,8 @@ export class AdminUsuariosComponent implements OnInit {
     this.errorAccion = '';
     this.confirmacion = {
       tipo: 'REVOCAR_SESION',
-      titulo: 'Revocar sesión específica',
-      descripcion: `Esta acción invalidará inmediatamente el token de la sesión ${sesionId}.`,
+      titulo: this.i18n.t('admin.usuarios.confirmRevocarSesionTitulo'),
+      descripcion: this.i18n.t('admin.usuarios.confirmRevocarSesionDesc', { sesionId }),
       usuarioId,
       sesionId,
       motivo: ''
@@ -139,11 +150,11 @@ export class AdminUsuariosComponent implements OnInit {
 
   pedirToggleAcceso(usuarioId: string, acceso: AccesoClienteAdmin): void {
     this.errorAccion = '';
-    const accion = acceso.activo ? 'Desactivar' : 'Reactivar';
+    const cliente = acceso.clienteNombre || acceso.clienteId;
     this.confirmacion = {
       tipo: 'TOGGLE_ACCESO',
-      titulo: `${accion} acceso de cliente`,
-      descripcion: `¿Confirmas ${accion.toLowerCase()} el acceso de cliente en ${acceso.clienteNombre || acceso.clienteId}?`,
+      titulo: this.i18n.t(acceso.activo ? 'admin.usuarios.confirmDesactivarAccesoTitulo' : 'admin.usuarios.confirmReactivarAccesoTitulo'),
+      descripcion: this.i18n.t(acceso.activo ? 'admin.usuarios.confirmDesactivarAccesoDesc' : 'admin.usuarios.confirmReactivarAccesoDesc', { cliente }),
       usuarioId,
       acceso,
       motivo: ''
@@ -159,16 +170,16 @@ export class AdminUsuariosComponent implements OnInit {
     try {
       if (c.tipo === 'REVOCAR_TODAS') {
         const res = await this.adminApi.revocarSesionesUsuario(c.usuarioId, { motivo });
-        this.mostrarToast(`Sesiones revocadas: ${res.sesionesRevocadas}.`);
+        this.mostrarToast(this.i18n.t('admin.usuarios.toastSesionesRevocadas', { count: this.formatearNumero(res.sesionesRevocadas) }));
       } else if (c.tipo === 'REVOCAR_SESION' && c.sesionId) {
         await this.adminApi.revocarSesionesUsuario(c.usuarioId, { sesionId: c.sesionId, motivo });
-        this.mostrarToast('Sesión revocada correctamente.');
+        this.mostrarToast(this.i18n.t('admin.usuarios.toastSesionRevocada'));
       } else if (c.tipo === 'TOGGLE_ACCESO' && c.acceso) {
         await this.adminApi.actualizarAccesoCliente(c.usuarioId, c.acceso.id, {
           activo: !c.acceso.activo,
           motivo
         });
-        this.mostrarToast(c.acceso.activo ? 'Acceso de cliente desactivado.' : 'Acceso de cliente reactivado.');
+        this.mostrarToast(this.i18n.t(c.acceso.activo ? 'admin.usuarios.toastAccesoDesactivado' : 'admin.usuarios.toastAccesoReactivado'));
       }
       this.confirmacion = null;
       if (this.detalle && this.detalle.id === c.usuarioId) {
@@ -176,7 +187,7 @@ export class AdminUsuariosComponent implements OnInit {
       }
       await this.cargar(this.paginacion.pagina);
     } catch (err: any) {
-      this.errorAccion = extraerErrorAdmin(err, 'No se pudo completar la acción.');
+      this.errorAccion = extraerErrorAdmin(err, this.i18n.t('admin.comun.errorAccion'));
     } finally {
       this.ejecutandoAccion = false;
     }

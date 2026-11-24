@@ -139,19 +139,19 @@ before(async () => {
     const file = path.resolve(bundle, '.' + pathname);
     if (!file.startsWith(bundle + path.sep)) { res.writeHead(403); res.end(); return; }
     if (fs.existsSync(file) && fs.statSync(file).isFile()) {
-      res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'application/octet-stream');
+      res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : file.endsWith('.json') ? 'application/json; charset=utf-8' : 'application/octet-stream');
       res.end(fs.readFileSync(file)); return;
     }
     if (['/clientes', '/proyectos', '/portal', '/finanzas'].includes(pathname)) paginaFixture = pathname;
     let html = fs.readFileSync(path.join(bundle, 'index.html'), 'utf8');
-    html = html.replace('<head>', `<head><script>window.__EQUINOX_API_ORIGIN__=location.origin;
+    html = html.replace('<head>', `<head><script>window.__EQUINOX_API_ORIGIN__=location.origin;localStorage.setItem('equinox_idioma_local','es');
       if(['/clientes','/proyectos','/portal','/finanzas'].includes(location.pathname)) sessionStorage.setItem('equinox_sesion_token','sesion-ficticia'); else sessionStorage.clear();</script>`);
     res.setHeader('Content-Type', 'text/html'); res.end(html);
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   origin = `http://localhost:${server.address().port}`;
   profile = fs.mkdtempSync(path.join(os.tmpdir(), 'equinox-dom-'));
-  browser = spawn(chrome, ['--headless=new', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1', `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-component-update', 'about:blank'], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+  browser = spawn(chrome, ['--headless=new', '--lang=es', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1', `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-component-update', 'about:blank'], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
   const wsUrl = await new Promise((resolve, reject) => {
     browser.on('error', reject);
     let text = '';
@@ -226,7 +226,7 @@ test(`DOM: 410 ${mensaje} abandona carga y muestra estado terminal`, { timeout: 
   (await take('GET', '/api/invitaciones/token-ficticio')).reply(410, { error: motivo });
   await waitDOM(`document.body.textContent.includes(${JSON.stringify(mensaje)}) && !document.body.textContent.includes("Consultando invitación")`);
   assert.equal(await evaluate(visible('.invitation-card form')), false);
-  assert.equal(await evaluate(visible('.invitation-card button')), false);
+  assert.equal(await evaluate(visible('.invitation-card .auth-submit, .invitation-card .auth-error button, .invitation-card form button')), false);
 });
 }
 
@@ -267,7 +267,7 @@ test('DOM: reenviar y revocar actualizan operación y lista', { timeout: 15000 }
   await click('.inv-item-actions button:nth-child(2)');
   (await take('POST', '/api/clientes/a/invitaciones/i1/revocar')).reply(200, { mensaje: 'Revocada', invitacion: { id: 'i1', estado: 'REVOCADA' } });
   (await take('GET', '/api/clientes/a/invitaciones')).reply(200, [invitacion('i1', 'REVOCADA')]);
-  await waitDOM('document.querySelector(".invitations-list").textContent.includes("REVOCADA") && !document.querySelector(".inv-item-actions")');
+  await waitDOM('document.querySelector(".invitations-list").textContent.toLowerCase().includes("revocada") && !document.querySelector(".inv-item-actions")');
 });
 
 test('DOM: error público recuperable y aceptación sin sesión automática', { timeout: 15000 }, async () => {

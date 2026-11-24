@@ -12,6 +12,7 @@ import { rutasFotografia } from "./rutas/fotografia.js";
 import { rutasInvitacionesPublicas } from "./rutas/invitaciones-publicas.js";
 import { rutasAdmin } from "./rutas/admin.js";
 import { rutasAdminSuscripciones } from "./rutas/admin-suscripciones.js";
+import { rutasPerfil } from "./rutas/perfil.js";
 import {
   exigirAutenticacion,
   exigirOrganizacion,
@@ -178,6 +179,7 @@ aplicacion.get("/salud/listo", async (_req, res) => {
   }
 });
 aplicacion.use("/api/autenticacion", rutasAutenticacion);
+aplicacion.use("/api/perfil", exigirAutenticacion, rutasPerfil);
 aplicacion.use("/api/invitaciones", rutasInvitacionesPublicas);
 aplicacion.use("/api/admin/suscripciones", exigirAutenticacion, exigirSuperadmin, rutasAdminSuscripciones);
 aplicacion.use("/api/admin", exigirAutenticacion, exigirSuperadmin, rutasAdmin);

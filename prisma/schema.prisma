@@ -103,6 +103,12 @@ enum RolPlataforma {
   ADMIN_GLOBAL
 }
 
+enum IdiomaUsuario {
+  es
+  en
+  pt
+}
+
 enum TipoAccesoSesion {
   ORGANIZACION
   CLIENTE
@@ -125,6 +131,7 @@ model Usuario {
   apellido              String?
   telefono              String?
   zonaHoraria           String                @default("America/Panama") @map("zona_horaria")
+  idioma                IdiomaUsuario         @default(es) @map("idioma")
   avatarUrl             String?               @map("avatar_url")
   correoVerificadoEn    DateTime?             @map("correo_verificado_en")
   ultimoAccesoEn        DateTime?             @map("ultimo_acceso_en")

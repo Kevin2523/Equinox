@@ -3,6 +3,8 @@ import type { Request } from "express";
 export type RolMiembro = "PROPIETARIO" | "COLABORADOR";
 export type RolCliente = "TITULAR" | "COLABORADOR";
 export type RolPlataforma = "USUARIO" | "ADMIN_GLOBAL";
+export const IDIOMAS_SOPORTADOS = ["es", "en", "pt"] as const;
+export type IdiomaSoportado = (typeof IDIOMAS_SOPORTADOS)[number];
 
 export type ContextoSinSesion =
   | {

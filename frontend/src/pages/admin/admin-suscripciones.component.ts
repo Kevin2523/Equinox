@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService, extraerErrorAdmin } from '../../services/admin-api.service';
 import {
@@ -9,21 +9,25 @@ import {
   PaginacionAdmin,
   PlanSuscripcionAdmin
 } from '../../models/admin.model';
+import { TPipe } from '../../shared/t.pipe';
+import { I18nService } from '../../state/i18n.service';
 import {
-  ETIQUETAS_ESTADO_SUSCRIPCION,
-  ETIQUETAS_TIPO_FREELANCE,
+  CLAVES_ESTADO_SUSCRIPCION,
+  CLAVES_TIPO_FREELANCE,
   claseEstadoSuscripcion,
-  formatearFechaAdmin
+  formatearFechaAdmin,
+  formatearNumeroAdmin
 } from './admin-formatters';
 
 @Component({
   selector: 'app-admin-suscripciones',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TPipe],
   templateUrl: './admin-suscripciones.component.html',
   styleUrls: ['./admin.shared.css']
 })
 export class AdminSuscripcionesComponent implements OnInit {
+  readonly i18n = inject(I18nService);
   subtab: 'SUSCRIPCIONES' | 'PLANES' = 'SUSCRIPCIONES';
   toast = '';
 
@@ -102,12 +106,19 @@ export class AdminSuscripcionesComponent implements OnInit {
   errorModalPlan = '';
 
   readonly estados: EstadoSuscripcion[] = ['SIN_SUSCRIPCION', 'PRUEBA', 'ACTIVA', 'SUSPENDIDA', 'CANCELADA'];
-  readonly etiquetasEstado = ETIQUETAS_ESTADO_SUSCRIPCION;
-  readonly etiquetasTipo = ETIQUETAS_TIPO_FREELANCE;
+  readonly clavesEstado = CLAVES_ESTADO_SUSCRIPCION;
+  readonly clavesTipo = CLAVES_TIPO_FREELANCE;
   readonly claseEstado = claseEstadoSuscripcion;
-  readonly formatearFecha = formatearFechaAdmin;
 
   constructor(private adminApi: AdminApiService) {}
+
+  formatearFecha(valor?: string | null, incluirHora = true): string {
+    return formatearFechaAdmin(valor, incluirHora, this.i18n.bcp47());
+  }
+
+  formatearNumero(valor: number): string {
+    return formatearNumeroAdmin(valor, this.i18n.bcp47());
+  }
 
   ngOnInit(): void {
     void this.cargarPlanesActivos();
@@ -157,7 +168,7 @@ export class AdminSuscripcionesComponent implements OnInit {
       this.pagSuscripciones = res.paginacion;
       this.resumenEstados = res.resumenEstados;
     } catch (err: any) {
-      this.errorSusc = extraerErrorAdmin(err, 'No se pudieron cargar las suscripciones.');
+      this.errorSusc = extraerErrorAdmin(err, this.i18n.t('admin.suscripciones.errorCargar'));
     } finally {
       this.cargandoSusc = false;
     }
@@ -177,7 +188,7 @@ export class AdminSuscripcionesComponent implements OnInit {
       this.planes = res.datos;
       this.pagPlanes = res.paginacion;
     } catch (err: any) {
-      this.errorPlanes = extraerErrorAdmin(err, 'No se pudo cargar el catálogo de planes.');
+      this.errorPlanes = extraerErrorAdmin(err, this.i18n.t('admin.suscripciones.errorCargarPlanes'));
     } finally {
       this.cargandoPlanes = false;
     }
@@ -235,7 +246,7 @@ export class AdminSuscripcionesComponent implements OnInit {
     if (!this.modalSuscripcion || this.guardandoSusc) return;
     const m = this.modalSuscripcion;
     if (!m.planId) {
-      this.errorModalSusc = 'Selecciona un plan manual activo.';
+      this.errorModalSusc = this.i18n.t('admin.suscripciones.errorPlanRequerido');
       return;
     }
     this.guardandoSusc = true;
@@ -253,7 +264,7 @@ export class AdminSuscripcionesComponent implements OnInit {
           motivo: m.motivo.trim() || undefined,
           notasInternas: m.notasInternas.trim() || undefined
         });
-        this.mostrarToast('Suscripción manual asignada.');
+        this.mostrarToast(this.i18n.t('admin.suscripciones.toastAsignada'));
       } else {
         await this.adminApi.actualizarSuscripcion(m.item.organizacion.id, {
           planId: m.planId,
@@ -264,12 +275,12 @@ export class AdminSuscripcionesComponent implements OnInit {
           motivo: m.motivo.trim() || undefined,
           notasInternas: m.notasInternas.trim() || undefined
         });
-        this.mostrarToast('Suscripción manual actualizada.');
+        this.mostrarToast(this.i18n.t('admin.suscripciones.toastActualizada'));
       }
       this.modalSuscripcion = null;
       await this.cargarSuscripciones(this.pagSuscripciones.pagina);
     } catch (err: any) {
-      this.errorModalSusc = extraerErrorAdmin(err, 'No se pudo guardar la suscripción.');
+      this.errorModalSusc = extraerErrorAdmin(err, this.i18n.t('admin.suscripciones.errorGuardar'));
     } finally {
       this.guardandoSusc = false;
     }
@@ -280,16 +291,16 @@ export class AdminSuscripcionesComponent implements OnInit {
     const nombre = item.organizacion.nombre;
     const config = {
       SUSPENDER: {
-        titulo: `Suspender suscripción de ${nombre}`,
-        descripcion: 'La suscripción comercial pasará a estado SUSPENDIDA manualmente (seguimiento administrativo; no bloquea el acceso de la organización).'
+        titulo: this.i18n.t('admin.suscripciones.confirmSuspenderTitulo', { nombre }),
+        descripcion: this.i18n.t('admin.suscripciones.confirmSuspenderDesc')
       },
       REACTIVAR: {
-        titulo: `Reactivar suscripción de ${nombre}`,
-        descripcion: 'La suscripción volverá a estado ACTIVA manualmente (gestión manual, no se procesan pagos).'
+        titulo: this.i18n.t('admin.suscripciones.confirmReactivarTitulo', { nombre }),
+        descripcion: this.i18n.t('admin.suscripciones.confirmReactivarDesc')
       },
       CANCELAR: {
-        titulo: `Cancelar suscripción de ${nombre}`,
-        descripcion: 'La suscripción pasará a estado CANCELADA y quedará registrada en el historial de auditoría.'
+        titulo: this.i18n.t('admin.suscripciones.confirmCancelarTitulo', { nombre }),
+        descripcion: this.i18n.t('admin.suscripciones.confirmCancelarDesc')
       }
     }[tipo];
     this.confirmacionSusc = { tipo, item, ...config, motivo: '', notas: '' };
@@ -306,19 +317,19 @@ export class AdminSuscripcionesComponent implements OnInit {
           motivoCancelacion: c.motivo.trim() || undefined,
           notas: c.notas.trim() || undefined
         });
-        this.mostrarToast('Suscripción cancelada manualmente.');
+        this.mostrarToast(this.i18n.t('admin.suscripciones.toastCancelada'));
       } else {
         await this.adminApi.actualizarSuscripcion(c.item.organizacion.id, {
           estado: c.tipo === 'SUSPENDER' ? 'SUSPENDIDA' : 'ACTIVA',
           motivo: c.motivo.trim() || undefined,
           notasInternas: c.notas.trim() || undefined
         });
-        this.mostrarToast(c.tipo === 'SUSPENDER' ? 'Suscripción suspendida.' : 'Suscripción reactivada.');
+        this.mostrarToast(this.i18n.t(c.tipo === 'SUSPENDER' ? 'admin.suscripciones.toastSuspendida' : 'admin.suscripciones.toastReactivada'));
       }
       this.confirmacionSusc = null;
       await this.cargarSuscripciones(this.pagSuscripciones.pagina);
     } catch (err: any) {
-      this.errorConfirm = extraerErrorAdmin(err, 'No se pudo completar la operación.');
+      this.errorConfirm = extraerErrorAdmin(err, this.i18n.t('admin.comun.errorAccion'));
     } finally {
       this.ejecutandoConfirm = false;
     }
@@ -333,7 +344,7 @@ export class AdminSuscripcionesComponent implements OnInit {
       this.historial = res.datos;
       this.pagHistorial = res.paginacion;
     } catch (err: any) {
-      this.errorHistorial = extraerErrorAdmin(err, 'No se pudo cargar el historial.');
+      this.errorHistorial = extraerErrorAdmin(err, this.i18n.t('admin.suscripciones.errorHistorial'));
     } finally {
       this.cargandoHistorial = false;
     }
@@ -385,15 +396,15 @@ export class AdminSuscripcionesComponent implements OnInit {
       };
       if (p.modo === 'CREAR') {
         await this.adminApi.crearPlan(payload);
-        this.mostrarToast('Plan manual creado.');
+        this.mostrarToast(this.i18n.t('admin.suscripciones.toastPlanCreado'));
       } else if (p.planId) {
         await this.adminApi.actualizarPlan(p.planId, payload);
-        this.mostrarToast('Plan manual actualizado.');
+        this.mostrarToast(this.i18n.t('admin.suscripciones.toastPlanActualizado'));
       }
       this.modalPlan = null;
       await Promise.all([this.cargarPlanes(this.pagPlanes.pagina), this.cargarPlanesActivos()]);
     } catch (err: any) {
-      this.errorModalPlan = extraerErrorAdmin(err, 'No se pudo guardar el plan.');
+      this.errorModalPlan = extraerErrorAdmin(err, this.i18n.t('admin.suscripciones.errorGuardarPlan'));
     } finally {
       this.guardandoPlan = false;
     }

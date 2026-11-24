@@ -7,17 +7,38 @@ const ts = require('typescript');
 const { of, firstValueFrom, NEVER, BehaviorSubject } = require('rxjs');
 
 global.window = { location: { hostname: 'localhost', origin: 'http://localhost:4200' } };
+const catalogoPublicoEs = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, '../src/assets/i18n/publico-shell/es.json'), 'utf8')
+);
+const i18nStub = {
+  locale: () => 'es',
+  idiomasDisponibles: [],
+  establecerIdiomaLocal: () => 'es',
+  sincronizarDesdeUsuario: () => 'es',
+  alCerrarSesion: () => 'es',
+  t: (key) => catalogoPublicoEs[key] || key,
+};
 let services = new Map();
 const angular = {
   Component: () => (target) => target,
   Directive: () => (target) => target,
   Injectable: () => (target) => target,
+  Pipe: () => (target) => target,
+  Optional: () => () => {},
   HostListener: () => () => {},
   Input: () => () => {},
   Output: () => () => {},
   ViewChild: () => () => {},
   EventEmitter: class {},
-  inject: (token) => services.get(token)
+  signal: (initial) => {
+    let val = initial;
+    const fn = () => val;
+    fn.set = (next) => { val = next; };
+    fn.asReadonly = () => fn;
+    return fn;
+  },
+  computed: (calc) => () => calc(),
+  inject: (token) => services.get(token) ?? (token?.name === 'I18nService' ? i18nStub : undefined)
 };
 const routeStubs = new Map([
   ['./pages/dashboard.component', 'DashboardComponent'], ['./pages/clientes.component', 'ClientesComponent'],

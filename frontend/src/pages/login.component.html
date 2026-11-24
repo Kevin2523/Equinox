@@ -1,15 +1,15 @@
 <main class="login-page">
   <!-- Panel Hero: Azul marino oscuro con marca, copy a la izquierda y órbitas finas a la derecha -->
-  <aside class="hero-panel" aria-label="Presentación de Equinox">
+  <aside class="hero-panel" [attr.aria-label]="'publico.comun.heroPresentacionAria' | t">
     <div class="hero-brand">
       <span class="brand-mark" aria-hidden="true"></span>
-      <span class="brand-text">equinox</span>
+      <span class="brand-text">{{ 'publico.comun.marca' | t }}</span>
     </div>
 
     <div class="hero-main">
       <div class="hero-copy">
-        <h1 class="hero-title">Tu trabajo,<br>en equilibrio.</h1>
-        <p class="hero-subtitle">Clientes, proyectos y cobros.<br>En un mismo espacio.</p>
+        <h1 class="hero-title">{{ 'publico.comun.heroTituloLinea1' | t }}<br>{{ 'publico.comun.heroTituloLinea2' | t }}</h1>
+        <p class="hero-subtitle">{{ 'publico.comun.heroSubtituloLinea1' | t }}<br>{{ 'publico.comun.heroSubtituloLinea2' | t }}</p>
       </div>
 
       <!-- Órbitas finas azul y dorado en SVG nativo -->
@@ -56,7 +56,7 @@
     </div>
 
     <div class="hero-footer">
-      <span class="hero-tag">EQUINOX / CRM PARA FREELANCERS</span>
+      <span class="hero-tag">{{ 'publico.comun.heroTag' | t }}</span>
     </div>
 
     <!-- Borde inferior blanco curvo para vista móvil -->
@@ -66,26 +66,41 @@
   </aside>
 
   <!-- Panel de formulario blanco -->
-  <section class="form-panel" aria-label="Formulario de inicio de sesión">
+  <section class="form-panel" [attr.aria-label]="'publico.login.formAria' | t">
     <div class="form-container">
-      <!-- Símbolo de marca superior visible en escritorio -->
-      <div class="form-brand-icon" aria-hidden="true">
-        <span class="brand-mark"></span>
+      <div class="form-top-actions">
+        <!-- Símbolo de marca superior visible en escritorio -->
+        <div class="form-brand-icon" aria-hidden="true">
+          <span class="brand-mark"></span>
+        </div>
+
+        <div class="preauth-lang-bar" role="group" [attr.aria-label]="'publico.comun.seleccionarIdioma' | t">
+          <button
+            *ngFor="let idioma of i18n.idiomasDisponibles"
+            type="button"
+            class="preauth-lang-btn"
+            [class.active]="i18n.locale() === idioma.codigo"
+            [attr.aria-pressed]="i18n.locale() === idioma.codigo"
+            (click)="i18n.establecerIdiomaLocal(idioma.codigo)"
+          >
+            {{ idioma.etiquetaCorta }}
+          </button>
+        </div>
       </div>
 
       <header class="form-header">
-        <h2 class="form-title">Inicia sesión</h2>
-        <p class="form-subtitle">Accede a tu espacio de trabajo o portal.</p>
+        <h2 class="form-title">{{ 'publico.login.titulo' | t }}</h2>
+        <p class="form-subtitle">{{ 'publico.login.subtitulo' | t }}</p>
       </header>
 
       <p class="auth-error-banner" role="alert" *ngIf="!apiDisponible">
-        La API no está configurada para este entorno. Contacta al administrador de Equinox.
+        {{ 'publico.comun.apiNoConfigurada' | t }}
       </p>
 
       <!-- Formulario de acceso estándar -->
       <form #form="ngForm" (ngSubmit)="entrar(form)" *ngIf="!opciones.length" class="login-form" novalidate>
         <div class="form-group">
-          <label for="correo" class="form-label">Correo electrónico</label>
+          <label for="correo" class="form-label">{{ 'publico.comun.correoLabel' | t }}</label>
           <input
             id="correo"
             class="form-input"
@@ -96,17 +111,17 @@
             required
             email
             autocomplete="username"
-            placeholder="tu@correo.com"
+            [placeholder]="'publico.comun.correoPlaceholder' | t"
             #correoControl="ngModel"
             [disabled]="cargando"
           >
           <small class="auth-validation" *ngIf="correoControl.invalid && (correoControl.touched || enviado)">
-            Introduce un correo electrónico válido.
+            {{ 'publico.comun.correoInvalido' | t }}
           </small>
         </div>
 
         <div class="form-group">
-          <label for="contrasena" class="form-label">Contraseña</label>
+          <label for="contrasena" class="form-label">{{ 'publico.comun.contrasenaLabel' | t }}</label>
           <div class="password-input-wrapper" [class.input-error]="claveControl.invalid && (claveControl.touched || enviado)">
             <input
               id="contrasena"
@@ -116,7 +131,7 @@
               [(ngModel)]="contrasena"
               required
               autocomplete="current-password"
-              placeholder="•••••••••"
+              [placeholder]="'publico.login.contrasenaPlaceholder' | t"
               #claveControl="ngModel"
               [disabled]="cargando"
             >
@@ -124,7 +139,7 @@
               type="button"
               class="password-toggle-btn"
               (click)="alternarMostrarContrasena()"
-              [attr.aria-label]="mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-label]="mostrarContrasena ? ('publico.comun.ocultarContrasena' | t) : ('publico.comun.mostrarContrasena' | t)"
               [attr.aria-pressed]="mostrarContrasena"
             >
               <!-- Ícono de ojo cuando está oculta -->
@@ -139,46 +154,46 @@
             </button>
           </div>
           <small class="auth-validation" *ngIf="claveControl.invalid && (claveControl.touched || enviado)">
-            Introduce tu contraseña.
+            {{ 'publico.login.contrasenaRequerida' | t }}
           </small>
           <div class="forgot-password-row">
-            <a routerLink="/recuperar-contrasena" class="forgot-link">¿Olvidaste tu contraseña?</a>
+            <a routerLink="/recuperar-contrasena" class="forgot-link">{{ 'publico.login.olvidoContrasena' | t }}</a>
           </div>
         </div>
 
         <p class="auth-error" role="alert" *ngIf="error">{{ error }}</p>
 
         <button class="btn-submit" type="submit" [disabled]="cargando">
-          <span>{{ cargando ? 'Validando…' : 'Entrar' }}</span>
+          <span>{{ cargando ? ('publico.login.validando' | t) : ('publico.login.entrar' | t) }}</span>
           <svg *ngIf="!cargando" class="btn-arrow" viewBox="0 0 20 20" fill="currentColor" width="18" height="18" aria-hidden="true">
             <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
           </svg>
         </button>
 
         <div class="register-prompt">
-          <span>¿Primera vez en Equinox?</span>
-          <a routerLink="/registro" class="register-link">Crear cuenta</a>
+          <span>{{ 'publico.login.primeraVez' | t }}</span>
+          <a routerLink="/registro" class="register-link">{{ 'publico.login.crearCuenta' | t }}</a>
         </div>
       </form>
 
       <!-- Selector de contexto múltiple (organización / portal de cliente) -->
       <div *ngIf="opciones.length" class="context-options">
-        <h3 class="context-title">Selecciona tu acceso</h3>
-        <p class="context-subtitle">Tu cuenta tiene más de un contexto disponible.</p>
+        <h3 class="context-title">{{ 'publico.login.seleccionaAcceso' | t }}</h3>
+        <p class="context-subtitle">{{ 'publico.login.multipleContexto' | t }}</p>
         <div class="context-list">
           <button class="context-option-card" type="button" *ngFor="let opcion of opciones" (click)="seleccionar(opcion)" [disabled]="cargando">
             <span class="context-name">{{ opcion.tipoAcceso === 'ORGANIZACION' ? opcion.organizacion.nombre : opcion.cliente?.nombre }}</span>
-            <span class="context-desc">{{ opcion.tipoAcceso === 'ORGANIZACION' ? 'Espacio de trabajo' : 'Portal del cliente' }} · {{ opcion.rol }}</span>
+            <span class="context-desc">{{ (opcion.tipoAcceso === 'ORGANIZACION' ? 'publico.login.espacioTrabajo' : 'publico.login.portalCliente') | t }} · {{ opcion.rol }}</span>
           </button>
         </div>
         <p class="auth-error" role="alert" *ngIf="error">{{ error }}</p>
-        <button class="btn-back" type="button" (click)="volver()">Usar otra cuenta</button>
+        <button class="btn-back" type="button" (click)="volver()">{{ 'publico.login.usarOtraCuenta' | t }}</button>
       </div>
     </div>
 
     <!-- Pie discreto -->
     <div class="form-footer-note">
-      <span>Hecho para tu forma de trabajar.</span>
+      <span>{{ 'publico.comun.pieNota' | t }}</span>
     </div>
   </section>
 </main>

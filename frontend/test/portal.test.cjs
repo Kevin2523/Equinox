@@ -11,11 +11,22 @@ const angular = {
   Component: () => (target) => target,
   Directive: () => (target) => target,
   Injectable: () => (target) => target,
+  Pipe: () => (target) => target,
   HostListener: () => () => {},
   Input: () => () => {},
   Output: () => () => {},
+  Optional: () => () => {},
   ViewChild: () => () => {},
-  EventEmitter: class {}
+  EventEmitter: class {},
+  inject: () => null,
+  signal: (val) => {
+    let v = val;
+    const fn = () => v;
+    fn.set = (next) => { v = next; };
+    fn.asReadonly = () => fn;
+    return fn;
+  },
+  computed: (fn) => fn
 };
 const authGuards = { guardCliente: () => true, guardOrganizacion: () => true, guardPublico: () => true };
 const routeStubs = new Map([
@@ -34,6 +45,12 @@ const moduleCache = new Map();
 function load(relativePath) {
   const filename = path.resolve(sourceRoot, relativePath);
   if (moduleCache.has(filename)) return moduleCache.get(filename);
+  if (filename.endsWith('.json')) {
+    const parsed = JSON.parse(fs.readFileSync(filename, 'utf8'));
+    const wrapped = { __esModule: true, default: parsed, ...parsed };
+    moduleCache.set(filename, wrapped);
+    return wrapped;
+  }
   const source = fs.readFileSync(filename, 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, experimentalDecorators: true
@@ -51,7 +68,11 @@ function load(relativePath) {
     if (id === './auth/auth.guards') return authGuards;
     if (routeStubs.has(id)) return { [routeStubs.get(id)]: class {} };
     if (id.startsWith('.')) {
-      const target = path.resolve(path.dirname(filename), `${id}.ts`);
+      const resolved = path.resolve(path.dirname(filename), id);
+      if (resolved.endsWith('.json')) {
+        return load(path.relative(sourceRoot, resolved));
+      }
+      const target = `${resolved}.ts`;
       return load(path.relative(sourceRoot, target));
     }
     throw new Error(`Import no previsto en la prueba del portal: ${id}`);

@@ -1,3 +1,5 @@
+import { IdiomaSoportado } from '../i18n/i18n.types';
+
 export type TipoFreelance = 'GENERAL' | 'DESARROLLO_SOFTWARE' | 'FOTOGRAFIA' | 'DISENO_GRAFICO';
 
 export type RolPlataforma = 'USUARIO' | 'ADMIN_GLOBAL';
@@ -7,6 +9,7 @@ export interface UsuarioSesion {
   correo: string;
   nombre: string;
   apellido?: string | null;
+  idioma?: IdiomaSoportado;
   rolPlataforma?: RolPlataforma;
   mfaHabilitado?: boolean;
 }

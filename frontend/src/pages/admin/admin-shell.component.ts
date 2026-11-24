@@ -1,25 +1,32 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
+import { IdiomaSoportado } from '../../i18n/i18n.types';
+import { TPipe } from '../../shared/t.pipe';
+import { I18nService } from '../../state/i18n.service';
 
 @Component({
   selector: 'app-admin-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, TPipe],
   templateUrl: './admin-shell.component.html',
   styleUrls: ['./admin-shell.component.css']
 })
 export class AdminShellComponent {
+  readonly i18n = inject(I18nService);
+
   menuMovilAbierto = false;
   cerrandoSesion = false;
+  guardandoIdioma = false;
+  errorIdioma = '';
 
   readonly enlaces = [
-    { ruta: '/admin/resumen', etiqueta: 'Resumen' },
-    { ruta: '/admin/organizaciones', etiqueta: 'Organizaciones' },
-    { ruta: '/admin/usuarios', etiqueta: 'Usuarios y accesos' },
-    { ruta: '/admin/suscripciones', etiqueta: 'Suscripciones' },
-    { ruta: '/admin/auditoria', etiqueta: 'Auditoría' }
+    { ruta: '/admin/resumen', clave: 'admin.shell.nav.resumen' },
+    { ruta: '/admin/organizaciones', clave: 'admin.shell.nav.organizaciones' },
+    { ruta: '/admin/usuarios', clave: 'admin.shell.nav.usuarios' },
+    { ruta: '/admin/suscripciones', clave: 'admin.shell.nav.suscripciones' },
+    { ruta: '/admin/auditoria', clave: 'admin.shell.nav.auditoria' }
   ];
 
   constructor(public auth: AuthService) {}
@@ -27,6 +34,31 @@ export class AdminShellComponent {
   @HostListener('document:keydown.escape')
   alPresionarEscape(): void {
     this.menuMovilAbierto = false;
+  }
+
+  async cambiarIdioma(nuevoIdioma: IdiomaSoportado, selectEl?: HTMLSelectElement): Promise<void> {
+    if (this.guardandoIdioma || nuevoIdioma === this.i18n.idiomaActual) {
+      return;
+    }
+
+    const anterior = this.i18n.idiomaActual;
+    this.guardandoIdioma = true;
+    this.errorIdioma = '';
+
+    try {
+      const confirmado = await this.i18n.guardarIdiomaUsuario(nuevoIdioma);
+      this.auth.actualizarIdiomaLocal(confirmado);
+    } catch {
+      if (selectEl) {
+        selectEl.value = anterior;
+      }
+      this.errorIdioma = this.i18n.t('admin.shell.idiomaError');
+      setTimeout(() => {
+        this.errorIdioma = '';
+      }, 4000);
+    } finally {
+      this.guardandoIdioma = false;
+    }
   }
 
   obtenerIniciales(): string {

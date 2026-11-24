@@ -1,21 +1,24 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_ORIGIN, obtenerBaseApi } from '../auth/api.config';
+import { I18nService } from '../state/i18n.service';
+import { TPipe } from '../shared/t.pipe';
 
 export type FaseRecuperacion = 'solicitud' | 'validando' | 'restablecer' | 'invalido' | 'exito';
 
 @Component({
   selector: 'app-recuperacion',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TPipe],
   templateUrl: './recuperacion.component.html',
   styleUrls: ['./recuperacion.component.css']
 })
 export class RecuperacionComponent implements OnInit {
+  public readonly i18n = inject(I18nService);
   readonly apiDisponible = !!API_ORIGIN;
 
   fase: FaseRecuperacion = 'solicitud';
@@ -24,7 +27,8 @@ export class RecuperacionComponent implements OnInit {
   // Formulario de solicitud
   correo: string = '';
   solicitudEnviada: boolean = false;
-  mensajeUniforme: string = '';
+  private mensajeUniformeKey: string = '';
+  private mensajeUniformeRaw: string = '';
 
   // Formulario de restablecimiento
   nuevaContrasena: string = '';
@@ -34,14 +38,31 @@ export class RecuperacionComponent implements OnInit {
   restablecerEnviado: boolean = false;
 
   cargando: boolean = false;
-  error: string = '';
-  mensajeInvalido: string = '';
+  private errorKey: string = '';
+  private errorRaw: string = '';
+  private mensajeInvalidoKey: string = '';
+  private mensajeInvalidoRaw: string = '';
 
   constructor(
     private http: HttpClient,
     private route: ActivatedRoute,
     private router: Router
   ) {}
+
+  get error(): string {
+    if (this.errorRaw) return this.errorRaw;
+    return this.errorKey ? this.i18n.t(this.errorKey) : '';
+  }
+
+  get mensajeUniforme(): string {
+    if (this.mensajeUniformeRaw) return this.mensajeUniformeRaw;
+    return this.mensajeUniformeKey ? this.i18n.t(this.mensajeUniformeKey) : '';
+  }
+
+  get mensajeInvalido(): string {
+    if (this.mensajeInvalidoRaw) return this.mensajeInvalidoRaw;
+    return this.mensajeInvalidoKey ? this.i18n.t(this.mensajeInvalidoKey) : '';
+  }
 
   ngOnInit(): void {
     // Detectar token por query param (?token=...) o param de ruta (:token)
@@ -67,7 +88,8 @@ export class RecuperacionComponent implements OnInit {
 
   async solicitarEnlace(form: NgForm): Promise<void> {
     this.solicitudEnviada = true;
-    this.error = '';
+    this.errorKey = '';
+    this.errorRaw = '';
 
     if (form.invalid || this.cargando) return;
 
@@ -81,22 +103,29 @@ export class RecuperacionComponent implements OnInit {
         )
       );
 
-      this.mensajeUniforme = res.mensaje ||
-        'Si el correo está registrado en Equinox, recibirás las instrucciones para restablecer tu contraseña en los próximos minutos.';
+      if (res.mensaje) {
+        this.mensajeUniformeRaw = res.mensaje;
+        this.mensajeUniformeKey = '';
+      } else {
+        this.mensajeUniformeRaw = '';
+        this.mensajeUniformeKey = 'publico.recuperacion.mensajeUniformeSolicitud';
+      }
       this.fase = 'exito';
     } catch (err: any) {
       if (err?.status === 503) {
-        this.error =
-          'El servicio de recuperación por correo no está configurado o no se encuentra disponible. Contacta al administrador.';
+        this.errorKey = 'publico.recuperacion.errorServicioCorreo';
       } else if (err?.status === 429) {
-        this.error =
-          err?.error?.error || 'Demasiadas solicitudes. Por favor espera unos minutos antes de volver a intentar.';
+        if (err?.error?.error) {
+          this.errorRaw = err.error.error;
+        } else {
+          this.errorKey = 'publico.recuperacion.errorDemasiadasSolicitudes';
+        }
       } else if (err?.status === 400) {
-        this.error = 'Introduce un correo electrónico válido.';
+        this.errorKey = 'publico.comun.correoInvalido';
       } else {
-        this.error = API_ORIGIN
-          ? 'No se pudo procesar la solicitud. Comprueba tu conexión e inténtalo de nuevo.'
-          : 'La API de este entorno no está configurada. Contacta al administrador de Equinox.';
+        this.errorKey = API_ORIGIN
+          ? 'publico.recuperacion.errorSolicitud'
+          : 'publico.comun.apiNoConfiguradaDetalle';
       }
     } finally {
       this.cargando = false;
@@ -106,7 +135,8 @@ export class RecuperacionComponent implements OnInit {
   private async validarToken(token: string): Promise<void> {
     this.fase = 'validando';
     this.cargando = true;
-    this.error = '';
+    this.errorKey = '';
+    this.errorRaw = '';
 
     try {
       const baseApi = obtenerBaseApi();
@@ -119,12 +149,18 @@ export class RecuperacionComponent implements OnInit {
       this.fase = 'restablecer';
     } catch (err: any) {
       this.fase = 'invalido';
+      this.mensajeInvalidoKey = '';
+      this.mensajeInvalidoRaw = '';
       if (err?.status === 410) {
-        this.mensajeInvalido = err?.error?.error || 'Este enlace de recuperación ha expirado o ya fue utilizado.';
+        if (err?.error?.error) {
+          this.mensajeInvalidoRaw = err.error.error;
+        } else {
+          this.mensajeInvalidoKey = 'publico.recuperacion.errorEnlaceExpirado';
+        }
       } else if (err?.status === 404) {
-        this.mensajeInvalido = 'El enlace de recuperación no es válido o no existe.';
+        this.mensajeInvalidoKey = 'publico.recuperacion.errorEnlaceInvalido';
       } else {
-        this.mensajeInvalido = 'No se pudo verificar el enlace de recuperación. Inténtalo de nuevo más tarde.';
+        this.mensajeInvalidoKey = 'publico.recuperacion.errorVerificarEnlace';
       }
     } finally {
       this.cargando = false;
@@ -133,11 +169,12 @@ export class RecuperacionComponent implements OnInit {
 
   async restablecer(form: NgForm): Promise<void> {
     this.restablecerEnviado = true;
-    this.error = '';
+    this.errorKey = '';
+    this.errorRaw = '';
 
     if (form.invalid || this.cargando) return;
     if (this.nuevaContrasena !== this.confirmarContrasena) {
-      this.error = 'Las contraseñas no coinciden.';
+      this.errorKey = 'publico.recuperacion.noCoinciden';
       return;
     }
 
@@ -155,16 +192,30 @@ export class RecuperacionComponent implements OnInit {
       );
 
       this.fase = 'exito';
-      this.mensajeUniforme =
-        '¡Tu contraseña ha sido restablecida con éxito! Todas tus sesiones previas han sido cerradas por seguridad.';
+      this.mensajeUniformeRaw = '';
+      this.mensajeUniformeKey = 'publico.recuperacion.mensajeUniformeRestablecida';
     } catch (err: any) {
       if (err?.status === 410 || err?.status === 404) {
         this.fase = 'invalido';
-        this.mensajeInvalido = err?.error?.error || 'Este enlace de recuperación ya no es válido o ha expirado.';
+        if (err?.error?.error) {
+          this.mensajeInvalidoRaw = err.error.error;
+          this.mensajeInvalidoKey = '';
+        } else {
+          this.mensajeInvalidoRaw = '';
+          this.mensajeInvalidoKey = 'publico.recuperacion.errorEnlaceYaNoValido';
+        }
       } else if (err?.status === 429) {
-        this.error = err?.error?.error || 'Demasiados intentos. Por favor espera unos minutos.';
+        if (err?.error?.error) {
+          this.errorRaw = err.error.error;
+        } else {
+          this.errorKey = 'publico.recuperacion.errorDemasiadosIntentos';
+        }
       } else {
-        this.error = err?.error?.error || 'Ocurrió un error al restablecer tu contraseña. Inténtalo de nuevo.';
+        if (err?.error?.error) {
+          this.errorRaw = err.error.error;
+        } else {
+          this.errorKey = 'publico.recuperacion.errorRestablecer';
+        }
       }
     } finally {
       this.cargando = false;
@@ -179,8 +230,12 @@ export class RecuperacionComponent implements OnInit {
     this.confirmarContrasena = '';
     this.solicitudEnviada = false;
     this.restablecerEnviado = false;
-    this.error = '';
-    this.mensajeInvalido = '';
+    this.errorKey = '';
+    this.errorRaw = '';
+    this.mensajeInvalidoKey = '';
+    this.mensajeInvalidoRaw = '';
+    this.mensajeUniformeKey = '';
+    this.mensajeUniformeRaw = '';
     this.router.navigate(['/recuperar-contrasena'], { queryParams: {} });
   }
 }

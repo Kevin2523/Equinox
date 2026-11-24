@@ -8,6 +8,8 @@ import { ClientesProyectosApiService, ProyectoApi } from '../services/clientes-p
 import { AuthService } from '../auth/auth.service';
 import { obtenerBaseApi } from '../auth/api.config';
 import { Router } from '@angular/router';
+import { I18nService } from '../state/i18n.service';
+import { TPipe } from './t.pipe';
 
 export interface ProyectoVisual extends ProyectoApi {
   indexStr: string;
@@ -29,7 +31,7 @@ export interface ProyectoVisual extends ProyectoApi {
 @Component({
   selector: 'app-work-map',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TPipe],
   templateUrl: './work-map.component.html',
   styleUrls: ['./work-map.component.css']
 })
@@ -60,6 +62,7 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private lastStudioName = '';
   private lastViewportBucket: 'xs' | 'sm' | 'md' | 'desktop' = 'desktop';
   private lastResponsiveBand: 'xs' | 'sm' | 'md' | 'stacked' | 'tablet-2col' | 'desktop' = 'desktop';
+  private lastIdioma = '';
 
   // Studio and Hub identity
   studioName = 'EQUINOX';
@@ -87,10 +90,24 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
     private router: Router,
     private auth: AuthService,
     private ngZone: NgZone,
-    private hostElement: ElementRef<HTMLElement>
+    private hostElement: ElementRef<HTMLElement>,
+    private i18n?: I18nService
   ) {}
 
+  private t(key: string, params?: Record<string, string | number>, fallback = key): string {
+    if (this.i18n) {
+      return this.i18n.t(key, params);
+    }
+    if (!params) return fallback;
+    return fallback.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) => {
+      const value = params[name];
+      return value !== undefined && value !== null ? String(value) : match;
+    });
+  }
+
   ngOnInit(): void {
+    this.hubLine1 = this.t('crm.workMap.hubLinea1Defecto', undefined, 'MI');
+    this.hubLine2 = this.t('crm.workMap.hubLinea2Defecto', undefined, 'ESTUDIO');
     this.lastResponsiveBand = this.obtenerResponsiveBand();
     this.zoomLevel = this.obtenerZoomInicial();
     void this.cargar();
@@ -196,7 +213,7 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
           this.hubLine2 = partes.slice(1).join(' ').toUpperCase();
         } else {
           this.hubLine1 = org.nombre.toUpperCase();
-          this.hubLine2 = 'ESTUDIO';
+          this.hubLine2 = this.t('crm.workMap.estudioSufijo', undefined, 'ESTUDIO');
         }
       } else {
         this.derivarNombreDesdeSesion();
@@ -208,15 +225,16 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private derivarNombreDesdeSesion(): void {
     const usuario = this.auth?.sesion?.usuario;
+    const estudioSufijo = this.t('crm.workMap.estudioSufijo', undefined, 'ESTUDIO');
     if (usuario?.nombre) {
       const nom = `${usuario.nombre} ${usuario.apellido || ''}`.trim().toUpperCase();
-      this.studioName = `${nom} · ESTUDIO`;
+      this.studioName = `${nom} · ${estudioSufijo}`;
       this.hubLine1 = usuario.nombre.toUpperCase();
-      this.hubLine2 = usuario.apellido ? usuario.apellido.toUpperCase() : 'ESTUDIO';
+      this.hubLine2 = usuario.apellido ? usuario.apellido.toUpperCase() : estudioSufijo;
     } else {
-      this.studioName = 'EQUINOX ESTUDIO';
+      this.studioName = `EQUINOX ${estudioSufijo}`;
       this.hubLine1 = 'EQUINOX';
-      this.hubLine2 = 'ESTUDIO';
+      this.hubLine2 = estudioSufijo;
     }
   }
 
@@ -243,7 +261,7 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
     } catch {
-      this.error = 'No se pudo cargar el mapa de proyectos.';
+      this.error = this.t('crm.workMap.errorCargar', undefined, 'No se pudo cargar el mapa de proyectos.');
     } finally {
       this.cargando = false;
       if (!this.userAdjustedView && this.obtenerResponsiveBand() === 'tablet-2col') {
@@ -262,12 +280,12 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   obtenerEstadoLegible(estado?: string): string {
     switch (estado) {
-      case 'ACTIVO': return 'En desarrollo';
-      case 'COMPLETADO': return 'Completado';
-      case 'PAUSADO': return 'En pausa';
-      case 'BORRADOR': return 'Borrador';
-      case 'CANCELADO': return 'Cancelado';
-      default: return estado ? estado.toLowerCase() : 'En desarrollo';
+      case 'ACTIVO': return this.t('crm.workMap.estadoActivo', undefined, 'En desarrollo');
+      case 'COMPLETADO': return this.t('crm.workMap.estadoCompletado', undefined, 'Completado');
+      case 'PAUSADO': return this.t('crm.workMap.estadoPausado', undefined, 'En pausa');
+      case 'BORRADOR': return this.t('crm.workMap.estadoBorrador', undefined, 'Borrador');
+      case 'CANCELADO': return this.t('crm.workMap.estadoCancelado', undefined, 'Cancelado');
+      default: return estado ? estado.toLowerCase() : this.t('crm.workMap.estadoActivo', undefined, 'En desarrollo');
     }
   }
 
@@ -282,6 +300,9 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   formatearFechaCorta(d?: Date | null): string {
     if (!d || isNaN(d.getTime())) return '';
+    if (this.i18n) {
+      return this.i18n.formatearFecha(d, { day: 'numeric', month: 'short', timeZone: 'UTC' });
+    }
     const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     const dia = d.getUTCDate();
     const mes = meses[d.getUTCMonth()];
@@ -376,13 +397,15 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
     const proyectos = this.api.proyectos;
     const seleccionadoId = this.api.proyectoSeleccionado?.id ?? null;
     const viewportBucket = this.obtenerViewportBucket();
+    const idioma = this.i18n?.idiomaActual ?? 'es';
 
     if (
       this.cachedProyectosVisuales.length === proyectos.length &&
       this.lastProyectosRef === proyectos &&
       this.lastSeleccionadoId === seleccionadoId &&
       this.lastStudioName === this.studioName &&
-      this.lastViewportBucket === viewportBucket
+      this.lastViewportBucket === viewportBucket &&
+      this.lastIdioma === idioma
     ) {
       return this.cachedProyectosVisuales;
     }
@@ -391,6 +414,7 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.lastSeleccionadoId = seleccionadoId;
     this.lastStudioName = this.studioName;
     this.lastViewportBucket = viewportBucket;
+    this.lastIdioma = idioma;
 
     const total = proyectos.length;
     if (total > 6) {
@@ -435,7 +459,7 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
       } else if (p.descripcion?.trim()) {
         categoryDisplay = p.descripcion.trim();
       } else {
-        categoryDisplay = 'Proyecto en curso';
+        categoryDisplay = this.t('crm.workMap.proyectoEnCurso', undefined, 'Proyecto en curso');
       }
 
       if (p.fechaEntrega) {
@@ -483,7 +507,7 @@ export class WorkMapComponent implements OnInit, AfterViewInit, OnDestroy {
     try {
       await this.api.seleccionarProyecto(p.id);
     } catch {
-      this.error = 'No se pudieron consultar los datos del proyecto.';
+      this.error = this.t('crm.workMap.errorSeleccionar', undefined, 'No se pudieron consultar los datos del proyecto.');
     }
   }
 

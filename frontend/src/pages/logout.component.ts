@@ -2,22 +2,23 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { TPipe } from '../shared/t.pipe';
 
 @Component({
-  selector: 'app-logout', standalone: true, imports: [CommonModule, RouterLink],
+  selector: 'app-logout', standalone: true, imports: [CommonModule, RouterLink, TPipe],
   template: `<main class="auth-layout"><section class="auth-card">
-    <h1>{{ cargando ? 'Cerrando sesión…' : 'Cerrar sesión' }}</h1>
+    <h1>{{ (cargando ? 'publico.logout.cerrando' : 'publico.logout.titulo') | t }}</h1>
     <div *ngIf="error" role="alert">
-      <p>No se pudo confirmar el cierre de sesión en el servidor. Tu sesión podría seguir activa.</p>
-      <button type="button" class="btn-primary" (click)="intentar()" [disabled]="cargando">Reintentar cierre</button>
-      <button type="button" class="btn-secondary" (click)="confirmarSalidaLocal()" *ngIf="!salidaLocalPendiente">Cerrar solo en este navegador</button>
+      <p>{{ 'publico.logout.errorMensaje' | t }}</p>
+      <button type="button" class="btn-primary" (click)="intentar()" [disabled]="cargando">{{ 'publico.logout.reintentar' | t }}</button>
+      <button type="button" class="btn-secondary" (click)="confirmarSalidaLocal()" *ngIf="!salidaLocalPendiente">{{ 'publico.logout.soloLocal' | t }}</button>
       <div *ngIf="salidaLocalPendiente">
-        <p>El acceso remoto podría continuar activo. ¿Quieres eliminar solo la sesión de este navegador?</p>
-        <button type="button" class="btn-primary" (click)="salirSoloLocal()">Confirmar salida local</button>
-        <button type="button" class="btn-secondary" (click)="salidaLocalPendiente = false">Cancelar</button>
+        <p>{{ 'publico.logout.confirmarPregunta' | t }}</p>
+        <button type="button" class="btn-primary" (click)="salirSoloLocal()">{{ 'publico.logout.confirmarBoton' | t }}</button>
+        <button type="button" class="btn-secondary" (click)="salidaLocalPendiente = false">{{ 'publico.logout.cancelar' | t }}</button>
       </div>
     </div>
-    <a routerLink="/dashboard" *ngIf="error">Volver al espacio de trabajo</a>
+    <a routerLink="/dashboard" *ngIf="error">{{ 'publico.logout.volver' | t }}</a>
   </section></main>`
 })
 export class LogoutComponent implements OnInit {

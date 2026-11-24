@@ -10,12 +10,14 @@ import { ClienteApi, ClientesProyectosApiService, EstadoProyectoApi, ProyectoApi
 import { ComentarioApi, HitoApi, PrioridadTareaApi, TareaApi, TrabajoApiService, progresoTareas } from '../services/trabajo-api.service';
 import { ArchivoApi, ArchivosApiService } from '../services/archivos-api.service';
 import { DialogFocusDirective } from '../shared/dialog-focus.directive';
+import { TPipe } from '../shared/t.pipe';
+import { I18nService } from '../state/i18n.service';
 import { UiStateService } from '../state/ui-state.service';
 
 @Component({
   selector: 'app-proyectos',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogFocusDirective],
+  imports: [CommonModule, FormsModule, DialogFocusDirective, TPipe],
   templateUrl: './proyectos.component.html',
   styleUrl: './proyectos.component.css'
 })
@@ -114,8 +116,74 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     public auth: AuthService,
     public uiState: UiStateService,
-    private archivosApi?: ArchivosApiService
+    private archivosApi?: ArchivosApiService,
+    public i18n?: I18nService
   ) {}
+
+  private t(key: string, params?: Record<string, string | number>, fallback = key): string {
+    if (this.i18n) {
+      return this.i18n.t(key, params);
+    }
+    if (!params) return fallback;
+    return fallback.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) => {
+      const value = params[name];
+      return value !== undefined && value !== null ? String(value) : match;
+    });
+  }
+
+  formatearFecha(fecha?: string | null, opciones: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }): string {
+    if (!fecha) return '';
+    if (this.i18n) {
+      return this.i18n.formatearFecha(fecha, opciones);
+    }
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return fecha;
+    return d.toISOString().slice(0, 10);
+  }
+
+  formatearFechaHora(fecha?: string | null): string {
+    if (!fecha) return '';
+    if (this.i18n) {
+      return this.i18n.formatearFechaHora(fecha, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+    return fecha;
+  }
+
+  formatearPresupuesto(monto: number | string | null | undefined, moneda = 'PAB'): string {
+    if (monto === null || monto === undefined || monto === '') return '—';
+    if (this.i18n) {
+      return this.i18n.formatearMoneda(monto, moneda || 'PAB');
+    }
+    return `${moneda || 'PAB'} ${Number(monto).toFixed(2)}`;
+  }
+
+  formatearNumero(valor: number | string | null | undefined): string {
+    if (valor === null || valor === undefined || valor === '') return '0';
+    if (this.i18n) {
+      return this.i18n.formatearNumero(valor);
+    }
+    return String(valor);
+  }
+
+  etiquetaPrioridad(prioridad: PrioridadTareaApi | string): string {
+    switch (prioridad) {
+      case 'BAJA': return this.t('crm.proyectos.prioridadBaja', undefined, 'Baja');
+      case 'MEDIA': return this.t('crm.proyectos.prioridadMedia', undefined, 'Media');
+      case 'ALTA': return this.t('crm.proyectos.prioridadAlta', undefined, 'Alta');
+      case 'URGENTE': return this.t('crm.proyectos.prioridadUrgente', undefined, 'Urgente');
+      default: return prioridad;
+    }
+  }
+
+  etiquetaEstadoHito(estado: HitoApi['estado'] | string): string {
+    switch (estado) {
+      case 'PENDIENTE': return this.t('crm.proyectos.hitoPendiente', undefined, 'Pendiente');
+      case 'EN_PROGRESO': return this.t('crm.proyectos.hitoEnProgreso', undefined, 'En progreso');
+      case 'COMPLETADO': return this.t('crm.proyectos.hitoCompletado', undefined, 'Completado');
+      case 'VENCIDO': return this.t('crm.proyectos.hitoVencido', undefined, 'Vencido');
+      default: return estado;
+    }
+  }
   ngOnInit(): void {
     void this.inicializar();
   }
@@ -177,19 +245,19 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     const texto = `${p.nombre} ${p.descripcion || ''}`.toLocaleLowerCase();
     const tagMatch = p.nombre.match(/\[(.*?)\]/) || (p.descripcion && p.descripcion.match(/\[(.*?)\]/));
     if (tagMatch) return tagMatch[1];
-    if (texto.includes('web') || texto.includes('sitio') || texto.includes('tienda') || texto.includes('ecommerce')) return 'Web';
-    if (texto.includes('software') || texto.includes('sistema') || texto.includes('portal') || texto.includes('b2b') || texto.includes('api')) return 'Software';
-    if (texto.includes('branding') || texto.includes('identidad') || texto.includes('marca') || texto.includes('logo')) return 'Branding';
-    if (texto.includes('fotografía') || texto.includes('fotografia') || texto.includes('foto') || texto.includes('audiovisual') || texto.includes('campaña') || texto.includes('campana')) return 'Fotografía';
-    if (texto.includes('arquitectura') || texto.includes('espacio') || texto.includes('diseño interior') || texto.includes('edificio') || texto.includes('portafolio')) return 'Arquitectura';
-    if (texto.includes('móvil') || texto.includes('movil') || texto.includes('app') || texto.includes('mobile')) return 'Mobile';
-    if (texto.includes('diseño') || texto.includes('diseno') || texto.includes('ui') || texto.includes('ux')) return 'Diseño';
-    if (texto.includes('estrategia') || texto.includes('consultoría') || texto.includes('consultoria')) return 'Estrategia';
-    return p.cliente?.empresa ? p.cliente.empresa.split(' ')[0] : 'General';
+    if (texto.includes('web') || texto.includes('sitio') || texto.includes('tienda') || texto.includes('ecommerce')) return this.t('crm.proyectos.catWeb', undefined, 'Web');
+    if (texto.includes('software') || texto.includes('sistema') || texto.includes('portal') || texto.includes('b2b') || texto.includes('api')) return this.t('crm.proyectos.catSoftware', undefined, 'Software');
+    if (texto.includes('branding') || texto.includes('identidad') || texto.includes('marca') || texto.includes('logo')) return this.t('crm.proyectos.catBranding', undefined, 'Branding');
+    if (texto.includes('fotografía') || texto.includes('fotografia') || texto.includes('foto') || texto.includes('audiovisual') || texto.includes('campaña') || texto.includes('campana')) return this.t('crm.proyectos.catFotografia', undefined, 'Fotografía');
+    if (texto.includes('arquitectura') || texto.includes('espacio') || texto.includes('diseño interior') || texto.includes('edificio') || texto.includes('portafolio')) return this.t('crm.proyectos.catArquitectura', undefined, 'Arquitectura');
+    if (texto.includes('móvil') || texto.includes('movil') || texto.includes('app') || texto.includes('mobile')) return this.t('crm.proyectos.catMobile', undefined, 'Mobile');
+    if (texto.includes('diseño') || texto.includes('diseno') || texto.includes('ui') || texto.includes('ux')) return this.t('crm.proyectos.catDiseno', undefined, 'Diseño');
+    if (texto.includes('estrategia') || texto.includes('consultoría') || texto.includes('consultoria')) return this.t('crm.proyectos.catEstrategia', undefined, 'Estrategia');
+    return p.cliente?.empresa ? p.cliente.empresa.split(' ')[0] : this.t('crm.proyectos.catGeneral', undefined, 'General');
   }
 
   clienteTexto(p: ProyectoApi): string {
-    if (!p.cliente) return 'Cliente sin asignar';
+    if (!p.cliente) return this.t('crm.proyectos.clienteSinAsignar', undefined, 'Cliente sin asignar');
     return [p.cliente.nombre, p.cliente.empresa].filter(Boolean).join(' · ');
   }
 
@@ -245,11 +313,11 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
   etiquetaEstado(estado: EstadoProyectoApi): string {
     switch (estado) {
-      case 'ACTIVO': return 'En progreso';
-      case 'BORRADOR': return 'Planificación';
-      case 'PAUSADO': return 'En pausa';
-      case 'COMPLETADO': return 'Completado';
-      case 'CANCELADO': return 'Cancelado';
+      case 'ACTIVO': return this.t('crm.proyectos.estadoEnProgreso', undefined, 'En progreso');
+      case 'BORRADOR': return this.t('crm.proyectos.estadoPlanificacion', undefined, 'Planificación');
+      case 'PAUSADO': return this.t('crm.proyectos.estadoEnPausa', undefined, 'En pausa');
+      case 'COMPLETADO': return this.t('crm.proyectos.estadoCompletado', undefined, 'Completado');
+      case 'CANCELADO': return this.t('crm.proyectos.estadoCancelado', undefined, 'Cancelado');
       default: return estado;
     }
   }
@@ -267,7 +335,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
   autor(comentario: ComentarioApi): string {
     const nombre = [comentario.usuario?.nombre, comentario.usuario?.apellido].filter(Boolean).join(' ');
-    return nombre || 'Cuenta eliminada';
+    return nombre || this.t('crm.proyectos.cuentaEliminada', undefined, 'Cuenta eliminada');
   }
 
   private async inicializar(): Promise<void> {
@@ -291,7 +359,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       void this.cargarTareasTodos();
       return true;
     } catch {
-      this.error = 'No se pudieron cargar los proyectos y clientes. Comprueba la conexión e inténtalo de nuevo.';
+      this.error = this.t('crm.proyectos.errorCargar', undefined, 'No se pudieron cargar los proyectos y clientes. Comprueba la conexión e inténtalo de nuevo.');
       return false;
     } finally {
       this.cargando = false;
@@ -368,7 +436,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.archivosPorProyecto.set(id, this.archivosDetalle);
     } catch {
       if (solicitud === this.solicitudDetalle && this.modalDetalle) {
-        this.detalleError = 'No se pudieron consultar tareas, hitos, archivos o comentarios. Reintenta.';
+        this.detalleError = this.t('crm.proyectos.errorDetalle', undefined, 'No se pudieron consultar tareas, hitos, archivos o comentarios. Reintenta.');
       }
     } finally {
       if (solicitud === this.solicitudDetalle) this.detalleCargando = false;
@@ -425,7 +493,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
         this.proyectoDetalle = { ...this.proyectoDetalle, estado: nuevoEstado };
       }
     } catch {
-      this.error = 'No se pudo actualizar el estado del proyecto.';
+      this.error = this.t('crm.proyectos.errorEstado', undefined, 'No se pudo actualizar el estado del proyecto.');
     }
   }
 
@@ -447,7 +515,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       }
       await this.api.listarProyectos();
     } catch {
-      this.error = 'No se pudo eliminar el proyecto. Reintenta.';
+      this.error = this.t('crm.proyectos.errorEliminar', undefined, 'No se pudo eliminar el proyecto. Reintenta.');
     } finally {
       this.eliminandoProyecto = false;
     }
@@ -458,7 +526,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     const id = this.proyectoDetalle?.id;
     if (!id || this.guardandoTarea) return;
     if (this.nuevaTarea.titulo.trim().length < 2) {
-      this.errorTareas = 'El título de la tarea requiere al menos 2 caracteres.';
+      this.errorTareas = this.t('crm.proyectos.errorTareaTitulo', undefined, 'El título de la tarea requiere al menos 2 caracteres.');
       return;
     }
     this.guardandoTarea = true;
@@ -474,7 +542,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.tareasPorProyecto.set(id, this.tareasDetalle);
       this.nuevaTarea = { titulo: '', prioridad: 'MEDIA', fechaVencimiento: '', descripcion: '' };
     } catch {
-      this.errorTareas = 'No se pudo crear la tarea. Reintenta.';
+      this.errorTareas = this.t('crm.proyectos.errorCrearTarea', undefined, 'No se pudo crear la tarea. Reintenta.');
     } finally {
       this.guardandoTarea = false;
     }
@@ -489,7 +557,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.tareasDetalle = this.tareasDetalle.map((t) => (t.id === tarea.id ? actualizada : t));
       this.tareasPorProyecto.set(id, this.tareasDetalle);
     } catch {
-      this.errorTareas = 'No se pudo actualizar el estado de la tarea.';
+      this.errorTareas = this.t('crm.proyectos.errorActualizarTarea', undefined, 'No se pudo actualizar el estado de la tarea.');
     }
   }
 
@@ -501,7 +569,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.tareasDetalle = this.tareasDetalle.filter((t) => t.id !== tarea.id);
       this.tareasPorProyecto.set(id, this.tareasDetalle);
     } catch {
-      this.errorTareas = 'No se pudo eliminar la tarea.';
+      this.errorTareas = this.t('crm.proyectos.errorEliminarTarea', undefined, 'No se pudo eliminar la tarea.');
     }
   }
 
@@ -517,7 +585,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     const id = this.proyectoDetalle?.id;
     if (!id || !this.archivoElegido || this.subiendoArchivo || !this.archivosApi) return;
     if (this.archivoElegido.size > 8 * 1024 * 1024) {
-      this.errorArchivos = 'El archivo supera el máximo de 8 MB.';
+      this.errorArchivos = this.t('crm.proyectos.errorArchivoTamano', undefined, 'El archivo supera el máximo de 8 MB.');
       return;
     }
     const generacion = ++this.operacionArchivo;
@@ -537,7 +605,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       }
     } catch {
       if (generacion === this.operacionArchivo) {
-        this.errorArchivos = 'No se pudo subir el archivo. Comprueba formato, tamaño y conexión; puedes reintentar.';
+        this.errorArchivos = this.t('crm.proyectos.errorSubirArchivo', undefined, 'No se pudo subir el archivo. Comprueba formato, tamaño y conexión; puedes reintentar.');
       }
     } finally {
       if (generacion === this.operacionArchivo) this.subiendoArchivo = false;
@@ -552,7 +620,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     try {
       await this.archivosApi.guardarDescarga(id, archivo);
     } catch {
-      if (this.proyectoDetalle?.id === id) this.errorArchivos = 'No se pudo descargar el archivo. Reintenta.';
+      if (this.proyectoDetalle?.id === id) this.errorArchivos = this.t('crm.proyectos.errorDescargarArchivo', undefined, 'No se pudo descargar el archivo. Reintenta.');
     } finally {
       this.descargandoArchivoId = null;
     }
@@ -570,7 +638,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
         this.archivosPorProyecto.set(id, this.archivosDetalle);
       }
     } catch {
-      if (this.proyectoDetalle?.id === id) this.errorArchivos = 'No se pudo eliminar el archivo. Reintenta.';
+      if (this.proyectoDetalle?.id === id) this.errorArchivos = this.t('crm.proyectos.errorEliminarArchivo', undefined, 'No se pudo eliminar el archivo. Reintenta.');
     } finally {
       this.eliminandoArchivoId = null;
       this.confirmarEliminarArchivoId = null;
@@ -582,7 +650,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     const id = this.proyectoDetalle?.id;
     if (!id || this.guardandoHito) return;
     if (this.nuevoHito.titulo.trim().length < 2) {
-      this.errorHitos = 'El título requiere al menos dos caracteres.';
+      this.errorHitos = this.t('crm.proyectos.errorHitoTitulo', undefined, 'El título requiere al menos dos caracteres.');
       return;
     }
     const generacion = ++this.operacionHito;
@@ -600,7 +668,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
         this.nuevoHito = { titulo: '', descripcion: '', fechaObjetivo: '', visibleEnPortal: false };
       }
     } catch {
-      if (generacion === this.operacionHito) this.errorHitos = 'No se pudo crear el hito. Reintenta.';
+      if (generacion === this.operacionHito) this.errorHitos = this.t('crm.proyectos.errorCrearHito', undefined, 'No se pudo crear el hito. Reintenta.');
     } finally {
       if (generacion === this.operacionHito) this.guardandoHito = false;
     }
@@ -622,7 +690,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     const id = this.proyectoDetalle?.id;
     if (!id || this.guardandoHito) return;
     if (this.hitoBorrador.titulo.trim().length < 2) {
-      this.errorHitos = 'El título requiere al menos dos caracteres.';
+      this.errorHitos = this.t('crm.proyectos.errorHitoTitulo', undefined, 'El título requiere al menos dos caracteres.');
       return;
     }
     const generacion = ++this.operacionHito;
@@ -641,7 +709,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
         this.editandoHitoId = null;
       }
     } catch {
-      if (generacion === this.operacionHito) this.errorHitos = 'No se pudo guardar el hito. Reintenta.';
+      if (generacion === this.operacionHito) this.errorHitos = this.t('crm.proyectos.errorGuardarHito', undefined, 'No se pudo guardar el hito. Reintenta.');
     } finally {
       if (generacion === this.operacionHito) this.guardandoHito = false;
     }
@@ -659,7 +727,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
         this.hitosDetalle = this.hitosDetalle.filter((item) => item.id !== hito.id);
       }
     } catch {
-      if (generacion === this.operacionHito) this.errorHitos = 'No se pudo eliminar el hito. Reintenta.';
+      if (generacion === this.operacionHito) this.errorHitos = this.t('crm.proyectos.errorEliminarHito', undefined, 'No se pudo eliminar el hito. Reintenta.');
     } finally {
       if (generacion === this.operacionHito) this.guardandoHito = false;
     }
@@ -671,7 +739,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     const contenido = this.comentarioNuevo.trim();
     if (!id || this.enviandoComentario) return;
     if (!contenido || contenido.length > 2000) {
-      this.errorComentario = 'Escribe entre 1 y 2000 caracteres.';
+      this.errorComentario = this.t('crm.proyectos.errorComentarioLongitud', undefined, 'Escribe entre 1 y 2000 caracteres.');
       return;
     }
     const generacion = ++this.operacionComentario;
@@ -684,7 +752,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
         this.comentarioNuevo = '';
       }
     } catch {
-      if (generacion === this.operacionComentario) this.errorComentario = 'No se pudo enviar el comentario. Reintenta.';
+      if (generacion === this.operacionComentario) this.errorComentario = this.t('crm.proyectos.errorEnviarComentario', undefined, 'No se pudo enviar el comentario. Reintenta.');
     } finally {
       if (generacion === this.operacionComentario) this.enviandoComentario = false;
     }
@@ -700,7 +768,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     try {
       const proyecto = await this.api.consultarProyecto(id);
       if (!this.clientes.some((cliente) => cliente.id === proyecto.clienteId)) {
-        this.error = 'No se pudo cargar el cliente asociado al proyecto. Reintenta la carga para editarlo.';
+        this.error = this.t('crm.proyectos.errorClienteEdicion', undefined, 'No se pudo cargar el cliente asociado al proyecto. Reintenta la carga para editarlo.');
         this.modalFormulario = false;
         return;
       }
@@ -718,7 +786,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.modalFormulario = true;
       this.enviado = false;
     } catch {
-      this.detalleError = 'No se pudo abrir el proyecto para editarlo.';
+      this.detalleError = this.t('crm.proyectos.errorAbrirEdicion', undefined, 'No se pudo abrir el proyecto para editarlo.');
       this.modalDetalle = true;
     } finally {
       this.detalleCargando = false;
@@ -751,10 +819,10 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     } catch (error: any) {
       this.errorGuardar =
         error?.status === 422
-          ? 'El cliente seleccionado o los datos del proyecto no son válidos.'
+          ? this.t('crm.proyectos.errorGuardar422', undefined, 'El cliente seleccionado o los datos del proyecto no son válidos.')
           : error?.status === 404
-          ? 'El proyecto ya no está disponible.'
-          : 'No se pudo guardar el proyecto.';
+          ? this.t('crm.proyectos.errorGuardar404', undefined, 'El proyecto ya no está disponible.')
+          : this.t('crm.proyectos.errorGuardar', undefined, 'No se pudo guardar el proyecto.');
     } finally {
       this.guardando = false;
     }

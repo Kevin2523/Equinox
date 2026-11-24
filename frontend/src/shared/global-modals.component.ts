@@ -3,11 +3,12 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UiStateService } from '../state/ui-state.service';
 import { DialogFocusDirective } from './dialog-focus.directive';
+import { TPipe } from './t.pipe';
 
 @Component({
   selector: 'app-global-modals',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogFocusDirective],
+  imports: [CommonModule, FormsModule, DialogFocusDirective, TPipe],
   templateUrl: './global-modals.component.html',
   styleUrl: './global-modals.component.css'
 })

@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
+import { IDIOMAS_SOPORTADOS } from "../tipos.js";
 import { ErrorHttp } from "../utilidades/errores.js";
 import { registrarActividad } from "../utilidades/actividad.js";
 import { hashTokenInvitacion } from "../utilidades/invitaciones.js";
@@ -66,6 +67,7 @@ const esquemaAceptarNuevo = z.object({
   nombre: z.string().min(2),
   apellido: z.string().optional(),
   contrasena: z.string().min(8),
+  idioma: z.enum(IDIOMAS_SOPORTADOS).optional(),
 });
 
 const esquemaAceptarExistente = z.object({
@@ -293,6 +295,7 @@ rutasInvitacionesPublicas.post(
                 contrasenaHash,
                 nombre: datosNuevo.nombre,
                 apellido: datosNuevo.apellido,
+                ...(datosNuevo.idioma ? { idioma: datosNuevo.idioma } : {}),
               },
             });
             usuarioFinalId = nuevoUsuario.id;

@@ -10,11 +10,13 @@ import { UiStateService } from '../state/ui-state.service';
 import { SesionesFotograficasComponent } from './sesiones-fotograficas.component';
 import { FotografiaApiService, TipoFreelance } from '../services/fotografia-api.service';
 import { DialogFocusDirective } from '../shared/dialog-focus.directive';
+import { TPipe } from '../shared/t.pipe';
+import { I18nService } from '../state/i18n.service';
 
 @Component({
   selector: 'app-clientes',
   standalone: true,
-  imports: [CommonModule, FormsModule, SesionesFotograficasComponent, DialogFocusDirective],
+  imports: [CommonModule, FormsModule, SesionesFotograficasComponent, DialogFocusDirective, TPipe],
   templateUrl: './clientes.component.html',
   styleUrl: './clientes.component.css'
 })
@@ -88,8 +90,51 @@ export class ClientesComponent implements OnInit, OnDestroy {
     public auth: AuthService,
     public uiState: UiStateService,
     public fotografiaApi: FotografiaApiService,
-    private changeDetector?: ChangeDetectorRef
+    private changeDetector?: ChangeDetectorRef,
+    public i18n?: I18nService
   ) {}
+
+  private t(key: string, params?: Record<string, string | number>, fallback = key): string {
+    if (this.i18n) {
+      return this.i18n.t(key, params);
+    }
+    if (!params) return fallback;
+    return fallback.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) => {
+      const value = params[name];
+      return value !== undefined && value !== null ? String(value) : match;
+    });
+  }
+
+  etiquetaEstadoCliente(estado?: string): string {
+    switch (estado) {
+      case 'ACTIVO': return this.t('crm.clientes.estadoActivo', undefined, 'Activo');
+      case 'PROSPECTO': return this.t('crm.clientes.estadoProspecto', undefined, 'Prospecto');
+      case 'INACTIVO': return this.t('crm.clientes.estadoInactivo', undefined, 'Inactivo');
+      case 'ARCHIVADO': return this.t('crm.clientes.estadoArchivado', undefined, 'Archivado');
+      default: return estado || '';
+    }
+  }
+
+  etiquetaEstadoInvitacion(estado?: string): string {
+    switch (estado) {
+      case 'PENDIENTE': return this.t('crm.clientes.invEstadoPendiente', undefined, 'Pendiente');
+      case 'ACEPTADA': return this.t('crm.clientes.invEstadoAceptada', undefined, 'Aceptada');
+      case 'EXPIRADA': return this.t('crm.clientes.invEstadoExpirada', undefined, 'Expirada');
+      case 'REVOCADA': return this.t('crm.clientes.invEstadoRevocada', undefined, 'Revocada');
+      default: return estado || '';
+    }
+  }
+
+  formatearFechaExpira(fechaIso?: string | null): string {
+    if (!fechaIso) return '';
+    if (this.i18n) {
+      return this.i18n.formatearFecha(fechaIso, { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    const d = new Date(fechaIso);
+    if (isNaN(d.getTime())) return fechaIso;
+    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    return `${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+  }
 
   ngOnInit(): void {
     this.suscripcionTipo = this.fotografiaApi.tipoFreelance$.subscribe((tipo) => {
@@ -132,7 +177,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   get nombreEstudio(): string {
-    return this.uiState.configuracion?.nombreEstudio || 'Estudio';
+    return this.uiState.configuracion?.nombreEstudio || this.t('crm.clientes.estudioDefecto', undefined, 'Estudio');
   }
 
   get conteoTodos(): number {
@@ -248,7 +293,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
       }
     } catch {
       if (solicitud === this.solicitudClientes) {
-        this.error = 'No se pudieron cargar los clientes. Comprueba la conexión e inténtalo de nuevo.';
+        this.error = this.t('crm.clientes.errorCargar', undefined, 'No se pudieron cargar los clientes. Comprueba la conexión e inténtalo de nuevo.');
       }
     } finally {
       if (solicitud === this.solicitudClientes) {
@@ -266,7 +311,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
       await this.api.listarProyectos();
     } catch {
       if (solicitud === this.solicitudProyectos) {
-        this.errorProyectosActivos = 'No se pudo cargar el contador de proyectos.';
+        this.errorProyectosActivos = this.t('crm.clientes.errorProyectosActivos', undefined, 'No se pudo cargar el contador de proyectos.');
       }
     } finally {
       if (solicitud === this.solicitudProyectos) {
@@ -355,20 +400,28 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   formatearUltimaActividad(fechaIso?: string | null): string {
-    if (!fechaIso) return 'Reciente';
+    if (!fechaIso) return this.t('crm.clientes.actividadReciente', undefined, 'Reciente');
     const fecha = new Date(fechaIso);
-    if (isNaN(fecha.getTime())) return 'Reciente';
+    if (isNaN(fecha.getTime())) return this.t('crm.clientes.actividadReciente', undefined, 'Reciente');
     const ahora = new Date();
     const esMismoDia = fecha.getDate() === ahora.getDate() && fecha.getMonth() === ahora.getMonth() && fecha.getFullYear() === ahora.getFullYear();
     if (esMismoDia) {
       const horas = fecha.getHours().toString().padStart(2, '0');
       const minutos = fecha.getMinutes().toString().padStart(2, '0');
-      return `Hoy ${horas}:${minutos}`;
+      const hora = `${horas}:${minutos}`;
+      return this.t('crm.clientes.actividadHoy', { hora }, `Hoy ${hora}`);
     }
     const ayer = new Date(ahora);
     ayer.setDate(ayer.getDate() - 1);
     const esAyer = fecha.getDate() === ayer.getDate() && fecha.getMonth() === ayer.getMonth() && fecha.getFullYear() === ayer.getFullYear();
-    if (esAyer) return 'Ayer';
+    if (esAyer) return this.t('crm.clientes.actividadAyer', undefined, 'Ayer');
+
+    if (this.i18n) {
+      if (fecha.getFullYear() === ahora.getFullYear()) {
+        return this.i18n.formatearFecha(fecha, { day: 'numeric', month: 'short' });
+      }
+      return this.i18n.formatearFecha(fecha, { day: 'numeric', month: 'short', year: 'numeric' });
+    }
 
     const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     const dia = fecha.getDate();
@@ -383,16 +436,21 @@ export class ClientesComponent implements OnInit, OnDestroy {
     if (!fechaIso) return '';
     const fecha = new Date(fechaIso);
     if (isNaN(fecha.getTime())) return '';
+    if (this.i18n) {
+      return this.i18n.formatearFecha(fecha, { month: 'short', year: 'numeric' });
+    }
     const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     return `${meses[fecha.getMonth()]} ${fecha.getFullYear()}`;
   }
 
   formatearFechaEntrega(fechaIso?: string | null): string {
-    if (!fechaIso) return 'Sin fecha de entrega';
+    if (!fechaIso) return this.t('crm.clientes.sinFechaEntrega', undefined, 'Sin fecha de entrega');
     const fecha = new Date(fechaIso);
-    if (isNaN(fecha.getTime())) return 'Sin fecha de entrega';
-    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-    return `Entrega ${fecha.getDate()} ${meses[fecha.getMonth()]}`;
+    if (isNaN(fecha.getTime())) return this.t('crm.clientes.sinFechaEntrega', undefined, 'Sin fecha de entrega');
+    const textoFecha = this.i18n
+      ? this.i18n.formatearFecha(fecha, { day: 'numeric', month: 'short' })
+      : `${fecha.getDate()} ${['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][fecha.getMonth()]}`;
+    return this.t('crm.clientes.entregaFecha', { fecha: textoFecha }, `Entrega ${textoFecha}`);
   }
 
   nuevo(): void {
@@ -432,7 +490,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
       if (solicitud === this.solicitudDetalle) this.clienteDetalle = detalle;
     } catch {
       if (solicitud === this.solicitudDetalle) {
-        this.detalleError = 'No se pudieron consultar los datos de este cliente.';
+        this.detalleError = this.t('crm.clientes.errorDetalle', undefined, 'No se pudieron consultar los datos de este cliente.');
       }
     } finally {
       if (solicitud === this.solicitudDetalle) this.detalleCargando = false;
@@ -487,7 +545,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
       this.invitaciones = lista;
     } catch {
       if (solicitud === this.solicitudInvitaciones) {
-        this.errorInvitaciones = 'No se pudieron consultar las invitaciones. Inténtalo de nuevo.';
+        this.errorInvitaciones = this.t('crm.clientes.errorInvitaciones', undefined, 'No se pudieron consultar las invitaciones. Inténtalo de nuevo.');
       }
     } finally {
       if (solicitud === this.solicitudInvitaciones) this.cargandoInvitaciones = false;
@@ -529,14 +587,14 @@ export class ClientesComponent implements OnInit, OnDestroy {
       });
       if (contexto !== this.contextoInvitaciones) return;
       this.recibirEnlace(respuesta);
-      this.exitoInvitacion = 'La invitación se creó y el correo quedó asociado al cliente. No hay un proveedor de correo configurado; comparte el enlace por un canal autorizado.';
+      this.exitoInvitacion = this.t('crm.clientes.exitoInvitacionCreada', undefined, 'La invitación se creó y el correo quedó asociado al cliente. No hay un proveedor de correo configurado; comparte el enlace por un canal autorizado.');
       void this.cargarInvitaciones();
       if (this.clienteSeleccionado?.id === cliente.id) {
         void this.cargarDetalleClienteSeleccionado(cliente.id);
       }
     } catch (error: any) {
       if (contexto === this.contextoInvitaciones) {
-        this.errorCrearInvitacion = this.mensajeErrorInvitacion(error, 'No se pudo crear la invitación. Comprueba tu conexión e inténtalo de nuevo.');
+        this.errorCrearInvitacion = this.mensajeErrorInvitacion(error, this.t('crm.clientes.errorCrearInvitacion', undefined, 'No se pudo crear la invitación. Comprueba tu conexión e inténtalo de nuevo.'));
       }
     } finally {
       if (contexto === this.contextoInvitaciones) this.enviandoInvitacion = false;
@@ -556,11 +614,11 @@ export class ClientesComponent implements OnInit, OnDestroy {
       const respuesta = await this.invitacionesApi.reenviar(cliente.id, invitacion.id);
       if (contexto !== this.contextoInvitaciones) return;
       this.recibirEnlace(respuesta);
-      this.exitoInvitacion = 'La invitación se reenvió. No hay un proveedor de correo configurado; comparte el enlace por un canal autorizado.';
+      this.exitoInvitacion = this.t('crm.clientes.exitoInvitacionReenviada', undefined, 'La invitación se reenvió. No hay un proveedor de correo configurado; comparte el enlace por un canal autorizado.');
       void this.cargarInvitaciones();
     } catch (error: any) {
       if (contexto === this.contextoInvitaciones) {
-        this.errorCrearInvitacion = this.mensajeErrorInvitacion(error, 'No se pudo reenviar la invitación. Inténtalo de nuevo.');
+        this.errorCrearInvitacion = this.mensajeErrorInvitacion(error, this.t('crm.clientes.errorReenviarInvitacion', undefined, 'No se pudo reenviar la invitación. Inténtalo de nuevo.'));
       }
     } finally {
       if (contexto === this.contextoInvitaciones) this.operacionInvitacion = null;
@@ -583,14 +641,14 @@ export class ClientesComponent implements OnInit, OnDestroy {
       await this.invitacionesApi.revocar(cliente.id, invitacion.id);
       if (contexto !== this.contextoInvitaciones) return;
       this.confirmarRevocacionId = null;
-      this.exitoInvitacion = 'La invitación se revocó.';
+      this.exitoInvitacion = this.t('crm.clientes.exitoInvitacionRevocada', undefined, 'La invitación se revocó.');
       void this.cargarInvitaciones();
       if (this.clienteSeleccionado?.id === cliente.id) {
         void this.cargarDetalleClienteSeleccionado(cliente.id);
       }
     } catch (error: any) {
       if (contexto === this.contextoInvitaciones) {
-        this.errorCrearInvitacion = this.mensajeErrorInvitacion(error, 'No se pudo revocar la invitación. Inténtalo de nuevo.');
+        this.errorCrearInvitacion = this.mensajeErrorInvitacion(error, this.t('crm.clientes.errorRevocarInvitacion', undefined, 'No se pudo revocar la invitación. Inténtalo de nuevo.'));
       }
     } finally {
       if (contexto === this.contextoInvitaciones) this.operacionInvitacion = null;
@@ -605,9 +663,9 @@ export class ClientesComponent implements OnInit, OnDestroy {
     if (!this.enlaceInvitacion) return;
     try {
       await navigator.clipboard.writeText(this.enlaceInvitacion);
-      this.exitoInvitacion = 'Enlace copiado. Compártelo por un canal autorizado.';
+      this.exitoInvitacion = this.t('crm.clientes.enlaceCopiado', undefined, 'Enlace copiado. Compártelo por un canal autorizado.');
     } catch {
-      this.exitoInvitacion = 'No se pudo copiar automáticamente. Selecciona el enlace y cópialo manualmente.';
+      this.exitoInvitacion = this.t('crm.clientes.enlaceCopiarManual', undefined, 'No se pudo copiar automáticamente. Selecciona el enlace y cópialo manualmente.');
     }
   }
 
@@ -616,13 +674,13 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   private mensajeErrorInvitacion(error: any, fallback: string): string {
-    if (error?.name === 'TimeoutError') return 'La solicitud tardó demasiado y su resultado no se pudo confirmar. Actualiza la lista antes de volver a intentar.';
-    if (error?.status === 401) return 'Tu sesión ya no está disponible. Inicia sesión e inténtalo de nuevo.';
-    if (error?.status === 403) return 'No tienes permiso para administrar invitaciones de este cliente.';
-    if (error?.status === 404) return 'El cliente o la invitación ya no están disponibles.';
-    if (error?.status === 409) return 'La invitación cambió de estado. Actualiza la lista e inténtalo de nuevo.';
-    if (error?.status === 422) return 'Revisa el correo y el rol seleccionados.';
-    if (error?.status === 429) return 'Se alcanzó el límite temporal de solicitudes. Espera un momento e inténtalo de nuevo.';
+    if (error?.name === 'TimeoutError') return this.t('crm.clientes.errorTimeout', undefined, 'La solicitud tardó demasiado y su resultado no se pudo confirmar. Actualiza la lista antes de volver a intentar.');
+    if (error?.status === 401) return this.t('crm.clientes.error401', undefined, 'Tu sesión ya no está disponible. Inicia sesión e inténtalo de nuevo.');
+    if (error?.status === 403) return this.t('crm.clientes.error403', undefined, 'No tienes permiso para administrar invitaciones de este cliente.');
+    if (error?.status === 404) return this.t('crm.clientes.error404Invitacion', undefined, 'El cliente o la invitación ya no están disponibles.');
+    if (error?.status === 409) return this.t('crm.clientes.error409', undefined, 'La invitación cambió de estado. Actualiza la lista e inténtalo de nuevo.');
+    if (error?.status === 422) return this.t('crm.clientes.error422Invitacion', undefined, 'Revisa el correo y el rol seleccionados.');
+    if (error?.status === 429) return this.t('crm.clientes.error429', undefined, 'Se alcanzó el límite temporal de solicitudes. Espera un momento e inténtalo de nuevo.');
     return fallback;
   }
 
@@ -630,7 +688,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.enviado = true;
     if (form.invalid || this.guardando) return;
     if (this.formulario.nombre.trim().length < 2) {
-      this.errorGuardar = 'El nombre del cliente debe tener al menos 2 caracteres.';
+      this.errorGuardar = this.t('crm.clientes.errorNombreCorto', undefined, 'El nombre del cliente debe tener al menos 2 caracteres.');
       return;
     }
     const esAltaFotografia = this.esFotografia && !this.editandoId;
@@ -642,7 +700,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
         if (!['http:', 'https:'].includes(url.protocol) || !url.hostname.includes('.')) throw new Error('Sitio inválido');
         sitioWeb = url.toString();
       } catch {
-        this.errorGuardar = 'Escribe un sitio web válido (por ejemplo, www.ejemplo.com) o deja el campo vacío.';
+        this.errorGuardar = this.t('crm.clientes.errorSitioWeb', undefined, 'Escribe un sitio web válido (por ejemplo, www.ejemplo.com) o deja el campo vacío.');
         return;
       }
     }
@@ -682,10 +740,10 @@ export class ClientesComponent implements OnInit, OnDestroy {
     } catch (error: any) {
       this.errorGuardar =
         error?.status === 422
-          ? 'Revisa los datos del formulario.'
+          ? this.t('crm.clientes.errorGuardar422', undefined, 'Revisa los datos del formulario.')
           : error?.status === 404
-          ? 'El cliente ya no está disponible.'
-          : 'No se pudo guardar el cliente.';
+          ? this.t('crm.clientes.errorGuardar404', undefined, 'El cliente ya no está disponible.')
+          : this.t('crm.clientes.errorGuardar', undefined, 'No se pudo guardar el cliente.');
     } finally {
       this.guardando = false;
       this.changeDetector?.markForCheck();

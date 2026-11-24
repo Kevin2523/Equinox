@@ -6,15 +6,15 @@
     <!-- Header de la sección de sesiones -->
     <header class="section-header">
       <div class="header-titles">
-        <h3 class="section-title">Sesiones fotográficas</h3>
+        <h3 class="section-title">{{ 'portal.sesiones.titulo' | t }}</h3>
         <p class="section-subtitle">
-          Administra las entregas, galerías y fotografías asociadas a este cliente.
+          {{ 'portal.sesiones.subtitulo' | t }}
         </p>
       </div>
       <div class="header-actions">
         <button class="btn-primary-action" type="button" (click)="abrirCrearSesion()">
           <span class="action-icon">+</span>
-          <span>Nueva sesión</span>
+          <span>{{ 'portal.sesiones.nuevaSesion' | t }}</span>
         </button>
       </div>
     </header>
@@ -22,13 +22,13 @@
     <!-- Estado: Cargando sesiones -->
     <div class="state-panel" *ngIf="cargandoSesiones">
       <div class="loading-spinner"></div>
-      <p>Cargando sesiones fotográficas...</p>
+      <p>{{ 'portal.sesiones.cargando' | t }}</p>
     </div>
 
     <!-- Estado: Error al cargar sesiones -->
     <div class="state-panel state-error" *ngIf="!cargandoSesiones && errorSesiones" role="alert">
       <p>{{ errorSesiones }}</p>
-      <button class="btn-retry" type="button" (click)="cargarSesiones()">Reintentar</button>
+      <button class="btn-retry" type="button" (click)="cargarSesiones()">{{ 'portal.comun.reintentar' | t }}</button>
     </div>
 
     <!-- Estado: Cliente sin sesiones registradas -->
@@ -39,13 +39,13 @@
           <circle cx="12" cy="13" r="4"/>
         </svg>
       </div>
-      <h4 class="empty-title">Sin sesiones fotográficas</h4>
+      <h4 class="empty-title">{{ 'portal.sesiones.vacioTitulo' | t }}</h4>
       <p class="empty-desc">
-        Este cliente todavía no tiene sesiones registradas. Crea una sesión fotográfica para cargar y entregar fotografías en alta calidad.
+        {{ 'portal.sesiones.vacioDesc' | t }}
       </p>
       <button class="btn-primary-action" type="button" (click)="abrirCrearSesion()">
         <span class="action-icon">+</span>
-        <span>Crear primera sesión</span>
+        <span>{{ 'portal.sesiones.crearPrimera' | t }}</span>
       </button>
     </div>
 
@@ -58,7 +58,7 @@
         tabindex="0"
         (keydown.enter)="abrirSesion(s)"
         role="button"
-        [attr.aria-label]="'Abrir sesión ' + s.nombre"
+        [attr.aria-label]="'portal.sesiones.abrirSesionAria' | t:{ nombre: s.nombre }"
       >
         <div class="sesion-card-header">
           <div class="sesion-title-group">
@@ -70,7 +70,7 @@
             [class.badge-publicada]="s.estado === 'PUBLICADA'"
             [class.badge-borrador]="s.estado === 'BORRADOR'"
           >
-            ● {{ s.estado === 'PUBLICADA' ? 'Publicada' : 'Borrador' }}
+            ● {{ (s.estado === 'PUBLICADA' ? 'portal.sesiones.estadoPublicada' : 'portal.sesiones.estadoBorrador') | t }}
           </span>
         </div>
 
@@ -85,13 +85,13 @@
               <circle cx="9" cy="9" r="2"/>
               <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
             </svg>
-            <span>{{ s.cantidadFotos ?? (s._count?.fotos || 0) }} fotografías</span>
+            <span>{{ s.cantidadFotos ?? (s._count?.fotos || 0) }} {{ ((s.cantidadFotos ?? (s._count?.fotos || 0)) === 1 ? 'portal.sesiones.fotografiaSingular' : 'portal.sesiones.fotografiaPlural') | t }}</span>
           </div>
         </div>
 
         <div class="sesion-card-actions" (click)="$event.stopPropagation()">
           <button class="btn-card-open" type="button" (click)="abrirSesion(s)">
-            <span>Abrir sesión</span>
+            <span>{{ 'portal.sesiones.abrirSesion' | t }}</span>
             <span class="arrow-symbol">→</span>
           </button>
 
@@ -100,16 +100,16 @@
               class="btn-card-toggle"
               type="button"
               (click)="solicitarCambioPublicacion(s, $event)"
-              [title]="s.estado === 'PUBLICADA' ? 'Despublicar sesión' : 'Publicar sesión para el cliente'"
+              [title]="(s.estado === 'PUBLICADA' ? 'portal.sesiones.despublicarTitle' : 'portal.sesiones.publicarTitle') | t"
             >
-              {{ s.estado === 'PUBLICADA' ? 'Despublicar' : 'Publicar' }}
+              {{ (s.estado === 'PUBLICADA' ? 'portal.sesiones.despublicar' : 'portal.sesiones.publicar') | t }}
             </button>
             <button
               class="btn-card-icon"
               type="button"
               (click)="abrirEditarSesion(s, $event)"
-              title="Editar sesión"
-              aria-label="Editar sesión"
+              [title]="'portal.sesiones.editarSesion' | t"
+              [attr.aria-label]="'portal.sesiones.editarSesion' | t"
             >
               ✎
             </button>
@@ -117,8 +117,8 @@
               class="btn-card-icon btn-card-danger"
               type="button"
               (click)="solicitarEliminarSesion(s, $event)"
-              title="Eliminar sesión"
-              aria-label="Eliminar sesión"
+              [title]="'portal.sesiones.eliminarSesion' | t"
+              [attr.aria-label]="'portal.sesiones.eliminarSesion' | t"
             >
               🗑
             </button>
@@ -136,7 +136,7 @@
     <div class="session-detail-header">
       <button class="btn-back" type="button" (click)="volverAListaSesiones()">
         <span class="back-arrow">←</span>
-        <span>Volver a sesiones de {{ cliente?.nombre }}</span>
+        <span>{{ 'portal.sesiones.volverA' | t:{ cliente: cliente?.nombre || '' } }}</span>
       </button>
 
       <div class="session-hero">
@@ -148,13 +148,13 @@
               [class.badge-publicada]="s.estado === 'PUBLICADA'"
               [class.badge-borrador]="s.estado === 'BORRADOR'"
             >
-              ● {{ s.estado === 'PUBLICADA' ? 'Publicada en portal' : 'Borrador privado' }}
+              ● {{ (s.estado === 'PUBLICADA' ? 'portal.sesiones.estadoPublicadaPortal' : 'portal.sesiones.estadoBorradorPrivado') | t }}
             </span>
           </div>
           <div class="hero-subline">
             <span class="subline-date">{{ formatearFecha(s.fecha) }}</span>
             <span class="subline-separator">·</span>
-            <span class="subline-count">{{ totalFotos }} {{ totalFotos === 1 ? 'fotografía' : 'fotografías' }}</span>
+            <span class="subline-count">{{ totalFotos }} {{ (totalFotos === 1 ? 'portal.sesiones.fotografiaSingular' : 'portal.sesiones.fotografiaPlural') | t }}</span>
             <span class="subline-separator" *ngIf="s.descripcion">·</span>
             <span class="subline-desc" *ngIf="s.descripcion">{{ s.descripcion }}</span>
           </div>
@@ -168,7 +168,7 @@
             [disabled]="subiendoFotos"
           >
             <span class="action-icon">↑</span>
-            <span>Cargar fotos</span>
+            <span>{{ 'portal.sesiones.cargarFotos' | t }}</span>
           </button>
 
           <button
@@ -177,7 +177,7 @@
             (click)="solicitarCambioPublicacion(s)"
             [disabled]="subiendoFotos"
           >
-            {{ s.estado === 'PUBLICADA' ? 'Despublicar sesión' : 'Publicar sesión' }}
+            {{ (s.estado === 'PUBLICADA' ? 'portal.sesiones.despublicarSesion' : 'portal.sesiones.publicarSesion') | t }}
           </button>
 
           <button
@@ -186,7 +186,7 @@
             (click)="abrirEditarSesion(s)"
             [disabled]="subiendoFotos"
           >
-            Editar datos
+            {{ 'portal.sesiones.editarDatos' | t }}
           </button>
 
           <button
@@ -194,9 +194,9 @@
             type="button"
             (click)="solicitarEliminarSesion(s)"
             [disabled]="subiendoFotos"
-            title="Eliminar sesión"
+            [title]="'portal.sesiones.eliminarSesion' | t"
           >
-            Eliminar
+            {{ 'portal.sesiones.eliminar' | t }}
           </button>
         </div>
       </div>
@@ -217,8 +217,8 @@
       <div class="progress-info-row">
         <div class="progress-label">
           <div class="loading-spinner-small"></div>
-          <strong>Subiendo fotos por lote:</strong>
-          <span>Foto {{ progresoSubida.actual }} de {{ progresoSubida.total }} ({{ progresoSubida.porcentaje }}%)</span>
+          <strong>{{ 'portal.sesiones.subiendoLote' | t }}</strong>
+          <span>{{ 'portal.sesiones.progresoFoto' | t:{ actual: progresoSubida.actual, total: progresoSubida.total, porcentaje: progresoSubida.porcentaje } }}</span>
         </div>
         <span class="progress-filename">{{ progresoSubida.nombreArchivo }}</span>
       </div>
@@ -230,7 +230,7 @@
     <!-- Notificación de error en subida -->
     <div class="alert-banner alert-warning" *ngIf="errorSubida" role="alert">
       <span>{{ errorSubida }}</span>
-      <button class="btn-alert-close" type="button" (click)="errorSubida = ''">✕</button>
+      <button class="btn-alert-close" type="button" (click)="errorSubida = ''" [attr.aria-label]="'portal.comun.cerrar' | t">✕</button>
     </div>
 
     <!-- Área de contenido de fotos con Drag & Drop -->
@@ -238,18 +238,18 @@
       class="photos-workspace"
       (dragover)="onDragOver($event)"
       (drop)="onDrop($event)"
-      aria-label="Galería de fotografías de la sesión"
+      [attr.aria-label]="'portal.sesiones.galeriaAria' | t"
     >
       <!-- Estado: Cargando fotos -->
       <div class="state-panel" *ngIf="cargandoFotos">
         <div class="loading-spinner"></div>
-        <p>Cargando fotografías de la sesión...</p>
+        <p>{{ 'portal.sesiones.cargandoFotos' | t }}</p>
       </div>
 
       <!-- Estado: Error al cargar fotos -->
       <div class="state-panel state-error" *ngIf="!cargandoFotos && errorFotos" role="alert">
         <p>{{ errorFotos }}</p>
-        <button class="btn-retry" type="button" (click)="cargarFotos(s.id)">Reintentar</button>
+        <button class="btn-retry" type="button" (click)="cargarFotos(s.id)">{{ 'portal.comun.reintentar' | t }}</button>
       </div>
 
       <!-- Estado: Sesión vacía -->
@@ -261,13 +261,13 @@
             <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
         </div>
-        <h4 class="empty-title">Sesión vacía</h4>
+        <h4 class="empty-title">{{ 'portal.sesiones.sesionVaciaTitulo' | t }}</h4>
         <p class="empty-desc">
-          Arrastra fotografías aquí o haz clic en el botón para cargar cualquier cantidad de fotos por lote.
+          {{ 'portal.sesiones.sesionVaciaDesc' | t }}
         </p>
         <button class="btn-primary-action" type="button" (click)="dispararSelectorArchivos()">
           <span class="action-icon">↑</span>
-          <span>Seleccionar fotografías</span>
+          <span>{{ 'portal.sesiones.seleccionarFotos' | t }}</span>
         </button>
       </div>
 
@@ -288,14 +288,14 @@
             </div>
 
             <!-- Badge de Portada -->
-            <span class="cover-badge" *ngIf="esPortada(f)" title="Foto de portada de la sesión">
-              ★ Portada
+            <span class="cover-badge" *ngIf="esPortada(f)" [title]="'portal.sesiones.portadaTitle' | t">
+              ★ {{ 'portal.sesiones.portada' | t }}
             </span>
 
             <!-- Overlay de hover para ampliar -->
             <div class="photo-hover-overlay">
               <span class="zoom-icon">🔍</span>
-              <span>Ver en grande</span>
+              <span>{{ 'portal.sesiones.verEnGrande' | t }}</span>
             </div>
           </div>
 
@@ -313,9 +313,9 @@
                 type="button"
                 [class.active-cover]="esPortada(f)"
                 (click)="marcarComoPortada(f, $event)"
-                [title]="esPortada(f) ? 'Es la foto de portada' : 'Establecer como foto de portada'"
+                [title]="(esPortada(f) ? 'portal.sesiones.esPortadaTitle' : 'portal.sesiones.establecerPortadaTitle') | t"
               >
-                {{ esPortada(f) ? '★' : '☆ Portada' }}
+                {{ esPortada(f) ? '★' : ('☆ ' + ('portal.sesiones.portada' | t)) }}
               </button>
 
               <!-- Botones de orden -->
@@ -325,8 +325,8 @@
                   type="button"
                   [disabled]="i === 0"
                   (click)="cambiarOrdenFoto(f, -1, $event)"
-                  title="Mover antes"
-                  aria-label="Mover antes"
+                  [title]="'portal.sesiones.moverAntes' | t"
+                  [attr.aria-label]="'portal.sesiones.moverAntes' | t"
                 >
                   ◀
                 </button>
@@ -335,8 +335,8 @@
                   type="button"
                   [disabled]="i === fotos.length - 1"
                   (click)="cambiarOrdenFoto(f, 1, $event)"
-                  title="Mover después"
-                  aria-label="Mover después"
+                  [title]="'portal.sesiones.moverDespues' | t"
+                  [attr.aria-label]="'portal.sesiones.moverDespues' | t"
                 >
                   ▶
                 </button>
@@ -347,8 +347,8 @@
                 class="btn-photo-delete"
                 type="button"
                 (click)="solicitarEliminarFoto(f, $event)"
-                title="Eliminar fotografía"
-                aria-label="Eliminar fotografía"
+                [title]="'portal.sesiones.eliminarFotoAria' | t"
+                [attr.aria-label]="'portal.sesiones.eliminarFotoAria' | t"
               >
                 ✕
               </button>
@@ -360,7 +360,7 @@
       <!-- Paginación de fotos si aplica -->
       <div class="photos-pagination-footer" *ngIf="totalPaginasFotos > 1">
         <span class="pagination-info">
-          Página {{ paginaFotos }} de {{ totalPaginasFotos }} ({{ totalFotos }} fotos en total)
+          {{ 'portal.sesiones.paginacionTotal' | t:{ pagina: paginaFotos, totalPaginas: totalPaginasFotos, totalFotos: totalFotos } }}
         </span>
         <div class="pagination-buttons">
           <button
@@ -369,7 +369,7 @@
             [disabled]="paginaFotos === 1"
             (click)="cambiarPaginaFotos(paginaFotos - 1)"
           >
-            ← Anterior
+            ← {{ 'portal.comun.anterior' | t }}
           </button>
           <button
             class="btn-page-nav"
@@ -377,7 +377,7 @@
             [disabled]="paginaFotos === totalPaginasFotos"
             (click)="cambiarPaginaFotos(paginaFotos + 1)"
           >
-            Siguiente →
+            {{ 'portal.comun.siguiente' | t }} →
           </button>
         </div>
       </div>
@@ -392,15 +392,15 @@
   <section class="modal-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-sesion-titulo">
     <div class="modal-header">
       <div>
-        <span class="modal-eyebrow">{{ editandoSesionId ? 'EDITAR SESIÓN' : 'NUEVA SESIÓN' }}</span>
-        <h3 id="modal-sesion-titulo" class="modal-title">{{ editandoSesionId ? 'Actualizar sesión fotográfica' : 'Crear sesión fotográfica' }}</h3>
+        <span class="modal-eyebrow">{{ (editandoSesionId ? 'portal.sesiones.modalEditarEyebrow' : 'portal.sesiones.modalNuevaEyebrow') | t }}</span>
+        <h3 id="modal-sesion-titulo" class="modal-title">{{ (editandoSesionId ? 'portal.sesiones.modalEditarTitulo' : 'portal.sesiones.modalNuevaTitulo') | t }}</h3>
       </div>
-      <button class="modal-close" type="button" (click)="cerrarModalSesion()" aria-label="Cerrar modal">×</button>
+      <button class="modal-close" type="button" (click)="cerrarModalSesion()" [attr.aria-label]="'portal.sesiones.cerrarModalAria' | t">×</button>
     </div>
 
     <form #formSesion="ngForm" (ngSubmit)="guardarSesion(formSesion)" class="modal-form">
       <div class="form-group">
-        <label for="sesion-nombre">Nombre de la sesión *</label>
+        <label for="sesion-nombre">{{ 'portal.sesiones.campoNombre' | t }}</label>
         <input
           id="sesion-nombre"
           class="form-input"
@@ -408,13 +408,13 @@
           [(ngModel)]="formularioSesion.nombre"
           required
           minlength="2"
-          placeholder="Ej. Sesión en exteriores, Sesión retrato corporativo, etc."
+          [placeholder]="'portal.sesiones.campoNombrePlaceholder' | t"
           autofocus
         />
       </div>
 
       <div class="form-group">
-        <label for="sesion-fecha">Fecha de realización (opcional)</label>
+        <label for="sesion-fecha">{{ 'portal.sesiones.campoFecha' | t }}</label>
         <input
           id="sesion-fecha"
           type="date"
@@ -425,14 +425,14 @@
       </div>
 
       <div class="form-group">
-        <label for="sesion-descripcion">Descripción o notas (opcional)</label>
+        <label for="sesion-descripcion">{{ 'portal.sesiones.campoDescripcion' | t }}</label>
         <textarea
           id="sesion-descripcion"
           class="form-input"
           rows="3"
           name="descripcion"
           [(ngModel)]="formularioSesion.descripcion"
-          placeholder="Detalles sobre locación, estilismo o requerimientos de entrega..."
+          [placeholder]="'portal.sesiones.campoDescripcionPlaceholder' | t"
         ></textarea>
       </div>
 
@@ -441,9 +441,9 @@
       </p>
 
       <div class="modal-actions-bar">
-        <button class="btn-modal-cancel" type="button" (click)="cerrarModalSesion()">Cancelar</button>
+        <button class="btn-modal-cancel" type="button" (click)="cerrarModalSesion()">{{ 'portal.comun.cancelar' | t }}</button>
         <button class="btn-modal-submit" type="submit" [disabled]="guardandoSesion || formSesion.invalid">
-          {{ guardandoSesion ? 'Guardando…' : (editandoSesionId ? 'Guardar cambios' : 'Crear sesión') }}
+          {{ (guardandoSesion ? 'portal.sesiones.guardando' : (editandoSesionId ? 'portal.sesiones.guardarCambios' : 'portal.sesiones.crearSesion')) | t }}
         </button>
       </div>
     </form>
@@ -457,32 +457,32 @@
   <section class="modal-card modal-confirm-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-publicar-titulo">
     <div class="modal-header">
       <div>
-        <span class="modal-eyebrow">PORTAL DEL CLIENTE</span>
+        <span class="modal-eyebrow">{{ 'portal.hero.eyebrowCliente' | t }}</span>
         <h3 id="modal-publicar-titulo" class="modal-title">
-          {{ confirmacionPublicar.nuevoEstado === 'PUBLICADA' ? '¿Publicar sesión fotográfica?' : '¿Despublicar sesión fotográfica?' }}
+          {{ (confirmacionPublicar.nuevoEstado === 'PUBLICADA' ? 'portal.sesiones.modalPublicarTitulo' : 'portal.sesiones.modalDespublicarTitulo') | t }}
         </h3>
       </div>
-      <button class="modal-close" type="button" (click)="cerrarConfirmacionPublicar()" aria-label="Cerrar modal">×</button>
+      <button class="modal-close" type="button" (click)="cerrarConfirmacionPublicar()" [attr.aria-label]="'portal.sesiones.cerrarModalAria' | t">×</button>
     </div>
 
     <div class="modal-body-text">
       <p *ngIf="confirmacionPublicar.nuevoEstado === 'PUBLICADA'">
-        Al publicar <strong>{{ confirmacionPublicar.sesion?.nombre }}</strong>, tu cliente podrá visualizarla y descargar las fotografías directamente desde su portal de cliente.
+        {{ 'portal.sesiones.modalPublicarDesc' | t:{ nombre: confirmacionPublicar.sesion?.nombre || '' } }}
       </p>
       <p *ngIf="confirmacionPublicar.nuevoEstado === 'BORRADOR'">
-        Al cambiar a borrador, <strong>{{ confirmacionPublicar.sesion?.nombre }}</strong> dejará de estar visible en el portal del cliente hasta que decidas publicarla nuevamente.
+        {{ 'portal.sesiones.modalDespublicarDesc' | t:{ nombre: confirmacionPublicar.sesion?.nombre || '' } }}
       </p>
     </div>
 
     <div class="modal-actions-bar">
-      <button class="btn-modal-cancel" type="button" (click)="cerrarConfirmacionPublicar()">Cancelar</button>
+      <button class="btn-modal-cancel" type="button" (click)="cerrarConfirmacionPublicar()">{{ 'portal.comun.cancelar' | t }}</button>
       <button
         class="btn-modal-submit"
         type="button"
         [disabled]="confirmacionPublicar.procesando"
         (click)="confirmarCambioPublicacion()"
       >
-        {{ confirmacionPublicar.procesando ? 'Actualizando…' : (confirmacionPublicar.nuevoEstado === 'PUBLICADA' ? 'Publicar ahora' : 'Cambiar a borrador') }}
+        {{ (confirmacionPublicar.procesando ? 'portal.sesiones.actualizando' : (confirmacionPublicar.nuevoEstado === 'PUBLICADA' ? 'portal.sesiones.publicarAhora' : 'portal.sesiones.cambiarABorrador')) | t }}
       </button>
     </div>
   </section>
@@ -495,15 +495,15 @@
   <section class="modal-card modal-confirm-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-sesion-titulo">
     <div class="modal-header">
       <div>
-        <span class="modal-eyebrow eyebrow-danger">ELIMINAR SESIÓN</span>
-        <h3 id="modal-eliminar-sesion-titulo" class="modal-title">¿Eliminar esta sesión permanentemente?</h3>
+        <span class="modal-eyebrow eyebrow-danger">{{ 'portal.sesiones.modalEliminarSesionEyebrow' | t }}</span>
+        <h3 id="modal-eliminar-sesion-titulo" class="modal-title">{{ 'portal.sesiones.modalEliminarSesionTitulo' | t }}</h3>
       </div>
-      <button class="modal-close" type="button" (click)="cerrarConfirmacionEliminarSesion()" aria-label="Cerrar modal">×</button>
+      <button class="modal-close" type="button" (click)="cerrarConfirmacionEliminarSesion()" [attr.aria-label]="'portal.sesiones.cerrarModalAria' | t">×</button>
     </div>
 
     <div class="modal-body-text">
       <p>
-        Estás a punto de eliminar la sesión <strong>{{ confirmacionEliminarSesion.sesion?.nombre }}</strong>. Esta acción eliminará permanentemente la sesión y todas sus fotografías asociadas.
+        {{ 'portal.sesiones.modalEliminarSesionDesc' | t:{ nombre: confirmacionEliminarSesion.sesion?.nombre || '' } }}
       </p>
       <p class="form-server-error" *ngIf="confirmacionEliminarSesion.error" role="alert">
         {{ confirmacionEliminarSesion.error }}
@@ -511,14 +511,14 @@
     </div>
 
     <div class="modal-actions-bar">
-      <button class="btn-modal-cancel" type="button" (click)="cerrarConfirmacionEliminarSesion()">Cancelar</button>
+      <button class="btn-modal-cancel" type="button" (click)="cerrarConfirmacionEliminarSesion()">{{ 'portal.comun.cancelar' | t }}</button>
       <button
         class="btn-danger-submit"
         type="button"
         [disabled]="confirmacionEliminarSesion.procesando"
         (click)="confirmarEliminarSesion()"
       >
-        {{ confirmacionEliminarSesion.procesando ? 'Eliminando…' : 'Eliminar sesión' }}
+        {{ (confirmacionEliminarSesion.procesando ? 'portal.sesiones.eliminando' : 'portal.sesiones.eliminarSesion') | t }}
       </button>
     </div>
   </section>
@@ -531,15 +531,15 @@
   <section class="modal-card modal-confirm-card" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-foto-titulo">
     <div class="modal-header">
       <div>
-        <span class="modal-eyebrow eyebrow-danger">ELIMINAR FOTOGRAFÍA</span>
-        <h3 id="modal-eliminar-foto-titulo" class="modal-title">¿Eliminar esta fotografía?</h3>
+        <span class="modal-eyebrow eyebrow-danger">{{ 'portal.sesiones.modalEliminarFotoEyebrow' | t }}</span>
+        <h3 id="modal-eliminar-foto-titulo" class="modal-title">{{ 'portal.sesiones.modalEliminarFotoTitulo' | t }}</h3>
       </div>
-      <button class="modal-close" type="button" (click)="cerrarConfirmacionEliminarFoto()" aria-label="Cerrar modal">×</button>
+      <button class="modal-close" type="button" (click)="cerrarConfirmacionEliminarFoto()" [attr.aria-label]="'portal.sesiones.cerrarModalAria' | t">×</button>
     </div>
 
     <div class="modal-body-text">
       <p>
-        Se eliminará permanentemente la foto <strong>{{ confirmacionEliminarFoto.foto?.nombreOriginal }}</strong> de la sesión.
+        {{ 'portal.sesiones.modalEliminarFotoDesc' | t:{ nombre: confirmacionEliminarFoto.foto?.nombreOriginal || '' } }}
       </p>
       <p class="form-server-error" *ngIf="confirmacionEliminarFoto.error" role="alert">
         {{ confirmacionEliminarFoto.error }}
@@ -547,14 +547,14 @@
     </div>
 
     <div class="modal-actions-bar">
-      <button class="btn-modal-cancel" type="button" (click)="cerrarConfirmacionEliminarFoto()">Cancelar</button>
+      <button class="btn-modal-cancel" type="button" (click)="cerrarConfirmacionEliminarFoto()">{{ 'portal.comun.cancelar' | t }}</button>
       <button
         class="btn-danger-submit"
         type="button"
         [disabled]="confirmacionEliminarFoto.procesando"
         (click)="confirmarEliminarFoto()"
       >
-        {{ confirmacionEliminarFoto.procesando ? 'Eliminando…' : 'Eliminar foto' }}
+        {{ (confirmacionEliminarFoto.procesando ? 'portal.sesiones.eliminando' : 'portal.sesiones.eliminarFotoBtn') | t }}
       </button>
     </div>
   </section>
@@ -564,8 +564,8 @@
      MODAL: VISOR DE FOTO EN TAMAÑO COMPLETO
      ========================================================================= -->
 <div class="modal-backdrop lightbox-backdrop" *ngIf="fotoAmpliada as fa" (click)="cerrarFotoAmpliada()">
-  <div class="lightbox-content" tabindex="-1" appDialogFocus role="dialog" aria-modal="true" [attr.aria-label]="'Visor de fotografía ' + fa.nombreOriginal" (click)="$event.stopPropagation()">
-    <button class="lightbox-close-btn" type="button" (click)="cerrarFotoAmpliada()" aria-label="Cerrar visor">✕</button>
+  <div class="lightbox-content" tabindex="-1" appDialogFocus role="dialog" aria-modal="true" [attr.aria-label]="'portal.sesiones.visorFotoAria' | t:{ nombre: fa.nombreOriginal }" (click)="$event.stopPropagation()">
+    <button class="lightbox-close-btn" type="button" (click)="cerrarFotoAmpliada()" [attr.aria-label]="'portal.sesiones.cerrarVisorAria' | t">✕</button>
 
     <div class="lightbox-img-wrapper">
       <div class="lightbox-loading" *ngIf="cargandoFotoAmpliada">
@@ -590,10 +590,10 @@
         (click)="marcarComoPortada(fa)"
         *ngIf="!esPortada(fa)"
       >
-        ☆ Establecer como portada
+        ☆ {{ 'portal.sesiones.establecerPortadaBtn' | t }}
       </button>
       <span class="cover-badge" *ngIf="esPortada(fa)">
-        ★ Portada de la sesión
+        ★ {{ 'portal.sesiones.portadaDeSesion' | t }}
       </span>
     </div>
   </div>

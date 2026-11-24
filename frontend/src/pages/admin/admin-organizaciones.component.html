@@ -3,19 +3,17 @@
 
   <header class="orgs-header">
     <div class="orgs-header-copy">
-      <h1 id="orgs-titulo" class="admin-page-title">Organizaciones</h1>
-      <p class="admin-page-subtitle">
-        Estudios y cuentas registradas en Equinox, con sus propietarios, métricas operativas y suscripción manual.
-      </p>
+      <h1 id="orgs-titulo" class="admin-page-title">{{ 'admin.orgs.titulo' | t }}</h1>
+      <p class="admin-page-subtitle">{{ 'admin.orgs.subtitulo' | t }}</p>
     </div>
 
-    <div class="orgs-header-summary" *ngIf="!cargando || resumen.total > 0" aria-label="Resumen de organizaciones">
-      <span>{{ pluralizar(resumen.total, 'estudio', 'estudios') }}</span>
+    <div class="orgs-header-summary" *ngIf="!cargando || resumen.total > 0" [attr.aria-label]="'admin.orgs.resumenAria' | t">
+      <span>{{ pluralizarClave(resumen.total, 'admin.orgs.unidad.estudio') }}</span>
       <span class="orgs-dot-sep" aria-hidden="true">·</span>
-      <span>{{ pluralizar(resumen.activas, 'activo', 'activos') }}</span>
+      <span>{{ pluralizarClave(resumen.activas, 'admin.orgs.unidad.activo') }}</span>
       <ng-container *ngIf="resumen.suspendidas > 0">
         <span class="orgs-dot-sep" aria-hidden="true">·</span>
-        <span class="orgs-summary-suspended">{{ pluralizar(resumen.suspendidas, 'suspendido', 'suspendidos') }}</span>
+        <span class="orgs-summary-suspended">{{ pluralizarClave(resumen.suspendidas, 'admin.orgs.unidad.suspendido') }}</span>
       </ng-container>
     </div>
   </header>
@@ -31,8 +29,8 @@
         name="busqueda"
         class="orgs-search-input"
         [(ngModel)]="busqueda"
-        placeholder="Buscar por nombre, slug, correo o RUC"
-        aria-label="Buscar por nombre, slug, correo o RUC" />
+        [placeholder]="'admin.orgs.buscarPlaceholder' | t"
+        [attr.aria-label]="'admin.orgs.buscarPlaceholder' | t" />
     </div>
 
     <div class="orgs-filters-group">
@@ -41,9 +39,9 @@
         class="orgs-select"
         [(ngModel)]="filtroTipo"
         (change)="buscar()"
-        aria-label="Filtrar por modalidad">
-        <option value="">Todas las modalidades</option>
-        <option *ngFor="let t of tipos" [value]="t">{{ etiquetasTipo[t] }}</option>
+        [attr.aria-label]="'admin.orgs.filtrarModalidadAria' | t">
+        <option value="">{{ 'admin.orgs.todasModalidades' | t }}</option>
+        <option *ngFor="let t of tipos" [value]="t">{{ clavesTipo[t] | t }}</option>
       </select>
 
       <select
@@ -51,9 +49,9 @@
         class="orgs-select"
         [(ngModel)]="filtroEstado"
         (change)="buscar()"
-        aria-label="Filtrar por estado de suscripción">
-        <option value="">Todas las suscripciones</option>
-        <option *ngFor="let e of estados" [value]="e">{{ etiquetasEstado[e] }}</option>
+        [attr.aria-label]="'admin.orgs.filtrarSuscripcionAria' | t">
+        <option value="">{{ 'admin.orgs.todasSuscripciones' | t }}</option>
+        <option *ngFor="let e of estados" [value]="e">{{ clavesEstado[e] | t }}</option>
       </select>
 
       <select
@@ -61,26 +59,26 @@
         class="orgs-select"
         [(ngModel)]="filtroSuspendida"
         (change)="buscar()"
-        aria-label="Filtrar por estado de acceso">
-        <option value="">Todos los accesos</option>
-        <option value="false">Acceso activo</option>
-        <option value="true">Acceso suspendido</option>
+        [attr.aria-label]="'admin.orgs.filtrarAccesoAria' | t">
+        <option value="">{{ 'admin.orgs.todosAccesos' | t }}</option>
+        <option value="false">{{ 'admin.orgs.accesoActivo' | t }}</option>
+        <option value="true">{{ 'admin.orgs.accesoSuspendido' | t }}</option>
       </select>
 
-      <button type="submit" class="orgs-search-btn" [disabled]="cargando">Buscar</button>
+      <button type="submit" class="orgs-search-btn" [disabled]="cargando">{{ 'admin.comun.buscar' | t }}</button>
       <button
         type="button"
         class="orgs-clear-btn"
         *ngIf="hayFiltrosActivos"
         (click)="limpiarFiltros()">
-        Limpiar
+        {{ 'admin.comun.limpiar' | t }}
       </button>
     </div>
   </form>
 
   <div *ngIf="error" class="admin-error-banner" role="alert">
     <span>{{ error }}</span>
-    <button type="button" class="admin-btn-sm" (click)="cargar()">Reintentar</button>
+    <button type="button" class="admin-btn-sm" (click)="cargar()">{{ 'admin.comun.reintentar' | t }}</button>
   </div>
 
   <div *ngIf="cargando" class="admin-card orgs-skeleton-card" aria-busy="true">
@@ -91,12 +89,12 @@
   </div>
 
   <div *ngIf="!cargando && organizaciones.length === 0 && !error" class="admin-state-box">
-    <h3>No se encontraron organizaciones</h3>
+    <h3>{{ 'admin.orgs.vacioTitulo' | t }}</h3>
     <p>
-      {{ hayFiltrosActivos ? 'Ajusta los criterios de búsqueda o limpia los filtros activos.' : 'Todavía no hay organizaciones registradas en la plataforma.' }}
+      {{ (hayFiltrosActivos ? 'admin.orgs.vacioDescFiltros' : 'admin.orgs.vacioDescSinRegistros') | t }}
     </p>
     <button *ngIf="hayFiltrosActivos" type="button" class="btn-secondary" (click)="limpiarFiltros()">
-      Restablecer filtros
+      {{ 'admin.comun.restablecerFiltros' | t }}
     </button>
   </div>
 
@@ -106,14 +104,14 @@
       <table class="orgs-table">
         <thead>
           <tr>
-            <th>Organización</th>
-            <th>Modalidad</th>
-            <th>Acceso</th>
-            <th>Propietario</th>
-            <th>Operación</th>
-            <th>Suscripción</th>
-            <th>Creada</th>
-            <th class="orgs-th-actions">Acciones</th>
+            <th>{{ 'admin.orgs.colOrganizacion' | t }}</th>
+            <th>{{ 'admin.orgs.colModalidad' | t }}</th>
+            <th>{{ 'admin.orgs.colAcceso' | t }}</th>
+            <th>{{ 'admin.orgs.colPropietario' | t }}</th>
+            <th>{{ 'admin.orgs.colOperacion' | t }}</th>
+            <th>{{ 'admin.orgs.colSuscripcion' | t }}</th>
+            <th>{{ 'admin.orgs.colCreada' | t }}</th>
+            <th class="orgs-th-actions">{{ 'admin.comun.acciones' | t }}</th>
           </tr>
         </thead>
         <tbody>
@@ -124,7 +122,7 @@
             </td>
 
             <td>
-              <span class="orgs-pill-neutral">{{ etiquetasTipo[org.tipoFreelance] }}</span>
+              <span class="orgs-pill-neutral">{{ clavesTipo[org.tipoFreelance] | t }}</span>
             </td>
 
             <td>
@@ -133,14 +131,14 @@
                 [class.suspended]="estaSuspendida(org)"
                 [title]="estaSuspendida(org) && org.motivoSuspension ? org.motivoSuspension : ''">
                 <span class="orgs-access-dot" aria-hidden="true"></span>
-                <span>{{ estaSuspendida(org) ? 'Suspendido' : 'Activo' }}</span>
+                <span>{{ (estaSuspendida(org) ? 'admin.orgs.estadoSuspendido' : 'admin.orgs.estadoActivo') | t }}</span>
               </span>
             </td>
 
             <td>
               <span class="orgs-cell-owner">
                 {{ nombrePropietario(org) }}
-                <span class="orgs-extra-count" *ngIf="org.propietarios.length > 1">+{{ org.propietarios.length - 1 }}</span>
+                <span class="orgs-extra-count" *ngIf="org.propietarios.length > 1">+{{ formatearNumero(org.propietarios.length - 1) }}</span>
               </span>
               <span class="orgs-cell-sub">{{ correoPropietario(org) }}</span>
             </td>
@@ -154,7 +152,7 @@
               <span
                 class="orgs-sub-pill"
                 [ngClass]="org.suscripcion.estado === 'SIN_SUSCRIPCION' ? 'orgs-pill-neutral' : claseEstado(org.suscripcion.estado)">
-                {{ etiquetasEstado[org.suscripcion.estado] }}
+                {{ clavesEstado[org.suscripcion.estado] | t }}
               </span>
               <span class="orgs-cell-sub" *ngIf="org.suscripcion.plan">
                 {{ org.suscripcion.plan.nombre }}
@@ -172,7 +170,7 @@
                   (click)="toggleMenu(org.id, $event)"
                   [attr.aria-expanded]="menuAbiertoId === org.id"
                   aria-haspopup="menu"
-                  [attr.aria-label]="'Acciones para ' + org.nombre">
+                  [attr.aria-label]="'admin.orgs.accionesParaAria' | t:{ nombre: org.nombre }">
                   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <circle cx="5.5" cy="12" r="1.6" />
                     <circle cx="12" cy="12" r="1.6" />
@@ -195,7 +193,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                       <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
-                    <span>Ver detalle</span>
+                    <span>{{ 'admin.comun.verDetalle' | t }}</span>
                   </button>
 
                   <button
@@ -208,7 +206,7 @@
                       <circle cx="12" cy="12" r="9" />
                       <path d="M5.6 5.6 18.4 18.4" stroke-linecap="round" />
                     </svg>
-                    <span>Suspender acceso</span>
+                    <span>{{ 'admin.orgs.suspenderAcceso' | t }}</span>
                   </button>
 
                   <button
@@ -220,7 +218,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                       <path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
-                    <span>Reactivar acceso</span>
+                    <span>{{ 'admin.orgs.reactivarAcceso' | t }}</span>
                   </button>
                 </div>
               </div>
@@ -242,28 +240,28 @@
             class="orgs-access-status"
             [class.suspended]="estaSuspendida(org)">
             <span class="orgs-access-dot" aria-hidden="true"></span>
-            <span>{{ estaSuspendida(org) ? 'Suspendido' : 'Activo' }}</span>
+            <span>{{ (estaSuspendida(org) ? 'admin.orgs.estadoSuspendido' : 'admin.orgs.estadoActivo') | t }}</span>
           </span>
         </div>
 
         <div class="orgs-mobile-badges">
-          <span class="orgs-pill-neutral">{{ etiquetasTipo[org.tipoFreelance] }}</span>
+          <span class="orgs-pill-neutral">{{ clavesTipo[org.tipoFreelance] | t }}</span>
           <span
             class="orgs-sub-pill"
             [ngClass]="org.suscripcion.estado === 'SIN_SUSCRIPCION' ? 'orgs-pill-neutral' : claseEstado(org.suscripcion.estado)">
-            {{ etiquetasEstado[org.suscripcion.estado] }}
+            {{ clavesEstado[org.suscripcion.estado] | t }}
           </span>
           <span class="orgs-mobile-date">{{ formatearFecha(org.creadoEn, false) }}</span>
         </div>
 
         <div class="orgs-mobile-grid">
           <div class="orgs-mobile-field">
-            <small>Propietario</small>
+            <small>{{ 'admin.orgs.colPropietario' | t }}</small>
             <span class="orgs-cell-owner">{{ nombrePropietario(org) }}</span>
             <span class="orgs-cell-sub">{{ correoPropietario(org) }}</span>
           </div>
           <div class="orgs-mobile-field">
-            <small>Operación</small>
+            <small>{{ 'admin.orgs.colOperacion' | t }}</small>
             <span class="orgs-cell-op-main">{{ textoOperacionPrincipal(org) }}</span>
             <span class="orgs-cell-sub">{{ textoOperacionSecundaria(org) }}</span>
           </div>
@@ -271,28 +269,28 @@
 
         <div class="orgs-mobile-actions">
           <button type="button" class="admin-btn-sm" (click)="verDetalle(org.id)" [disabled]="cargandoDetalle">
-            Ver detalle
+            {{ 'admin.comun.verDetalle' | t }}
           </button>
           <button
             *ngIf="esAdminGlobal && !estaSuspendida(org)"
             type="button"
             class="admin-btn-sm danger"
             (click)="pedirSuspender(org)">
-            Suspender acceso
+            {{ 'admin.orgs.suspenderAcceso' | t }}
           </button>
           <button
             *ngIf="esAdminGlobal && estaSuspendida(org)"
             type="button"
             class="admin-btn-sm primary"
             (click)="pedirReactivar(org)">
-            Reactivar acceso
+            {{ 'admin.orgs.reactivarAcceso' | t }}
           </button>
         </div>
       </article>
     </div>
 
     <!-- Paginación editorial inferior -->
-    <nav class="orgs-pagination-bar" aria-label="Paginación de organizaciones">
+    <nav class="orgs-pagination-bar" [attr.aria-label]="'admin.orgs.paginacionAria' | t">
       <span class="orgs-pagination-info">{{ textoMostrando() }}</span>
 
       <div class="orgs-pagination-controls">
@@ -301,7 +299,7 @@
           class="orgs-page-btn"
           (click)="irAPagina(paginacion.pagina - 1)"
           [disabled]="paginacion.pagina <= 1 || cargando"
-          aria-label="Página anterior">
+          [attr.aria-label]="'admin.comun.paginaAnteriorAria' | t">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="m15 18-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -316,7 +314,7 @@
             [class.active]="item === paginacion.pagina"
             [attr.aria-current]="item === paginacion.pagina ? 'page' : null"
             (click)="irAPagina(item)">
-            {{ item }}
+            {{ formatearNumero(item) }}
           </button>
         </ng-container>
 
@@ -325,7 +323,7 @@
           class="orgs-page-btn"
           (click)="irAPagina(paginacion.pagina + 1)"
           [disabled]="paginacion.pagina >= (paginacion.totalPaginas || 1) || cargando"
-          aria-label="Página siguiente">
+          [attr.aria-label]="'admin.comun.paginaSiguienteAria' | t">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="m9 18 6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -347,84 +345,86 @@
           <h2 id="org-detalle-titulo" class="admin-modal-title">{{ detalle.nombre }}</h2>
           <span class="admin-cell-secondary">ID: {{ detalle.id }} · /{{ detalle.slug }}</span>
         </div>
-        <button type="button" class="admin-modal-close" (click)="cerrarDetalle()" aria-label="Cerrar detalle">✕</button>
+        <button type="button" class="admin-modal-close" (click)="cerrarDetalle()" [attr.aria-label]="'admin.comun.cerrarDetalleAria' | t">✕</button>
       </div>
 
       <ng-container *ngIf="!editando">
         <div class="admin-kv-grid">
           <div class="admin-kv-item">
-            <small>Modalidad</small>
-            <span>{{ etiquetasTipo[detalle.tipoFreelance] }}</span>
+            <small>{{ 'admin.orgs.colModalidad' | t }}</small>
+            <span>{{ clavesTipo[detalle.tipoFreelance] | t }}</span>
           </div>
           <div class="admin-kv-item">
-            <small>Moneda</small>
+            <small>{{ 'admin.orgs.detalleMoneda' | t }}</small>
             <span>{{ detalle.moneda }}</span>
           </div>
           <div class="admin-kv-item">
-            <small>Correo de contacto</small>
+            <small>{{ 'admin.orgs.detalleCorreo' | t }}</small>
             <span>{{ detalle.correoContacto || '—' }}</span>
           </div>
           <div class="admin-kv-item">
-            <small>RUC</small>
+            <small>{{ 'admin.orgs.detalleRuc' | t }}</small>
             <span>{{ detalle.ruc || '—' }}</span>
           </div>
           <div class="admin-kv-item">
-            <small>Operación real</small>
+            <small>{{ 'admin.orgs.detalleOperacionReal' | t }}</small>
             <span *ngIf="detalle.tipoFreelance === 'FOTOGRAFIA'">
-              {{ pluralizar(detalle.conteos.clientes, 'cliente', 'clientes') }} ·
-              {{ pluralizar(detalle.conteos.sesionesFotograficas, 'sesión', 'sesiones') }} ·
-              {{ pluralizar(detalle.conteos.fotos ?? 0, 'foto', 'fotos') }} ·
-              {{ pluralizar(detalle.conteos.facturas, 'factura', 'facturas') }}
+              {{ pluralizarClave(detalle.conteos.clientes, 'admin.orgs.unidad.cliente') }} ·
+              {{ pluralizarClave(detalle.conteos.sesionesFotograficas, 'admin.orgs.unidad.sesion') }} ·
+              {{ pluralizarClave(detalle.conteos.fotos ?? 0, 'admin.orgs.unidad.foto') }} ·
+              {{ pluralizarClave(detalle.conteos.facturas, 'admin.orgs.unidad.factura') }}
             </span>
             <span *ngIf="detalle.tipoFreelance !== 'FOTOGRAFIA'">
-              {{ pluralizar(detalle.conteos.clientes, 'cliente', 'clientes') }} ·
-              {{ pluralizar(detalle.conteos.proyectos, 'proyecto', 'proyectos') }} ·
-              {{ pluralizar(detalle.conteos.facturas, 'factura', 'facturas') }}
+              {{ pluralizarClave(detalle.conteos.clientes, 'admin.orgs.unidad.cliente') }} ·
+              {{ pluralizarClave(detalle.conteos.proyectos, 'admin.orgs.unidad.proyecto') }} ·
+              {{ pluralizarClave(detalle.conteos.facturas, 'admin.orgs.unidad.factura') }}
             </span>
           </div>
           <div class="admin-kv-item">
-            <small>Finanzas en portal</small>
-            <span>{{ detalle.portalMostrarFinanzas ? 'Visibles' : 'Ocultas' }}</span>
+            <small>{{ 'admin.orgs.detalleFinanzasPortal' | t }}</small>
+            <span>{{ (detalle.portalMostrarFinanzas ? 'admin.orgs.visibles' : 'admin.orgs.ocultas') | t }}</span>
           </div>
           <div class="admin-kv-item">
-            <small>Acceso operativo (Organizacion.suspendidaEn)</small>
+            <small>{{ 'admin.orgs.detalleAccesoOperativo' | t }}</small>
             <span class="admin-badge" [ngClass]="estaSuspendida(detalle) ? 'admin-badge-coral' : 'admin-badge-green'">
-              {{ estaSuspendida(detalle) ? 'Acceso suspendido' : 'Acceso activo' }}
+              {{ (estaSuspendida(detalle) ? 'admin.orgs.accesoSuspendido' : 'admin.orgs.accesoActivo') | t }}
             </span>
           </div>
           <div class="admin-kv-item">
-            <small>Suscripción manual (SuscripcionOrganizacion)</small>
+            <small>{{ 'admin.orgs.detalleSuscripcionManual' | t }}</small>
             <span class="admin-badge" [ngClass]="claseEstado(detalle.suscripcion.estado)">
-              {{ etiquetasEstado[detalle.suscripcion.estado] }}
+              {{ clavesEstado[detalle.suscripcion.estado] | t }}
             </span>
           </div>
         </div>
 
         <div *ngIf="estaSuspendida(detalle) && detalle.motivoSuspension" class="admin-error-banner" style="margin-bottom: 16px;">
-          <span>Motivo de suspensión: {{ detalle.motivoSuspension }} ({{ formatearFecha(detalle.suspendidaEn) }})</span>
+          <span>{{ 'admin.orgs.motivoSuspension' | t:{ motivo: detalle.motivoSuspension, fecha: formatearFecha(detalle.suspendidaEn) } }}</span>
         </div>
 
-        <h3 class="admin-card-title" style="margin-bottom: 10px;">Miembros ({{ detalle.miembros.length }})</h3>
+        <h3 class="admin-card-title" style="margin-bottom: 10px;">
+          {{ 'admin.orgs.miembrosTitulo' | t:{ count: formatearNumero(detalle.miembros.length) } }}
+        </h3>
         <div class="admin-table-wrap" style="margin-bottom: 18px;">
           <table class="admin-table">
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Correo</th>
-                <th>Rol</th>
-                <th>Último acceso</th>
-                <th *ngIf="esAdminGlobal">Acciones</th>
+                <th>{{ 'admin.orgs.colNombre' | t }}</th>
+                <th>{{ 'admin.orgs.colCorreo' | t }}</th>
+                <th>{{ 'admin.orgs.colRol' | t }}</th>
+                <th>{{ 'admin.orgs.colUltimoAcceso' | t }}</th>
+                <th *ngIf="esAdminGlobal">{{ 'admin.comun.acciones' | t }}</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let m of detalle.miembros">
-                <td data-label="Nombre">{{ m.usuario.nombre }} {{ m.usuario.apellido || '' }}</td>
-                <td data-label="Correo">{{ m.usuario.correo }}</td>
-                <td data-label="Rol"><span class="admin-badge admin-badge-blue">{{ m.rol }}</span></td>
-                <td data-label="Último acceso">{{ formatearFecha(m.usuario.ultimoAccesoEn) }}</td>
-                <td *ngIf="esAdminGlobal" data-label="Acciones">
+                <td [attr.data-label]="'admin.orgs.colNombre' | t">{{ m.usuario.nombre }} {{ m.usuario.apellido || '' }}</td>
+                <td [attr.data-label]="'admin.orgs.colCorreo' | t">{{ m.usuario.correo }}</td>
+                <td [attr.data-label]="'admin.orgs.colRol' | t"><span class="admin-badge admin-badge-blue">{{ m.rol }}</span></td>
+                <td [attr.data-label]="'admin.orgs.colUltimoAcceso' | t">{{ formatearFecha(m.usuario.ultimoAccesoEn) }}</td>
+                <td *ngIf="esAdminGlobal" [attr.data-label]="'admin.comun.acciones' | t">
                   <button type="button" class="admin-btn-sm" (click)="pedirCambiarRol(detalle.id, m)">
-                    Cambiar a {{ m.rol === 'PROPIETARIO' ? 'COLABORADOR' : 'PROPIETARIO' }}
+                    {{ 'admin.orgs.cambiarA' | t:{ rol: m.rol === 'PROPIETARIO' ? 'COLABORADOR' : 'PROPIETARIO' } }}
                   </button>
                 </td>
               </tr>
@@ -438,17 +438,17 @@
             class="admin-btn-sm danger"
             *ngIf="esAdminGlobal && !estaSuspendida(detalle)"
             (click)="pedirSuspender(detalle)">
-            Suspender acceso
+            {{ 'admin.orgs.suspenderAcceso' | t }}
           </button>
           <button
             type="button"
             class="admin-btn-sm primary"
             *ngIf="esAdminGlobal && estaSuspendida(detalle)"
             (click)="pedirReactivar(detalle)">
-            Reactivar acceso
+            {{ 'admin.orgs.reactivarAcceso' | t }}
           </button>
-          <button type="button" class="btn-secondary" (click)="cerrarDetalle()">Cerrar</button>
-          <button *ngIf="esAdminGlobal" type="button" class="btn-primary" (click)="iniciarEdicion()">Editar metadatos</button>
+          <button type="button" class="btn-secondary" (click)="cerrarDetalle()">{{ 'admin.comun.cerrar' | t }}</button>
+          <button *ngIf="esAdminGlobal" type="button" class="btn-primary" (click)="iniciarEdicion()">{{ 'admin.orgs.editarMetadatos' | t }}</button>
         </div>
       </ng-container>
 
@@ -457,45 +457,45 @@
 
         <div class="admin-grid-2">
           <div class="form-group">
-            <label for="edit-org-nombre">Nombre del estudio</label>
+            <label for="edit-org-nombre">{{ 'admin.orgs.editNombre' | t }}</label>
             <input id="edit-org-nombre" name="nombre" class="form-control" [(ngModel)]="formEdicion.nombre" required />
           </div>
           <div class="form-group">
-            <label for="edit-org-correo">Correo de contacto</label>
+            <label for="edit-org-correo">{{ 'admin.orgs.detalleCorreo' | t }}</label>
             <input id="edit-org-correo" name="correoContacto" type="email" class="form-control" [(ngModel)]="formEdicion.correoContacto" />
           </div>
           <div class="form-group">
-            <label for="edit-org-ruc">RUC</label>
+            <label for="edit-org-ruc">{{ 'admin.orgs.detalleRuc' | t }}</label>
             <input id="edit-org-ruc" name="ruc" class="form-control" [(ngModel)]="formEdicion.ruc" />
           </div>
           <div class="form-group">
-            <label for="edit-org-moneda">Moneda (3 letras)</label>
+            <label for="edit-org-moneda">{{ 'admin.orgs.editMoneda' | t }}</label>
             <input id="edit-org-moneda" name="moneda" maxlength="3" class="form-control" [(ngModel)]="formEdicion.moneda" required />
           </div>
           <div class="form-group">
-            <label for="edit-org-tipo">Modalidad</label>
+            <label for="edit-org-tipo">{{ 'admin.orgs.colModalidad' | t }}</label>
             <select id="edit-org-tipo" name="tipoFreelance" class="form-control" [(ngModel)]="formEdicion.tipoFreelance">
-              <option *ngFor="let t of tipos" [value]="t">{{ etiquetasTipo[t] }}</option>
+              <option *ngFor="let t of tipos" [value]="t">{{ clavesTipo[t] | t }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="edit-org-finanzas">Finanzas en portal</label>
+            <label for="edit-org-finanzas">{{ 'admin.orgs.detalleFinanzasPortal' | t }}</label>
             <select id="edit-org-finanzas" name="portalMostrarFinanzas" class="form-control" [(ngModel)]="formEdicion.portalMostrarFinanzas">
-              <option [ngValue]="true">Visibles</option>
-              <option [ngValue]="false">Ocultas</option>
+              <option [ngValue]="true">{{ 'admin.orgs.visibles' | t }}</option>
+              <option [ngValue]="false">{{ 'admin.orgs.ocultas' | t }}</option>
             </select>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="edit-org-motivo">Motivo administrativo (auditoría)</label>
-          <input id="edit-org-motivo" name="motivo" class="form-control" [(ngModel)]="formEdicion.motivo" placeholder="Opcional, se registra en auditoría" />
+          <label for="edit-org-motivo">{{ 'admin.comun.motivoAuditoriaLabel' | t }}</label>
+          <input id="edit-org-motivo" name="motivo" class="form-control" [(ngModel)]="formEdicion.motivo" [placeholder]="'admin.orgs.motivoPlaceholder' | t" />
         </div>
 
         <div class="admin-modal-footer">
-          <button type="button" class="btn-secondary" (click)="editando = false" [disabled]="guardandoEdicion">Cancelar</button>
+          <button type="button" class="btn-secondary" (click)="editando = false" [disabled]="guardandoEdicion">{{ 'admin.comun.cancelar' | t }}</button>
           <button type="submit" class="btn-primary" [disabled]="guardandoEdicion">
-            {{ guardandoEdicion ? 'Guardando...' : 'Guardar cambios' }}
+            {{ (guardandoEdicion ? 'admin.comun.guardando' : 'admin.orgs.guardarCambios') | t }}
           </button>
         </div>
       </form>
@@ -512,7 +512,7 @@
       (click)="$event.stopPropagation()">
       <div class="admin-modal-header">
         <h2 id="confirm-org-titulo" class="admin-modal-title">{{ c.titulo }}</h2>
-        <button type="button" class="admin-modal-close" (click)="confirmacion = null" aria-label="Cerrar">✕</button>
+        <button type="button" class="admin-modal-close" (click)="confirmacion = null" [attr.aria-label]="'admin.comun.cerrar' | t">✕</button>
       </div>
       <p style="font-size: 13px; color: var(--ink-secondary); margin: 0 0 16px;">{{ c.descripcion }}</p>
 
@@ -520,25 +520,25 @@
 
       <div class="form-group">
         <label for="org-confirm-motivo">
-          Motivo {{ c.motivoRequerido ? '(requerido, mín. 3 caracteres)' : '(opcional, auditoría)' }}
+          {{ (c.motivoRequerido ? 'admin.orgs.motivoRequeridoLabel' : 'admin.orgs.motivoOpcionalLabel') | t }}
         </label>
         <input
           id="org-confirm-motivo"
           name="motivo"
           class="form-control"
           [(ngModel)]="c.motivo"
-          placeholder="Describe el motivo administrativo" />
+          [placeholder]="'admin.orgs.describeMotivoPlaceholder' | t" />
       </div>
 
       <div class="admin-modal-footer">
-        <button type="button" class="btn-secondary" (click)="confirmacion = null" [disabled]="ejecutandoConfirm">Cancelar</button>
+        <button type="button" class="btn-secondary" (click)="confirmacion = null" [disabled]="ejecutandoConfirm">{{ 'admin.comun.cancelar' | t }}</button>
         <button
           type="button"
           class="btn-primary"
           [class.orgs-btn-danger]="c.tipo === 'SUSPENDER'"
           (click)="ejecutarConfirmacion()"
           [disabled]="ejecutandoConfirm">
-          {{ ejecutandoConfirm ? 'Aplicando...' : 'Confirmar' }}
+          {{ (ejecutandoConfirm ? 'admin.comun.aplicando' : 'admin.comun.confirmar') | t }}
         </button>
       </div>
     </div>

@@ -3,12 +3,13 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { WorkMapComponent } from '../shared/work-map.component';
 import { ProjectInspectorComponent } from '../shared/project-inspector.component';
+import { TPipe } from '../shared/t.pipe';
 import { UiStateService } from '../state/ui-state.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, WorkMapComponent, ProjectInspectorComponent],
+  imports: [CommonModule, FormsModule, WorkMapComponent, ProjectInspectorComponent, TPipe],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })

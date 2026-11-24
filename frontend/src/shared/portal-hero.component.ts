@@ -1,15 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
+import { TPipe } from './t.pipe';
 
 @Component({
   selector: 'app-portal-hero',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TPipe],
   template: `
     <header
       class="portal-hero"
       [class.portal-hero-compact]="compact"
-      aria-label="Cabecera del estudio"
+      [attr.aria-label]="'portal.hero.cabeceraAria' | t"
       [style.backgroundColor]="colorSecundario"
       [style.--portal-primary]="colorPrimario"
       [style.--portal-secondary]="colorSecundario"
@@ -19,11 +20,11 @@ import { Component, Input } from '@angular/core';
       <div class="hero-text-pane">
         <span class="hero-eyebrow">
           <span class="hero-eyebrow-dot" aria-hidden="true"></span>
-          {{ esFotografia ? 'PORTAL DE FOTOGRAFÍA' : 'PORTAL DEL CLIENTE' }}
+          {{ (esFotografia ? 'portal.hero.eyebrowFotografia' : 'portal.hero.eyebrowCliente') | t }}
         </span>
         <h1 class="hero-studio-name">{{ nombreEstudio }}</h1>
         <p class="hero-tagline">
-          {{ esFotografia ? 'Un espacio para tus fotografías.' : 'Un espacio para tus proyectos y entregables.' }}
+          {{ (esFotografia ? 'portal.hero.taglineFotografia' : 'portal.hero.taglineGeneral') | t }}
         </p>
       </div>
 
@@ -35,7 +36,7 @@ import { Component, Input } from '@angular/core';
           preserveAspectRatio="xMidYMid slice"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
-          aria-label="Estudio de fotografía"
+          [attr.aria-label]="'portal.hero.svgFotografiaAria' | t"
         >
           <defs>
             <linearGradient id="windowGlow" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -130,7 +131,7 @@ import { Component, Input } from '@angular/core';
           preserveAspectRatio="xMidYMid slice"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
-          aria-label="Espacio de trabajo"
+          [attr.aria-label]="'portal.hero.svgGeneralAria' | t"
         >
           <g opacity="0.45" transform="translate(260, 25)">
             <rect x="40" y="10" width="200" height="135" rx="8" fill="#1e2229" stroke="#374151" stroke-width="1.5" />

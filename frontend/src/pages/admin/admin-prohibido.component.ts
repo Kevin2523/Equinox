@@ -2,26 +2,24 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
+import { TPipe } from '../../shared/t.pipe';
 
 @Component({
   selector: 'app-admin-prohibido',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TPipe],
   template: `
     <main class="prohibido-shell" role="main" aria-labelledby="titulo-403">
       <section class="prohibido-card">
-        <span class="prohibido-code">ERROR 403</span>
-        <h1 id="titulo-403">Acceso restringido al panel Superadmin</h1>
-        <p>
-          Tu sesión actual no tiene privilegios de <strong>ADMIN_GLOBAL</strong> ni verificación MFA administrativa.
-          Esta zona está aislada de los espacios de trabajo de organizaciones y clientes.
-        </p>
+        <span class="prohibido-code">{{ 'admin.prohibido.codigo' | t }}</span>
+        <h1 id="titulo-403">{{ 'admin.prohibido.titulo' | t }}</h1>
+        <p>{{ 'admin.prohibido.descripcion' | t }}</p>
         <div class="prohibido-actions">
           <button type="button" class="btn-primary" (click)="volverEspacio()">
-            Volver a mi espacio
+            {{ 'admin.prohibido.volverEspacio' | t }}
           </button>
           <button type="button" class="btn-secondary" (click)="cambiarCuenta()" [disabled]="cambiando">
-            {{ cambiando ? 'Cerrando sesión...' : 'Iniciar sesión como administrador' }}
+            {{ (cambiando ? 'admin.prohibido.cerrandoSesion' : 'admin.prohibido.iniciarAdmin') | t }}
           </button>
         </div>
       </section>

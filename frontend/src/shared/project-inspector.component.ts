@@ -5,6 +5,8 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ClientesProyectosApiService, EstadoProyectoApi, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import { TrabajoApiService, TareaApi, HitoApi, progresoTareas } from '../services/trabajo-api.service';
+import { I18nService } from '../state/i18n.service';
+import { TPipe } from './t.pipe';
 import { UiStateService } from '../state/ui-state.service';
 
 export interface HitoVisual {
@@ -18,7 +20,7 @@ export interface HitoVisual {
 @Component({
   selector: 'app-project-inspector',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TPipe],
   templateUrl: './project-inspector.component.html',
   styleUrls: ['./project-inspector.component.css']
 })
@@ -36,8 +38,20 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
     public api: ClientesProyectosApiService,
     public trabajoApi: TrabajoApiService,
     public state: UiStateService,
-    private router: Router
+    private router: Router,
+    private i18n?: I18nService
   ) {}
+
+  private t(key: string, params?: Record<string, string | number>, fallback = key): string {
+    if (this.i18n) {
+      return this.i18n.t(key, params);
+    }
+    if (!params) return fallback;
+    return fallback.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) => {
+      const value = params[name];
+      return value !== undefined && value !== null ? String(value) : match;
+    });
+  }
 
   ngOnInit(): void {
     this.subProyecto = this.api.proyectoSeleccionado$.subscribe((p) => {
@@ -83,18 +97,18 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
     if (!sel) return '';
     if (sel.descripcion?.trim()) return sel.descripcion.trim();
     if (sel.cliente?.empresa) return sel.cliente.empresa;
-    if (sel.cliente?.nombre) return `Cliente: ${sel.cliente.nombre}`;
-    return 'Servicios profesionales';
+    if (sel.cliente?.nombre) return this.t('crm.projectInspector.clientePrefijo', { nombre: sel.cliente.nombre }, `Cliente: ${sel.cliente.nombre}`);
+    return this.t('crm.projectInspector.serviciosProfesionales', undefined, 'Servicios profesionales');
   }
 
   estadoLegible(estado?: string): string {
     switch (estado) {
-      case 'ACTIVO': return 'En desarrollo';
-      case 'COMPLETADO': return 'Completado';
-      case 'PAUSADO': return 'En pausa';
-      case 'BORRADOR': return 'Borrador';
-      case 'CANCELADO': return 'Cancelado';
-      default: return estado ? estado.toLowerCase() : 'En desarrollo';
+      case 'ACTIVO': return this.t('crm.projectInspector.estadoActivo', undefined, 'En desarrollo');
+      case 'COMPLETADO': return this.t('crm.projectInspector.estadoCompletado', undefined, 'Completado');
+      case 'PAUSADO': return this.t('crm.projectInspector.estadoPausado', undefined, 'En pausa');
+      case 'BORRADOR': return this.t('crm.projectInspector.estadoBorrador', undefined, 'Borrador');
+      case 'CANCELADO': return this.t('crm.projectInspector.estadoCancelado', undefined, 'Cancelado');
+      default: return estado ? estado.toLowerCase() : this.t('crm.projectInspector.estadoActivo', undefined, 'En desarrollo');
     }
   }
 
@@ -121,6 +135,9 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
     if (!sel?.fechaEntrega) return '';
     const d = new Date(sel.fechaEntrega);
     if (isNaN(d.getTime())) return '';
+    if (this.i18n) {
+      return this.i18n.formatearFecha(d, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).toUpperCase();
+    }
     const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
     const dia = d.getUTCDate();
     const mes = meses[d.getUTCMonth()];
@@ -130,6 +147,9 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
 
   formatearFechaCorta(d: Date): string {
     if (!d || isNaN(d.getTime())) return '';
+    if (this.i18n) {
+      return this.i18n.formatearFecha(d, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    }
     const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     const dia = d.getUTCDate();
     const mes = meses[d.getUTCMonth()];
@@ -167,7 +187,7 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
       this.tareas = tareasRes.status === 'fulfilled' ? tareasRes.value : [];
 
       if (hitosRes.status === 'rejected') {
-        this.errorHitos = 'No se pudieron cargar los hitos del proyecto.';
+        this.errorHitos = this.t('crm.projectInspector.errorHitos', undefined, 'No se pudieron cargar los hitos del proyecto.');
         this.hitos = [];
         return;
       }
@@ -177,21 +197,26 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
       if (hitosApi.length > 0) {
         this.hitos = hitosApi.map((h, i) => {
           let estadoVisual: 'COMPLETADO' | 'EN_CURSO' | 'PENDIENTE' = 'PENDIENTE';
-          let meta = 'Pendiente';
+          let meta = this.t('crm.projectInspector.hitoPendiente', undefined, 'Pendiente');
           if (h.estado === 'COMPLETADO') {
             estadoVisual = 'COMPLETADO';
             if (h.completadoEn) {
-              meta = `Completado · ${this.formatearFechaCorta(new Date(h.completadoEn))}`;
+              const fecha = this.formatearFechaCorta(new Date(h.completadoEn));
+              meta = this.t('crm.projectInspector.hitoCompletadoFecha', { fecha }, `Completado · ${fecha}`);
             } else {
-              meta = 'Completado';
+              meta = this.t('crm.projectInspector.hitoCompletado', undefined, 'Completado');
             }
           } else if (h.estado === 'EN_PROGRESO') {
             estadoVisual = 'EN_CURSO';
-            meta = h.fechaObjetivo
-              ? `En curso · Meta: ${this.formatearFechaCorta(new Date(h.fechaObjetivo))}`
-              : 'En curso';
+            if (h.fechaObjetivo) {
+              const fecha = this.formatearFechaCorta(new Date(h.fechaObjetivo));
+              meta = this.t('crm.projectInspector.hitoEnCursoMeta', { fecha }, `En curso · Meta: ${fecha}`);
+            } else {
+              meta = this.t('crm.projectInspector.hitoEnCurso', undefined, 'En curso');
+            }
           } else if (h.fechaObjetivo) {
-            meta = `Meta: ${this.formatearFechaCorta(new Date(h.fechaObjetivo))}`;
+            const fecha = this.formatearFechaCorta(new Date(h.fechaObjetivo));
+            meta = this.t('crm.projectInspector.hitoMeta', { fecha }, `Meta: ${fecha}`);
           }
 
           return {
@@ -290,10 +315,12 @@ export class ProjectInspectorComponent implements OnInit, OnDestroy {
 
     if (diffDias < 0) {
       const diasVencido = Math.abs(diffDias);
-      return `Venció hace ${diasVencido} ${diasVencido === 1 ? 'día' : 'días'}`;
+      return diasVencido === 1
+        ? this.t('crm.projectInspector.vencioUno', undefined, 'Venció hace 1 día')
+        : this.t('crm.projectInspector.vencioVarios', { dias: diasVencido }, `Venció hace ${diasVencido} días`);
     }
-    if (diffDias === 0) return 'Vence hoy';
-    if (diffDias === 1) return 'Vence mañana';
-    return `${diffDias} días restantes`;
+    if (diffDias === 0) return this.t('crm.projectInspector.venceHoy', undefined, 'Vence hoy');
+    if (diffDias === 1) return this.t('crm.projectInspector.venceManana', undefined, 'Vence mañana');
+    return this.t('crm.projectInspector.diasRestantes', { dias: diffDias }, `${diffDias} días restantes`);
   }
 }

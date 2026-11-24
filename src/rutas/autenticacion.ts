@@ -158,6 +158,7 @@ const cuentaRegistro = z.object({
     .enum(["GENERAL", "DESARROLLO_SOFTWARE", "FOTOGRAFIA", "DISENO_GRAFICO"])
     .optional()
     .default("GENERAL"),
+  idioma: z.enum(["es", "en", "pt"]).optional(),
 });
 
 const seleccionContexto = z.discriminatedUnion("tipoAcceso", [
@@ -223,6 +224,7 @@ rutasAutenticacion.post(
             contrasenaHash,
             nombre: datos.nombre,
             apellido: datos.apellido,
+            ...(datos.idioma ? { idioma: datos.idioma } : {}),
           },
         });
 
@@ -270,6 +272,7 @@ rutasAutenticacion.post(
             correo: usuario.correo,
             nombre: usuario.nombre,
             apellido: usuario.apellido,
+            idioma: usuario.idioma,
           },
           organizacion: {
             id: organizacion.id,
@@ -561,6 +564,7 @@ rutasAutenticacion.post(
           correo: usuario.correo,
           nombre: usuario.nombre,
           apellido: usuario.apellido,
+          idioma: usuario.idioma,
         },
       });
     } catch (err) {
@@ -614,6 +618,7 @@ rutasAutenticacion.get("/yo", exigirAutenticacion, async (req: SolicitudAutentic
         telefono: true,
         avatarUrl: true,
         zonaHoraria: true,
+        idioma: true,
         rolPlataforma: true,
         mfaHabilitado: true,
       },

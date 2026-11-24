@@ -1,6 +1,6 @@
 <header class="admin-topnav">
   <div class="admin-brand-group">
-    <a class="admin-brand" routerLink="/admin/resumen" aria-label="Panel Superadmin Equinox">
+    <a class="admin-brand" routerLink="/admin/resumen" [attr.aria-label]="'admin.shell.brandAria' | t">
       <span class="admin-brand-icon" aria-hidden="true">
         <svg viewBox="0 0 32 32" fill="none">
           <circle cx="16" cy="16" r="14" stroke="#ffffff" stroke-width="2.5"/>
@@ -9,20 +9,36 @@
       </span>
       <strong>equinox</strong>
     </a>
-    <span class="admin-pill">SUPERADMIN</span>
+    <span class="admin-pill">{{ 'admin.shell.badge' | t }}</span>
   </div>
 
-  <nav class="admin-nav-center" aria-label="Navegación de administración">
+  <nav class="admin-nav-center" [attr.aria-label]="'admin.shell.navAria' | t">
     <a
       *ngFor="let item of enlaces"
       [routerLink]="item.ruta"
       routerLinkActive="active"
       class="admin-nav-link">
-      {{ item.etiqueta }}
+      {{ item.clave | t }}
     </a>
   </nav>
 
   <div class="admin-nav-actions">
+    <div class="admin-lang-wrap">
+      <label class="admin-sr-only" for="admin-shell-lang">{{ 'admin.shell.idiomaLabel' | t }}</label>
+      <select
+        #adminLangSelect
+        id="admin-shell-lang"
+        class="admin-lang-select"
+        [value]="i18n.locale()"
+        [disabled]="guardandoIdioma || cerrandoSesion"
+        [attr.aria-label]="'admin.shell.idiomaLabel' | t"
+        (change)="cambiarIdioma($any($event.target).value, adminLangSelect)">
+        <option *ngFor="let lang of i18n.idiomasDisponibles" [value]="lang.codigo">
+          {{ lang.etiquetaCorta }} · {{ lang.nombreNativo }}
+        </option>
+      </select>
+    </div>
+
     <div class="admin-user-chip" *ngIf="auth.sesion?.usuario as usuario">
       <span class="admin-avatar" aria-hidden="true">{{ obtenerIniciales() }}</span>
       <div class="admin-user-meta">
@@ -36,7 +52,7 @@
       class="admin-logout-btn"
       (click)="cerrarSesion()"
       [disabled]="cerrandoSesion">
-      {{ cerrandoSesion ? 'Saliendo...' : 'Cerrar sesión' }}
+      {{ (cerrandoSesion ? 'admin.shell.saliendo' : 'admin.shell.cerrarSesion') | t }}
     </button>
 
     <button
@@ -44,23 +60,27 @@
       class="admin-mobile-toggle"
       (click)="menuMovilAbierto = !menuMovilAbierto"
       [attr.aria-expanded]="menuMovilAbierto"
-      aria-label="Abrir menú de administración">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      [attr.aria-label]="'admin.shell.abrirMenuAria' | t">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <path d="M4 6h16M4 12h16M4 18h16"/>
       </svg>
     </button>
   </div>
 </header>
 
+<div *ngIf="errorIdioma" class="admin-lang-error" role="alert">
+  {{ errorIdioma }}
+</div>
+
 <div class="admin-mobile-drawer" *ngIf="menuMovilAbierto">
-  <nav aria-label="Navegación móvil de administración" class="admin-mobile-nav">
+  <nav [attr.aria-label]="'admin.shell.navMovilAria' | t" class="admin-mobile-nav">
     <a
       *ngFor="let item of enlaces"
       [routerLink]="item.ruta"
       routerLinkActive="active"
       class="admin-mobile-link"
       (click)="menuMovilAbierto = false">
-      {{ item.etiqueta }}
+      {{ item.clave | t }}
     </a>
   </nav>
 </div>

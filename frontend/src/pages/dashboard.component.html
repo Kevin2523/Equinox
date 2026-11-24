@@ -3,12 +3,12 @@
   <app-project-inspector></app-project-inspector>
 </main>
 
-<nav class="mobile-hoy-dock" aria-label="Acciones rápidas de Hoy">
+<nav class="mobile-hoy-dock" [attr.aria-label]="'crm.dashboard.dockAria' | t">
   <button
     type="button"
     class="mobile-hoy-dock__icon-btn"
-    aria-label="Buscar"
-    title="Buscar"
+    [attr.aria-label]="'crm.dashboard.buscar' | t"
+    [title]="'crm.dashboard.buscar' | t"
     (click)="state.openSearch()"
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -22,13 +22,13 @@
   <button
     type="button"
     class="mobile-hoy-dock__create-btn"
-    aria-label="Crear proyecto"
+    [attr.aria-label]="'crm.dashboard.crearProyecto' | t"
     (click)="state.openQuickCreate('Proyecto')"
   >
     <svg class="mobile-hoy-dock__plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
       <path d="M12 5v14M5 12h14" />
     </svg>
-    <span>Crear</span>
+    <span>{{ 'crm.dashboard.crear' | t }}</span>
   </button>
 
   <span class="mobile-hoy-dock__divider" aria-hidden="true"></span>
@@ -36,8 +36,8 @@
   <button
     type="button"
     class="mobile-hoy-dock__icon-btn"
-    aria-label="Ver proyectos"
-    title="Ver proyectos"
+    [attr.aria-label]="'crm.dashboard.verProyectos' | t"
+    [title]="'crm.dashboard.verProyectos' | t"
     (click)="state.navigate('proyectos')"
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

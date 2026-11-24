@@ -1,13 +1,13 @@
 <main class="register-page">
   <!-- Panel izquierdo: Azul marino oscuro con marca, titular grande y anillos 3D -->
-  <aside class="hero-panel" aria-label="Presentación de Equinox">
+  <aside class="hero-panel" [attr.aria-label]="'publico.comun.heroPresentacionAria' | t">
     <div class="hero-header">
       <div class="hero-brand">
         <span class="brand-mark" aria-hidden="true"></span>
-        <span class="brand-text">equinox</span>
+        <span class="brand-text">{{ 'publico.comun.marca' | t }}</span>
       </div>
-      <h1 class="hero-title">Dale espacio<br>a tus ideas.</h1>
-      <p class="hero-subtitle">Tu estudio, tus clientes y tu trabajo.<br>Todo conectado.</p>
+      <h1 class="hero-title">{{ 'publico.registro.heroTituloLinea1' | t }}<br>{{ 'publico.registro.heroTituloLinea2' | t }}</h1>
+      <p class="hero-subtitle">{{ 'publico.registro.heroSubtituloLinea1' | t }}<br>{{ 'publico.registro.heroSubtituloLinea2' | t }}</p>
     </div>
 
     <!-- Ilustración de dos grandes anillos metálicos 3D azul y dorado -->
@@ -106,43 +106,55 @@
     </div>
 
     <div class="hero-footer">
-      <span class="hero-tag">EQUINOX / CRM PARA FREELANCERS</span>
+      <span class="hero-tag">{{ 'publico.comun.heroTag' | t }}</span>
     </div>
   </aside>
 
   <!-- Panel derecho: Fondo claro con símbolo, título, secciones y formulario -->
-  <section class="form-panel" aria-label="Formulario de creación de cuenta">
+  <section class="form-panel" [attr.aria-label]="'publico.registro.formAria' | t">
     <div class="form-container">
       <div class="form-top-bar">
         <div class="form-brand-icon" aria-hidden="true">
           <span class="brand-mark"></span>
         </div>
         <div class="top-nav-bar">
-          <span class="top-nav-text">¿Ya tienes cuenta?</span>
-          <a routerLink="/inicio-sesion" class="top-nav-link">Inicia sesión</a>
+          <div class="preauth-lang-bar" role="group" [attr.aria-label]="'publico.comun.seleccionarIdioma' | t">
+            <button
+              *ngFor="let idioma of i18n.idiomasDisponibles"
+              type="button"
+              class="preauth-lang-btn"
+              [class.active]="i18n.locale() === idioma.codigo"
+              [attr.aria-pressed]="i18n.locale() === idioma.codigo"
+              (click)="i18n.establecerIdiomaLocal(idioma.codigo)"
+            >
+              {{ idioma.etiquetaCorta }}
+            </button>
+          </div>
+          <span class="top-nav-text">{{ 'publico.registro.yaTienesCuenta' | t }}</span>
+          <a routerLink="/inicio-sesion" class="top-nav-link">{{ 'publico.registro.iniciaSesion' | t }}</a>
         </div>
       </div>
 
       <header class="form-header">
-        <h2 class="form-title">Crea tu cuenta</h2>
-        <p class="form-subtitle">Empieza por ti. Después, dale nombre a tu estudio.</p>
+        <h2 class="form-title">{{ 'publico.registro.titulo' | t }}</h2>
+        <p class="form-subtitle">{{ 'publico.registro.subtitulo' | t }}</p>
       </header>
 
       <p class="auth-error-banner" role="alert" *ngIf="!apiDisponible">
-        La API no está configurada para este entorno. Contacta al administrador de Equinox.
+        {{ 'publico.comun.apiNoConfigurada' | t }}
       </p>
 
       <form #form="ngForm" (ngSubmit)="registrar(form)" class="register-form" novalidate>
         <!-- 01 Tus datos -->
         <div class="form-section-header form-section-first">
           <span class="section-badge">01</span>
-          <span class="section-title">Tus datos</span>
+          <span class="section-title">{{ 'publico.registro.seccionDatos' | t }}</span>
           <div class="section-divider-line" aria-hidden="true"></div>
         </div>
 
         <div class="form-grid-2">
           <div class="form-group">
-            <label for="nombre" class="form-label">Nombre</label>
+            <label for="nombre" class="form-label">{{ 'publico.registro.nombreLabel' | t }}</label>
             <input
               id="nombre"
               class="form-input"
@@ -153,17 +165,17 @@
               required
               minlength="2"
               autocomplete="given-name"
-              placeholder="Tu nombre"
+              [placeholder]="'publico.registro.nombrePlaceholder' | t"
               #nombreControl="ngModel"
               [disabled]="cargando"
             >
             <small class="auth-validation" *ngIf="nombreControl.invalid && (nombreControl.touched || enviado)">
-              Introduce tu nombre (mínimo 2 caracteres).
+              {{ 'publico.registro.nombreInvalido' | t }}
             </small>
           </div>
 
           <div class="form-group">
-            <label for="apellido" class="form-label">Apellido (opcional)</label>
+            <label for="apellido" class="form-label">{{ 'publico.registro.apellidoLabel' | t }}</label>
             <input
               id="apellido"
               class="form-input"
@@ -171,14 +183,14 @@
               name="apellido"
               [(ngModel)]="datos.apellido"
               autocomplete="family-name"
-              placeholder="Tu apellido"
+              [placeholder]="'publico.registro.apellidoPlaceholder' | t"
               [disabled]="cargando"
             >
           </div>
         </div>
 
         <div class="form-group">
-          <label for="correo" class="form-label">Correo electrónico</label>
+          <label for="correo" class="form-label">{{ 'publico.comun.correoLabel' | t }}</label>
           <input
             id="correo"
             class="form-input"
@@ -189,17 +201,17 @@
             required
             email
             autocomplete="email"
-            placeholder="tu@correo.com"
+            [placeholder]="'publico.comun.correoPlaceholder' | t"
             #correoControl="ngModel"
             [disabled]="cargando"
           >
           <small class="auth-validation" *ngIf="correoControl.invalid && (correoControl.touched || enviado)">
-            Introduce un correo electrónico válido.
+            {{ 'publico.comun.correoInvalido' | t }}
           </small>
         </div>
 
         <div class="form-group">
-          <label for="contrasena" class="form-label">Contraseña</label>
+          <label for="contrasena" class="form-label">{{ 'publico.comun.contrasenaLabel' | t }}</label>
           <div class="password-input-wrapper" [class.input-error]="claveControl.invalid && (claveControl.touched || enviado)">
             <input
               id="contrasena"
@@ -210,7 +222,7 @@
               required
               minlength="8"
               autocomplete="new-password"
-              placeholder="Crea una contraseña"
+              [placeholder]="'publico.registro.contrasenaPlaceholder' | t"
               #claveControl="ngModel"
               [disabled]="cargando"
             >
@@ -218,7 +230,7 @@
               type="button"
               class="password-toggle-btn"
               (click)="alternarMostrarContrasena()"
-              [attr.aria-label]="mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-label]="mostrarContrasena ? ('publico.comun.ocultarContrasena' | t) : ('publico.comun.mostrarContrasena' | t)"
               [attr.aria-pressed]="mostrarContrasena"
             >
               <svg *ngIf="!mostrarContrasena" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -231,23 +243,23 @@
             </button>
           </div>
           <span class="form-helper" *ngIf="!claveControl.invalid || (!claveControl.touched && !enviado)">
-            Al menos 8 caracteres.
+            {{ 'publico.registro.contrasenaAyuda' | t }}
           </span>
           <small class="auth-validation" *ngIf="claveControl.invalid && (claveControl.touched || enviado)">
-            La contraseña debe tener al menos 8 caracteres.
+            {{ 'publico.registro.contrasenaInvalida' | t }}
           </small>
         </div>
 
         <!-- 02 Tu estudio -->
         <div class="form-section-header">
           <span class="section-badge">02</span>
-          <span class="section-title">Tu estudio</span>
+          <span class="section-title">{{ 'publico.registro.seccionEstudio' | t }}</span>
           <div class="section-divider-line" aria-hidden="true"></div>
         </div>
 
         <div class="form-grid-2">
           <div class="form-group">
-            <label for="nombre-estudio" class="form-label">Nombre del estudio</label>
+            <label for="nombre-estudio" class="form-label">{{ 'publico.registro.estudioLabel' | t }}</label>
             <input
               id="nombre-estudio"
               class="form-input"
@@ -259,17 +271,17 @@
               required
               minlength="2"
               autocomplete="organization"
-              placeholder="Ej. Mena Studios"
+              [placeholder]="'publico.registro.estudioPlaceholder' | t"
               #estudioControl="ngModel"
               [disabled]="cargando"
             >
             <small class="auth-validation" *ngIf="estudioControl.invalid && (estudioControl.touched || enviado)">
-              Introduce el nombre del estudio (mínimo 2 caracteres).
+              {{ 'publico.registro.estudioInvalido' | t }}
             </small>
           </div>
 
           <div class="form-group">
-            <label for="slug" class="form-label">Identificador del estudio</label>
+            <label for="slug" class="form-label">{{ 'publico.registro.slugLabel' | t }}</label>
             <input
               id="slug"
               class="form-input"
@@ -282,21 +294,21 @@
               minlength="2"
               pattern="[a-z0-9\-]+"
               autocomplete="off"
-              placeholder="mena-studios"
+              [placeholder]="'publico.registro.slugPlaceholder' | t"
               #slugControl="ngModel"
               [disabled]="cargando"
             >
             <span class="form-helper" *ngIf="!slugControl.invalid || (!slugControl.touched && !enviado)">
-              Minúsculas, números y guiones.
+              {{ 'publico.registro.slugAyuda' | t }}
             </span>
             <small class="auth-validation" *ngIf="slugControl.invalid && (slugControl.touched || enviado)">
-              Solo minúsculas, números y guiones (mínimo 2 caracteres).
+              {{ 'publico.registro.slugInvalido' | t }}
             </small>
           </div>
         </div>
 
         <div class="form-group form-group-last">
-          <label for="tipo-freelance" class="form-label">Especialidad</label>
+          <label for="tipo-freelance" class="form-label">{{ 'publico.registro.especialidadLabel' | t }}</label>
           <div class="select-wrapper">
             <select
               id="tipo-freelance"
@@ -305,10 +317,10 @@
               [(ngModel)]="datos.tipoFreelance"
               [disabled]="cargando"
             >
-              <option value="GENERAL">General / Multidisciplinario</option>
-              <option value="DESARROLLO_SOFTWARE">Desarrollo de Software</option>
-              <option value="FOTOGRAFIA">Fotografía</option>
-              <option value="DISENO_GRAFICO">Diseño Gráfico</option>
+              <option value="GENERAL">{{ 'publico.registro.especialidadGeneral' | t }}</option>
+              <option value="DESARROLLO_SOFTWARE">{{ 'publico.registro.especialidadSoftware' | t }}</option>
+              <option value="FOTOGRAFIA">{{ 'publico.registro.especialidadFotografia' | t }}</option>
+              <option value="DISENO_GRAFICO">{{ 'publico.registro.especialidadDiseno' | t }}</option>
             </select>
             <div class="select-chevron" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -316,21 +328,21 @@
               </svg>
             </div>
           </div>
-          <span class="form-helper">Adaptaremos tus herramientas a tu área.</span>
+          <span class="form-helper">{{ 'publico.registro.especialidadAyuda' | t }}</span>
         </div>
 
         <p class="auth-error" role="alert" *ngIf="error">{{ error }}</p>
 
         <button class="btn-submit" type="submit" [disabled]="cargando">
-          <span>{{ cargando ? 'Creando cuenta…' : 'Crear cuenta' }}</span>
+          <span>{{ cargando ? ('publico.registro.creandoCuenta' | t) : ('publico.registro.crearCuenta' | t) }}</span>
           <svg *ngIf="!cargando" class="btn-arrow" viewBox="0 0 20 20" fill="currentColor" width="18" height="18" aria-hidden="true">
             <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
           </svg>
         </button>
 
         <div class="mobile-login-prompt">
-          <span>¿Ya tienes cuenta?</span>
-          <a routerLink="/inicio-sesion" class="mobile-login-link">Inicia sesión</a>
+          <span>{{ 'publico.registro.yaTienesCuenta' | t }}</span>
+          <a routerLink="/inicio-sesion" class="mobile-login-link">{{ 'publico.registro.iniciaSesion' | t }}</a>
         </div>
       </form>
     </div>

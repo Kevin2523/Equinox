@@ -15,6 +15,8 @@ import {
 } from '../services/clientes-proyectos-api.service';
 import { AuthService } from '../auth/auth.service';
 import { DialogFocusDirective } from '../shared/dialog-focus.directive';
+import { TPipe } from '../shared/t.pipe';
+import { I18nService } from '../state/i18n.service';
 
 interface PeriodoOpcion {
   clave: string; // 'TODOS' o 'YYYY-MM'
@@ -35,7 +37,7 @@ interface ResumenMonetario {
 @Component({
   selector: 'app-finanzas',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogFocusDirective],
+  imports: [CommonModule, FormsModule, DialogFocusDirective, TPipe],
   templateUrl: './finanzas.component.html',
   styleUrl: './finanzas.component.css'
 })
@@ -114,8 +116,42 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   constructor(
     public facturasApi: FacturasApiService,
     public clientesApi: ClientesProyectosApiService,
-    public auth: AuthService
+    public auth: AuthService,
+    public i18n?: I18nService
   ) {}
+
+  private t(key: string, params?: Record<string, string | number>, fallback = key): string {
+    if (this.i18n) {
+      return this.i18n.t(key, params);
+    }
+    if (!params) return fallback;
+    return fallback.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) => {
+      const value = params[name];
+      return value !== undefined && value !== null ? String(value) : match;
+    });
+  }
+
+  etiquetaEstadoFactura(estado?: string): string {
+    switch (estado) {
+      case 'PAGADA': return this.t('crm.finanzas.estadoPagada', undefined, 'Pagada');
+      case 'VENCIDA': return this.t('crm.finanzas.estadoVencida', undefined, 'Vencida');
+      case 'CANCELADA': return this.t('crm.finanzas.estadoCancelada', undefined, 'Cancelada');
+      case 'BORRADOR': return this.t('crm.finanzas.estadoBorrador', undefined, 'Borrador');
+      case 'ENVIADA': return this.t('crm.finanzas.estadoPendiente', undefined, 'Pendiente');
+      default: return estado || '';
+    }
+  }
+
+  etiquetaMetodoPago(metodo?: string | null): string {
+    switch (metodo) {
+      case 'TRANSFERENCIA': return this.t('crm.finanzas.metodoTransferencia', undefined, 'Transferencia / ACH');
+      case 'EFECTIVO': return this.t('crm.finanzas.metodoEfectivo', undefined, 'Efectivo');
+      case 'TARJETA': return this.t('crm.finanzas.metodoTarjeta', undefined, 'Tarjeta de crédito / débito');
+      case 'CHEQUE': return this.t('crm.finanzas.metodoCheque', undefined, 'Cheque');
+      case 'OTRO': return this.t('crm.finanzas.metodoOtro', undefined, 'Otro');
+      default: return metodo || this.t('crm.finanzas.pagoDefecto', undefined, 'Pago');
+    }
+  }
 
   @HostListener('document:keydown.escape')
   cerrarModalConEscape(): void {
@@ -214,7 +250,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
 
       this.autoSeleccionarPeriodo();
     } catch (err: any) {
-      this.error = err?.error?.error || 'No se pudieron cargar los datos de facturación';
+      this.error = err?.error?.error || this.t('crm.finanzas.errorCargar', undefined, 'No se pudieron cargar los datos de facturación');
     } finally {
       this.cargando = false;
       this.cargandoPortalFinanzas = false;
@@ -229,7 +265,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       const res = await this.facturasApi.consultarPortalFinanzas();
       this.portalMostrarFinanzas = res.portalMostrarFinanzas;
     } catch (err: any) {
-      this.errorPortalFinanzas = err?.error?.error || 'No se pudo consultar la configuración del portal';
+      this.errorPortalFinanzas = err?.error?.error || this.t('crm.finanzas.errorConsultarPortal', undefined, 'No se pudo consultar la configuración del portal');
     } finally {
       this.cargandoPortalFinanzas = false;
     }
@@ -246,11 +282,11 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       this.portalMostrarFinanzas = res.portalMostrarFinanzas;
       this.mostrarToast(
         res.portalMostrarFinanzas
-          ? 'Facturas habilitadas en el portal del cliente'
-          : 'Facturas ocultadas en el portal del cliente'
+          ? this.t('crm.finanzas.toastPortalHabilitado', undefined, 'Facturas habilitadas en el portal del cliente')
+          : this.t('crm.finanzas.toastPortalOcultado', undefined, 'Facturas ocultadas en el portal del cliente')
       );
     } catch (err: any) {
-      this.errorPortalFinanzas = err?.error?.error || 'No se pudo actualizar la configuración del portal';
+      this.errorPortalFinanzas = err?.error?.error || this.t('crm.finanzas.errorActualizarPortal', undefined, 'No se pudo actualizar la configuración del portal');
     } finally {
       this.cargandoPortalFinanzas = false;
     }
@@ -274,16 +310,16 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       });
       this.mostrarToast(
         emitir
-          ? `Factura ${factura.numero} emitida y compartida en portal`
+          ? this.t('crm.finanzas.toastFacturaEmitida', { numero: factura.numero }, `Factura ${factura.numero} emitida y compartida en portal`)
           : siguienteVisibilidad
-            ? `Factura ${factura.numero} compartida con el cliente`
-            : `Factura ${factura.numero} retirada del portal`
+            ? this.t('crm.finanzas.toastFacturaCompartida', { numero: factura.numero }, `Factura ${factura.numero} compartida con el cliente`)
+            : this.t('crm.finanzas.toastFacturaRetirada', { numero: factura.numero }, `Factura ${factura.numero} retirada del portal`)
       );
       if (this.modalDetalleAbierto && this.facturaDetalle?.id === factura.id) {
         this.facturaDetalle = this.facturas.find((f) => f.id === factura.id) || this.facturaDetalle;
       }
     } catch (err: any) {
-      this.errorVisibilidadFactura = err?.error?.error || 'No se pudo actualizar la visibilidad en el portal';
+      this.errorVisibilidadFactura = err?.error?.error || this.t('crm.finanzas.errorVisibilidad', undefined, 'No se pudo actualizar la visibilidad en el portal');
     } finally {
       this.visibilidadFacturaEnCursoId = null;
     }
@@ -308,7 +344,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       }
     }
 
-    const lista: PeriodoOpcion[] = [{ clave: 'TODOS', etiqueta: 'Todo el historial' }];
+    const lista: PeriodoOpcion[] = [{ clave: 'TODOS', etiqueta: this.t('crm.finanzas.todoHistorial', undefined, 'Todo el historial') }];
 
     const sortedKeys = Array.from(periodosMap.entries()).sort((a, b) => {
       if (a[1].anio !== b[1].anio) return b[1].anio - a[1].anio;
@@ -317,7 +353,9 @@ export class FinanzasComponent implements OnInit, OnDestroy {
 
     for (const [clave, { anio, mes }] of sortedKeys) {
       const fecha = new Date(anio, mes - 1, 1);
-      const nombreMes = fecha.toLocaleString('es-PA', { month: 'long' });
+      const nombreMes = this.i18n
+        ? this.i18n.formatearFecha(fecha, { month: 'long' })
+        : fecha.toLocaleString('es-PA', { month: 'long' });
       const etiqueta = `${nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1)} ${anio}`;
       lista.push({ clave, etiqueta, anio, mes });
     }
@@ -327,7 +365,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
 
   get etiquetaPeriodoSeleccionado(): string {
     const encontrado = this.periodosDisponibles.find((p) => p.clave === this.periodoSeleccionado);
-    return encontrado ? encontrado.etiqueta : 'Todo el historial';
+    return encontrado ? encontrado.etiqueta : this.t('crm.finanzas.todoHistorial', undefined, 'Todo el historial');
   }
 
   seleccionarPeriodo(clave: string): void {
@@ -490,6 +528,9 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   formatearMonto(monto: number | string | undefined | null, moneda?: string): string {
     const num = Number(monto || 0);
     const m = (moneda || this.monedaOrg || 'PAB').toUpperCase();
+    if (this.i18n) {
+      return this.i18n.formatearMoneda(num, m);
+    }
     const simbolo = this.obtenerSimboloMoneda(m);
     const formateado = num.toLocaleString('es-PA', {
       minimumFractionDigits: 2,
@@ -502,6 +543,9 @@ export class FinanzasComponent implements OnInit, OnDestroy {
     if (!fechaStr) return '—';
     const d = new Date(fechaStr);
     if (isNaN(d.getTime())) return fechaStr;
+    if (this.i18n) {
+      return this.i18n.formatearFecha(d, { day: '2-digit', month: 'short', year: 'numeric' });
+    }
     const dia = d.getDate().toString().padStart(2, '0');
     const mes = d.toLocaleString('es-PA', { month: 'short' }).replace('.', '');
     const anio = d.getFullYear();
@@ -509,9 +553,12 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   }
 
   formatearVencimiento(fechaStr?: string | null): string {
-    if (!fechaStr) return 'Sin vencimiento';
+    if (!fechaStr) return this.t('crm.finanzas.sinVencimiento', undefined, 'Sin vencimiento');
     const d = new Date(fechaStr);
     if (isNaN(d.getTime())) return fechaStr;
+    if (this.i18n) {
+      return this.i18n.formatearFecha(d, { day: '2-digit', month: 'short' });
+    }
     const dia = d.getDate().toString().padStart(2, '0');
     const mes = d.toLocaleString('es-PA', { month: 'short' }).replace('.', '');
     return `${dia} ${mes}`;
@@ -525,8 +572,8 @@ export class FinanzasComponent implements OnInit, OnDestroy {
 
   obtenerSubtextoMonedaHeader(): string {
     const m = (this.monedaOrg || 'PAB').toUpperCase();
-    if (m === 'PAB') return 'Panamá';
-    return this.nombreOrg || 'Oficial';
+    if (m === 'PAB') return this.t('crm.finanzas.panama', undefined, 'Panamá');
+    return this.nombreOrg || this.t('crm.finanzas.oficial', undefined, 'Oficial');
   }
 
   obtenerSaldoPendiente(factura: FacturaApi | null): number {
@@ -573,15 +620,15 @@ export class FinanzasComponent implements OnInit, OnDestroy {
 
   async guardarNuevaFactura(): Promise<void> {
     if (!this.formFactura.clienteId) {
-      this.errorModalFactura = 'Debe seleccionar un cliente';
+      this.errorModalFactura = this.t('crm.finanzas.errorClienteRequerido', undefined, 'Debe seleccionar un cliente');
       return;
     }
     if (!this.formFactura.concepto.trim()) {
-      this.errorModalFactura = 'El concepto de la factura es obligatorio';
+      this.errorModalFactura = this.t('crm.finanzas.errorConceptoRequerido', undefined, 'El concepto de la factura es obligatorio');
       return;
     }
     if (!this.formFactura.monto || this.formFactura.monto <= 0) {
-      this.errorModalFactura = 'El monto debe ser un número positivo';
+      this.errorModalFactura = this.t('crm.finanzas.errorMontoPositivo', undefined, 'El monto debe ser un número positivo');
       return;
     }
 
@@ -605,10 +652,10 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       };
 
       const creada = await this.facturasApi.crearFactura(payload);
-      this.mostrarToast(`Factura ${creada.numero} creada con éxito`);
+      this.mostrarToast(this.t('crm.finanzas.toastFacturaCreada', { numero: creada.numero }, `Factura ${creada.numero} creada con éxito`));
       this.cerrarModalNuevaFactura();
     } catch (err: any) {
-      this.errorModalFactura = err?.error?.error || 'No se pudo crear la factura';
+      this.errorModalFactura = err?.error?.error || this.t('crm.finanzas.errorCrearFactura', undefined, 'No se pudo crear la factura');
     } finally {
       this.guardandoFactura = false;
     }
@@ -660,15 +707,16 @@ export class FinanzasComponent implements OnInit, OnDestroy {
     const montoAbono = Number(textoMonto);
     const saldoPendiente = this.obtenerSaldoPendiente(this.facturaSeleccionadaPago);
     if (!Number.isFinite(montoAbono) || montoAbono <= 0) {
-      this.errorModalPago = 'El monto a abonar debe ser mayor a cero';
+      this.errorModalPago = this.t('crm.finanzas.errorAbonoPositivo', undefined, 'El monto a abonar debe ser mayor a cero');
       return;
     }
     if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(textoMonto)) {
-      this.errorModalPago = 'Introduce un monto positivo con máximo dos decimales.';
+      this.errorModalPago = this.t('crm.finanzas.errorAbonoDecimales', undefined, 'Introduce un monto positivo con máximo dos decimales.');
       return;
     }
     if (Math.round(montoAbono * 100) > Math.round(saldoPendiente * 100)) {
-      this.errorModalPago = `El abono supera el saldo pendiente (${this.formatearMonto(saldoPendiente, this.formPago.moneda)})`;
+      const saldo = this.formatearMonto(saldoPendiente, this.formPago.moneda);
+      this.errorModalPago = this.t('crm.finanzas.errorAbonoSuperaSaldo', { saldo }, `El abono supera el saldo pendiente (${saldo})`);
       return;
     }
 
@@ -687,10 +735,11 @@ export class FinanzasComponent implements OnInit, OnDestroy {
         notas: this.formPago.notas.trim() || null
       });
 
+      const saldoRestanteStr = this.formatearMonto(resultado.saldoRestante, this.formPago.moneda);
       this.mostrarToast(
         resultado.saldoRestante <= 0
-          ? `Factura ${facturaNumero} liquidada con éxito`
-          : `Abono registrado en ${facturaNumero} · Saldo: ${this.formatearMonto(resultado.saldoRestante, this.formPago.moneda)}`
+          ? this.t('crm.finanzas.toastFacturaLiquidada', { numero: facturaNumero }, `Factura ${facturaNumero} liquidada con éxito`)
+          : this.t('crm.finanzas.toastAbonoRegistrado', { numero: facturaNumero, saldo: saldoRestanteStr }, `Abono registrado en ${facturaNumero} · Saldo: ${saldoRestanteStr}`)
       );
       this.cerrarModalRegistrarPago();
 
@@ -698,7 +747,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
         this.cargarDetalleFactura(facturaId);
       }
     } catch (err: any) {
-      this.errorModalPago = err?.error?.error || 'No se pudo registrar el pago';
+      this.errorModalPago = err?.error?.error || this.t('crm.finanzas.errorRegistrarPago', undefined, 'No se pudo registrar el pago');
     } finally {
       this.guardandoPago = false;
     }
@@ -733,15 +782,15 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   }
 
   async eliminarFactura(factura: FacturaApi): Promise<void> {
-    if (!confirm(`¿Estás seguro de eliminar la factura ${factura.numero}? Esta acción no se puede deshacer.`)) {
+    if (!confirm(this.t('crm.finanzas.confirmarEliminarFactura', { numero: factura.numero }, `¿Estás seguro de eliminar la factura ${factura.numero}? Esta acción no se puede deshacer.`))) {
       return;
     }
     try {
       await this.facturasApi.eliminarFactura(factura.id);
-      this.mostrarToast(`Factura ${factura.numero} eliminada`);
+      this.mostrarToast(this.t('crm.finanzas.toastFacturaEliminada', { numero: factura.numero }, `Factura ${factura.numero} eliminada`));
       this.cerrarDetalleFactura();
     } catch (err: any) {
-      this.mostrarToast(err?.error?.error || 'Error al eliminar la factura');
+      this.mostrarToast(err?.error?.error || this.t('crm.finanzas.errorEliminarFactura', undefined, 'Error al eliminar la factura'));
     }
   }
 
@@ -750,26 +799,29 @@ export class FinanzasComponent implements OnInit, OnDestroy {
   exportarCSV(): void {
     const listado = this.facturasFiltradas;
     if (listado.length === 0) {
-      this.mostrarToast('No hay facturas para exportar con los filtros actuales');
+      this.mostrarToast(this.t('crm.finanzas.toastExportarVacio', undefined, 'No hay facturas para exportar con los filtros actuales'));
       return;
     }
 
     const encabezados = [
-      'Factura',
-      'Fecha Emisión',
-      'Concepto',
-      'Cliente',
-      'Empresa',
-      'Proyecto',
-      'Vencimiento',
-      'Monto',
-      'Saldo Pendiente',
-      'Moneda',
-      'Estado',
-      'Visible en Portal',
-      'Fecha Pagada',
-      'Notas'
+      this.t('crm.finanzas.csvFactura', undefined, 'Factura'),
+      this.t('crm.finanzas.csvFechaEmision', undefined, 'Fecha Emisión'),
+      this.t('crm.finanzas.csvConcepto', undefined, 'Concepto'),
+      this.t('crm.finanzas.csvCliente', undefined, 'Cliente'),
+      this.t('crm.finanzas.csvEmpresa', undefined, 'Empresa'),
+      this.t('crm.finanzas.csvProyecto', undefined, 'Proyecto'),
+      this.t('crm.finanzas.csvVencimiento', undefined, 'Vencimiento'),
+      this.t('crm.finanzas.csvMonto', undefined, 'Monto'),
+      this.t('crm.finanzas.csvSaldoPendiente', undefined, 'Saldo Pendiente'),
+      this.t('crm.finanzas.csvMoneda', undefined, 'Moneda'),
+      this.t('crm.finanzas.csvEstado', undefined, 'Estado'),
+      this.t('crm.finanzas.csvVisiblePortal', undefined, 'Visible en Portal'),
+      this.t('crm.finanzas.csvFechaPagada', undefined, 'Fecha Pagada'),
+      this.t('crm.finanzas.csvNotas', undefined, 'Notas')
     ];
+
+    const si = this.t('crm.finanzas.si', undefined, 'Sí');
+    const no = this.t('crm.finanzas.no', undefined, 'No');
 
     const filas = listado.map((f) => [
       `"${(f.numero || '').replace(/"/g, '""')}"`,
@@ -782,8 +834,8 @@ export class FinanzasComponent implements OnInit, OnDestroy {
       Number(f.monto || 0).toFixed(2),
       this.obtenerSaldoPendiente(f).toFixed(2),
       `"${f.moneda || 'PAB'}"`,
-      `"${f.estado || ''}"`,
-      `"${f.visibleEnPortal ? 'Sí' : 'No'}"`,
+      `"${this.etiquetaEstadoFactura(f.estado) || ''}"`,
+      `"${f.visibleEnPortal ? si : no}"`,
       `"${f.pagadaEn || ''}"`,
       `"${(f.notas || '').replace(/"/g, '""')}"`
     ]);
@@ -800,7 +852,7 @@ export class FinanzasComponent implements OnInit, OnDestroy {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    this.mostrarToast(`Se exportaron ${listado.length} facturas a CSV`);
+    this.mostrarToast(this.t('crm.finanzas.toastExportadas', { count: listado.length }, `Se exportaron ${listado.length} facturas a CSV`));
   }
 
   // --- Utilidades Internas ---

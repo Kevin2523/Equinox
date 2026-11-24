@@ -1,7 +1,7 @@
 <main class="proyectos-page">
   <!-- Selector de Organización / Estudio según el prototipo -->
   <div class="org-selector-row">
-    <button class="org-selector-btn" type="button" title="Organización activa">
+    <button class="org-selector-btn" type="button" [title]="'crm.proyectos.orgActivaTitulo' | t">
       <span>{{ nombreOrganizacion }}</span>
       <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
@@ -13,48 +13,48 @@
   <header class="page-header">
     <div class="header-titles">
       <div class="title-with-count">
-        <h1>Proyectos</h1>
-        <span class="proyectos-count-badge">{{ proyectos.length }} proyecto{{ proyectos.length === 1 ? '' : 's' }}</span>
+        <h1>{{ 'crm.proyectos.titulo' | t }}</h1>
+        <span class="proyectos-count-badge">{{ (proyectos.length === 1 ? 'crm.proyectos.unProyecto' : 'crm.proyectos.nProyectos') | t:{ count: proyectos.length } }}</span>
       </div>
-      <p class="subtitle">Cada idea, con rumbo y seguimiento.</p>
+      <p class="subtitle">{{ 'crm.proyectos.subtitulo' | t }}</p>
     </div>
     <div class="header-actions">
-      <button class="btn-primary btn-nuevo" type="button" (click)="nuevo()" [disabled]="!clientes.length" title="Crear un nuevo proyecto">
+      <button class="btn-primary btn-nuevo" type="button" (click)="nuevo()" [disabled]="!clientes.length" [title]="'crm.proyectos.crearProyectoTitulo' | t">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        <span>Nuevo proyecto</span>
+        <span>{{ 'crm.proyectos.nuevoProyecto' | t }}</span>
       </button>
     </div>
   </header>
 
   <!-- Barra de Filtros por Estado, Búsqueda y Alternancia de Vistas -->
-  <section class="controls-bar" aria-label="Controles de filtrado y visualización">
+  <section class="controls-bar" [attr.aria-label]="'crm.proyectos.controlesAria' | t">
     <!-- Pestañas por Estado con Conteos Reales -->
-    <nav class="status-tabs" aria-label="Filtrar por estado">
+    <nav class="status-tabs" [attr.aria-label]="'crm.proyectos.filtrarEstadoAria' | t">
       <button class="tab-btn" [class.active]="filtroEstado === 'TODOS'" (click)="filtroEstado = 'TODOS'">
-        <span>Todos</span> <span class="tab-count">{{ conteoTodos }}</span>
+        <span>{{ 'crm.proyectos.tabTodos' | t }}</span> <span class="tab-count">{{ conteoTodos }}</span>
         <div class="active-line" *ngIf="filtroEstado === 'TODOS'"></div>
       </button>
       <button class="tab-btn" [class.active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado = 'ACTIVO'">
-        <span>En progreso</span> <span class="tab-count">{{ conteoEnProgreso }}</span>
+        <span>{{ 'crm.proyectos.tabEnProgreso' | t }}</span> <span class="tab-count">{{ conteoEnProgreso }}</span>
         <div class="active-line" *ngIf="filtroEstado === 'ACTIVO'"></div>
       </button>
       <button class="tab-btn" [class.active]="filtroEstado === 'BORRADOR'" (click)="filtroEstado = 'BORRADOR'">
-        <span>Planificación</span> <span class="tab-count">{{ conteoPlanificacion }}</span>
+        <span>{{ 'crm.proyectos.tabPlanificacion' | t }}</span> <span class="tab-count">{{ conteoPlanificacion }}</span>
         <div class="active-line" *ngIf="filtroEstado === 'BORRADOR'"></div>
       </button>
       <button class="tab-btn" [class.active]="filtroEstado === 'PAUSADO'" (click)="filtroEstado = 'PAUSADO'">
-        <span>En pausa</span> <span class="tab-count">{{ conteoEnPausa }}</span>
+        <span>{{ 'crm.proyectos.tabEnPausa' | t }}</span> <span class="tab-count">{{ conteoEnPausa }}</span>
         <div class="active-line" *ngIf="filtroEstado === 'PAUSADO'"></div>
       </button>
       <button class="tab-btn" [class.active]="filtroEstado === 'COMPLETADO'" (click)="filtroEstado = 'COMPLETADO'">
-        <span>Completados</span> <span class="tab-count">{{ conteoCompletados }}</span>
+        <span>{{ 'crm.proyectos.tabCompletados' | t }}</span> <span class="tab-count">{{ conteoCompletados }}</span>
         <div class="active-line" *ngIf="filtroEstado === 'COMPLETADO'"></div>
       </button>
       <button class="tab-btn" *ngIf="conteoCancelados > 0" [class.active]="filtroEstado === 'CANCELADO'" (click)="filtroEstado = 'CANCELADO'">
-        <span>Cancelados</span> <span class="tab-count">{{ conteoCancelados }}</span>
+        <span>{{ 'crm.proyectos.tabCancelados' | t }}</span> <span class="tab-count">{{ conteoCancelados }}</span>
         <div class="active-line" *ngIf="filtroEstado === 'CANCELADO'"></div>
       </button>
     </nav>
@@ -65,12 +65,12 @@
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
         </svg>
-        <input type="text" [(ngModel)]="busqueda" placeholder="Buscar proyectos..." aria-label="Buscar proyectos">
-        <button *ngIf="busqueda" class="clear-search-btn" (click)="busqueda = ''" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">×</button>
+        <input type="text" [(ngModel)]="busqueda" [placeholder]="'crm.proyectos.buscarPlaceholder' | t" [attr.aria-label]="'crm.proyectos.buscarAria' | t">
+        <button *ngIf="busqueda" class="clear-search-btn" (click)="busqueda = ''" [title]="'crm.proyectos.limpiarBusqueda' | t" [attr.aria-label]="'crm.proyectos.limpiarBusqueda' | t">×</button>
       </div>
 
-      <div class="view-toggle" role="group" aria-label="Modo de visualización">
-        <button class="view-btn" [class.active]="vista === 'list'" (click)="vista = 'list'" title="Vista lista" aria-label="Vista lista">
+      <div class="view-toggle" role="group" [attr.aria-label]="'crm.proyectos.modoVistaAria' | t">
+        <button class="view-btn" [class.active]="vista === 'list'" (click)="vista = 'list'" [title]="'crm.proyectos.vistaLista' | t" [attr.aria-label]="'crm.proyectos.vistaLista' | t">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="8" y1="6" x2="21" y2="6"></line>
             <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -80,7 +80,7 @@
             <line x1="3" y1="18" x2="3.01" y2="18"></line>
           </svg>
         </button>
-        <button class="view-btn" [class.active]="vista === 'grid'" (click)="vista = 'grid'" title="Vista cuadrícula" aria-label="Vista cuadrícula">
+        <button class="view-btn" [class.active]="vista === 'grid'" (click)="vista = 'grid'" [title]="'crm.proyectos.vistaCuadricula' | t" [attr.aria-label]="'crm.proyectos.vistaCuadricula' | t">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
             <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
@@ -115,7 +115,7 @@
       </svg>
       <span>{{ error }}</span>
     </div>
-    <button class="btn-retry" type="button" (click)="reintentarCarga()">Reintentar</button>
+    <button class="btn-retry" type="button" (click)="reintentarCarga()">{{ 'crm.proyectos.reintentar' | t }}</button>
   </div>
 
   <div class="empty-state-card" *ngIf="!cargando && !error && !clientes.length">
@@ -127,8 +127,8 @@
         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
       </svg>
     </div>
-    <h3>Registra un cliente primero</h3>
-    <p>Para crear proyectos, necesitas tener al menos un cliente en tu organización.</p>
+    <h3>{{ 'crm.proyectos.sinClientesTitulo' | t }}</h3>
+    <p>{{ 'crm.proyectos.sinClientesTexto' | t }}</p>
   </div>
 
   <div class="empty-state-card" *ngIf="!cargando && !error && clientes.length && proyectosVisibles.length === 0">
@@ -142,14 +142,14 @@
       </svg>
     </div>
     <ng-container *ngIf="busqueda || filtroEstado !== 'TODOS'; else sinProyectosGeneral">
-      <h3>No se encontraron proyectos</h3>
-      <p>No hay proyectos que coincidan con "{{ busqueda || etiquetaEstado(filtroEstado) }}".</p>
-      <button class="btn-clear-filter" type="button" (click)="busqueda = ''; filtroEstado = 'TODOS'">Restablecer filtros</button>
+      <h3>{{ 'crm.proyectos.noEncontradosTitulo' | t }}</h3>
+      <p>{{ 'crm.proyectos.noEncontradosTexto' | t:{ filtro: busqueda || etiquetaEstado(filtroEstado) } }}</p>
+      <button class="btn-clear-filter" type="button" (click)="busqueda = ''; filtroEstado = 'TODOS'">{{ 'crm.proyectos.restablecerFiltros' | t }}</button>
     </ng-container>
     <ng-template #sinProyectosGeneral>
-      <h3>Todavía no hay proyectos</h3>
-      <p>Comienza creando el primer proyecto para tu organización.</p>
-      <button class="btn-primary" type="button" (click)="nuevo()">+ Nuevo proyecto</button>
+      <h3>{{ 'crm.proyectos.vacioTitulo' | t }}</h3>
+      <p>{{ 'crm.proyectos.vacioTexto' | t }}</p>
+      <button class="btn-primary" type="button" (click)="nuevo()">{{ 'crm.proyectos.btnNuevoInline' | t }}</button>
     </ng-template>
   </div>
 
@@ -193,7 +193,7 @@
             <span class="status-text">{{ etiquetaEstado(p.estado) }}</span>
           </div>
 
-          <div class="meta-progress" [title]="'Progreso calculado: ' + progreso(p) + '%'">
+          <div class="meta-progress" [title]="'crm.proyectos.progresoCalculado' | t:{ pct: progreso(p) }">
             <span class="progress-pct">{{ progreso(p) }}%</span>
             <div class="progress-track" aria-hidden="true">
               <div class="progress-fill" [style.width.%]="progreso(p)"></div>
@@ -201,11 +201,11 @@
           </div>
 
           <div class="meta-date">
-            <span>{{ p.fechaEntrega ? (p.fechaEntrega | date:'dd MMM') : '—' }}</span>
+            <span>{{ p.fechaEntrega ? formatearFecha(p.fechaEntrega, { day: '2-digit', month: 'short' }) : '—' }}</span>
           </div>
 
           <div class="meta-actions">
-            <button class="btn-dots-trigger" type="button" (click)="abrirMenu(p.id, $event)" title="Opciones del proyecto" aria-label="Opciones del proyecto">
+            <button class="btn-dots-trigger" type="button" (click)="abrirMenu(p.id, $event)" [title]="'crm.proyectos.opcionesProyecto' | t" [attr.aria-label]="'crm.proyectos.opcionesProyecto' | t">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="5" cy="12" r="2.2"/>
                 <circle cx="12" cy="12" r="2.2"/>
@@ -217,29 +217,29 @@
             <div class="actions-dropdown" *ngIf="menuAbiertoId === p.id" (click)="$event.stopPropagation()">
               <button type="button" class="dropdown-item" (click)="verDetalle(p); menuAbiertoId = null">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                <span>Ver detalles</span>
+                <span>{{ 'crm.proyectos.verDetalles' | t }}</span>
               </button>
               <button type="button" class="dropdown-item" (click)="abrirEdicion(p.id); menuAbiertoId = null">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                <span>Editar proyecto</span>
+                <span>{{ 'crm.proyectos.editarProyecto' | t }}</span>
               </button>
               <div class="dropdown-divider"></div>
               <button *ngIf="p.estado !== 'ACTIVO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'ACTIVO', $event)">
                 <span class="status-dot dot-progreso"></span>
-                <span>En progreso</span>
+                <span>{{ 'crm.proyectos.estadoEnProgreso' | t }}</span>
               </button>
               <button *ngIf="p.estado !== 'PAUSADO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'PAUSADO', $event)">
                 <span class="status-dot dot-pausa"></span>
-                <span>En pausa</span>
+                <span>{{ 'crm.proyectos.estadoEnPausa' | t }}</span>
               </button>
               <button *ngIf="p.estado !== 'COMPLETADO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'COMPLETADO', $event)">
                 <span class="status-dot dot-completado"></span>
-                <span>Completado</span>
+                <span>{{ 'crm.proyectos.estadoCompletado' | t }}</span>
               </button>
               <div class="dropdown-divider"></div>
               <button type="button" class="dropdown-item item-danger" (click)="iniciarEliminar(p.id, $event)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                <span>Eliminar proyecto</span>
+                <span>{{ 'crm.proyectos.eliminarProyecto' | t }}</span>
               </button>
             </div>
           </div>
@@ -253,13 +253,13 @@
     <table class="projects-table">
       <thead>
         <tr>
-          <th>Proyecto</th>
-          <th>Cliente / Contacto</th>
-          <th>Estado</th>
-          <th>Progreso</th>
-          <th>Entrega</th>
-          <th>Presupuesto</th>
-          <th class="th-actions">Acciones</th>
+          <th>{{ 'crm.proyectos.colProyecto' | t }}</th>
+          <th>{{ 'crm.proyectos.colCliente' | t }}</th>
+          <th>{{ 'crm.proyectos.colEstado' | t }}</th>
+          <th>{{ 'crm.proyectos.colProgreso' | t }}</th>
+          <th>{{ 'crm.proyectos.colEntrega' | t }}</th>
+          <th>{{ 'crm.proyectos.colPresupuesto' | t }}</th>
+          <th class="th-actions">{{ 'crm.proyectos.colAcciones' | t }}</th>
         </tr>
       </thead>
       <tbody>
@@ -292,27 +292,27 @@
             </div>
           </td>
           <td class="td-date">
-            {{ p.fechaEntrega ? (p.fechaEntrega | date:'dd MMM yyyy') : 'Sin fecha' }}
+            {{ p.fechaEntrega ? formatearFecha(p.fechaEntrega) : ('crm.proyectos.sinFecha' | t) }}
           </td>
           <td class="td-budget">
-            {{ p.presupuesto !== null ? (p.moneda + ' ' + (p.presupuesto | number:'1.2-2')) : '—' }}
+            {{ p.presupuesto !== null ? formatearPresupuesto(p.presupuesto, p.moneda) : '—' }}
           </td>
           <td class="td-actions" (click)="$event.stopPropagation()">
-            <button class="btn-dots-trigger" type="button" (click)="abrirMenu(p.id, $event)" title="Opciones" aria-label="Opciones">
+            <button class="btn-dots-trigger" type="button" (click)="abrirMenu(p.id, $event)" [title]="'crm.proyectos.opciones' | t" [attr.aria-label]="'crm.proyectos.opciones' | t">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/>
               </svg>
             </button>
             <!-- Dropdown en fila de lista -->
             <div class="actions-dropdown dropdown-list-align" *ngIf="menuAbiertoId === p.id" (click)="$event.stopPropagation()">
-              <button type="button" class="dropdown-item" (click)="verDetalle(p); menuAbiertoId = null">Ver detalles</button>
-              <button type="button" class="dropdown-item" (click)="abrirEdicion(p.id); menuAbiertoId = null">Editar proyecto</button>
+              <button type="button" class="dropdown-item" (click)="verDetalle(p); menuAbiertoId = null">{{ 'crm.proyectos.verDetalles' | t }}</button>
+              <button type="button" class="dropdown-item" (click)="abrirEdicion(p.id); menuAbiertoId = null">{{ 'crm.proyectos.editarProyecto' | t }}</button>
               <div class="dropdown-divider"></div>
-              <button *ngIf="p.estado !== 'ACTIVO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'ACTIVO', $event)">Marcar En progreso</button>
-              <button *ngIf="p.estado !== 'PAUSADO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'PAUSADO', $event)">Pausar proyecto</button>
-              <button *ngIf="p.estado !== 'COMPLETADO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'COMPLETADO', $event)">Marcar Completado</button>
+              <button *ngIf="p.estado !== 'ACTIVO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'ACTIVO', $event)">{{ 'crm.proyectos.marcarEnProgreso' | t }}</button>
+              <button *ngIf="p.estado !== 'PAUSADO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'PAUSADO', $event)">{{ 'crm.proyectos.pausarProyecto' | t }}</button>
+              <button *ngIf="p.estado !== 'COMPLETADO'" type="button" class="dropdown-item" (click)="cambiarEstadoRapido(p, 'COMPLETADO', $event)">{{ 'crm.proyectos.marcarCompletado' | t }}</button>
               <div class="dropdown-divider"></div>
-              <button type="button" class="dropdown-item item-danger" (click)="iniciarEliminar(p.id, $event)">Eliminar proyecto</button>
+              <button type="button" class="dropdown-item item-danger" (click)="iniciarEliminar(p.id, $event)">{{ 'crm.proyectos.eliminarProyecto' | t }}</button>
             </div>
           </td>
         </tr>
@@ -322,7 +322,7 @@
 
   <!-- Pie de la Lista: Total mostrado -->
   <footer class="proyectos-footer" *ngIf="!cargando && !error && proyectos.length > 0">
-    <span class="footer-count">Mostrando {{ proyectosVisibles.length }} de {{ proyectos.length }} proyecto{{ proyectos.length === 1 ? '' : 's' }}</span>
+    <span class="footer-count">{{ (proyectos.length === 1 ? 'crm.proyectos.footerMostrandoUno' : 'crm.proyectos.footerMostrandoVarios') | t:{ visibles: proyectosVisibles.length, total: proyectos.length } }}</span>
   </footer>
 </main>
 
@@ -331,60 +331,60 @@
      ========================================================================== -->
 <div class="overlay" *ngIf="modalFormulario" (click)="modalFormulario = false">
   <section class="quick-modal" role="dialog" aria-modal="true" aria-labelledby="proyecto-modal-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
-    <button class="close" type="button" (click)="modalFormulario = false" aria-label="Cerrar modal">×</button>
-    <small class="modal-eyebrow">{{ editandoId ? 'EDITAR PROYECTO' : 'NUEVO PROYECTO' }}</small>
-    <h2 id="proyecto-modal-title">{{ editandoId ? 'Actualizar proyecto' : 'Crear proyecto' }}</h2>
+    <button class="close" type="button" (click)="modalFormulario = false" [attr.aria-label]="'crm.proyectos.cerrarModal' | t">×</button>
+    <small class="modal-eyebrow">{{ (editandoId ? 'crm.proyectos.modalEyebrowEditar' : 'crm.proyectos.modalEyebrowNuevo') | t }}</small>
+    <h2 id="proyecto-modal-title">{{ (editandoId ? 'crm.proyectos.modalTituloEditar' : 'crm.proyectos.modalTituloNuevo') | t }}</h2>
     <form #form="ngForm" (ngSubmit)="guardar(form)">
       <div class="form-group">
-        <label for="proyecto-nombre">Nombre del proyecto *</label>
-        <input id="proyecto-nombre" class="form-control" name="nombre" [(ngModel)]="formulario.nombre" required minlength="2" placeholder="Ej. Rediseño web Café Unido">
+        <label for="proyecto-nombre">{{ 'crm.proyectos.labelNombre' | t }}</label>
+        <input id="proyecto-nombre" class="form-control" name="nombre" [(ngModel)]="formulario.nombre" required minlength="2" [placeholder]="'crm.proyectos.placeholderNombre' | t">
       </div>
       <div class="form-group">
-        <label for="proyecto-cliente">Cliente asociado *</label>
+        <label for="proyecto-cliente">{{ 'crm.proyectos.labelCliente' | t }}</label>
         <select id="proyecto-cliente" class="form-control" name="clienteId" [(ngModel)]="formulario.clienteId" required>
-          <option value="" disabled>Selecciona un cliente</option>
+          <option value="" disabled>{{ 'crm.proyectos.seleccionaCliente' | t }}</option>
           <option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }}{{ c.empresa ? ' · ' + c.empresa : '' }}</option>
         </select>
       </div>
       <div class="form-group">
-        <label for="proyecto-descripcion">Descripción</label>
-        <textarea id="proyecto-descripcion" class="form-control" name="descripcion" [(ngModel)]="formulario.descripcion" rows="3" placeholder="Resumen o alcance del proyecto..."></textarea>
+        <label for="proyecto-descripcion">{{ 'crm.proyectos.labelDescripcion' | t }}</label>
+        <textarea id="proyecto-descripcion" class="form-control" name="descripcion" [(ngModel)]="formulario.descripcion" rows="3" [placeholder]="'crm.proyectos.placeholderDescripcion' | t"></textarea>
       </div>
       <div class="form-group">
-        <label for="proyecto-estado">Estado</label>
+        <label for="proyecto-estado">{{ 'crm.proyectos.labelEstado' | t }}</label>
         <select id="proyecto-estado" class="form-control" name="estado" [(ngModel)]="formulario.estado">
-          <option value="BORRADOR">Planificación (Borrador)</option>
-          <option value="ACTIVO">En progreso (Activo)</option>
-          <option value="PAUSADO">En pausa</option>
-          <option value="COMPLETADO">Completado</option>
-          <option value="CANCELADO">Cancelado</option>
+          <option value="BORRADOR">{{ 'crm.proyectos.optBorrador' | t }}</option>
+          <option value="ACTIVO">{{ 'crm.proyectos.optActivo' | t }}</option>
+          <option value="PAUSADO">{{ 'crm.proyectos.optPausado' | t }}</option>
+          <option value="COMPLETADO">{{ 'crm.proyectos.optCompletado' | t }}</option>
+          <option value="CANCELADO">{{ 'crm.proyectos.optCancelado' | t }}</option>
         </select>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="proyecto-presupuesto">Presupuesto</label>
+          <label for="proyecto-presupuesto">{{ 'crm.proyectos.labelPresupuesto' | t }}</label>
           <input id="proyecto-presupuesto" type="number" min="0" step="0.01" class="form-control" name="presupuesto" [(ngModel)]="formulario.presupuesto">
         </div>
         <div class="form-group">
-          <label for="proyecto-moneda">Moneda (ISO)</label>
+          <label for="proyecto-moneda">{{ 'crm.proyectos.labelMoneda' | t }}</label>
           <input id="proyecto-moneda" class="form-control" name="moneda" [(ngModel)]="formulario.moneda" required minlength="3" maxlength="3">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="proyecto-inicio">Fecha de inicio</label>
+          <label for="proyecto-inicio">{{ 'crm.proyectos.labelFechaInicio' | t }}</label>
           <input id="proyecto-inicio" type="date" class="form-control" name="fechaInicio" [(ngModel)]="formulario.fechaInicio">
         </div>
         <div class="form-group">
-          <label for="proyecto-entrega">Fecha de entrega</label>
+          <label for="proyecto-entrega">{{ 'crm.proyectos.labelFechaEntrega' | t }}</label>
           <input id="proyecto-entrega" type="date" class="form-control" name="fechaEntrega" [(ngModel)]="formulario.fechaEntrega">
         </div>
       </div>
-      <p class="auth-validation" *ngIf="enviado && form.invalid">Revisa los campos requeridos y el formato.</p>
+      <p class="auth-validation" *ngIf="enviado && form.invalid">{{ 'crm.proyectos.validacionCampos' | t }}</p>
       <p class="auth-error" role="alert" *ngIf="errorGuardar">{{ errorGuardar }}</p>
       <div class="modal-actions">
-        <button class="btn-secondary" type="button" (click)="modalFormulario = false">Cancelar</button>
-        <button class="btn-primary" type="submit" [disabled]="guardando">{{ guardando ? 'Guardando…' : (editandoId ? 'Guardar cambios' : 'Crear proyecto') }}</button>
+        <button class="btn-secondary" type="button" (click)="modalFormulario = false">{{ 'crm.proyectos.cancelar' | t }}</button>
+        <button class="btn-primary" type="submit" [disabled]="guardando">{{ (guardando ? 'crm.proyectos.guardando' : (editandoId ? 'crm.proyectos.guardarCambios' : 'crm.proyectos.crearProyecto')) | t }}</button>
       </div>
     </form>
   </section>
@@ -395,7 +395,7 @@
      ========================================================================== -->
 <div class="overlay" *ngIf="confirmandoEliminarId" (click)="confirmandoEliminarId = null">
   <section class="quick-modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="proyecto-confirm-title" tabindex="-1" appDialogFocus (click)="$event.stopPropagation()">
-    <button class="close" type="button" (click)="confirmandoEliminarId = null" aria-label="Cerrar">×</button>
+    <button class="close" type="button" (click)="confirmandoEliminarId = null" [attr.aria-label]="'crm.proyectos.cerrar' | t">×</button>
     <div class="confirm-icon-wrap">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -403,11 +403,11 @@
         <line x1="12" y1="17" x2="12.01" y2="17"></line>
       </svg>
     </div>
-    <h2 id="proyecto-confirm-title">¿Eliminar este proyecto?</h2>
-    <p>Esta acción eliminará de forma permanente el proyecto, sus tareas, hitos, archivos y comentarios asociados en la base de datos.</p>
+    <h2 id="proyecto-confirm-title">{{ 'crm.proyectos.confirmarEliminarTitulo' | t }}</h2>
+    <p>{{ 'crm.proyectos.confirmarEliminarTexto' | t }}</p>
     <div class="modal-actions">
-      <button class="btn-secondary" type="button" (click)="confirmandoEliminarId = null" [disabled]="eliminandoProyecto">Cancelar</button>
-      <button class="btn-danger" type="button" (click)="confirmarEliminar()" [disabled]="eliminandoProyecto">{{ eliminandoProyecto ? 'Eliminando…' : 'Sí, eliminar proyecto' }}</button>
+      <button class="btn-secondary" type="button" (click)="confirmandoEliminarId = null" [disabled]="eliminandoProyecto">{{ 'crm.proyectos.cancelar' | t }}</button>
+      <button class="btn-danger" type="button" (click)="confirmarEliminar()" [disabled]="eliminandoProyecto">{{ (eliminandoProyecto ? 'crm.proyectos.eliminando' : 'crm.proyectos.siEliminar') | t }}</button>
     </div>
   </section>
 </div>
@@ -423,8 +423,8 @@
         <div class="hero-bg-pattern"></div>
         <div class="modal-header-hero-content">
           <div class="modal-hero-eyebrow-row">
-            <span class="modal-hero-eyebrow">{{ categoria(p) }} / PROYECTO</span>
-            <button class="modal-hero-close" (click)="cerrarDetalle()" aria-label="Cerrar detalle" title="Cerrar">
+            <span class="modal-hero-eyebrow">{{ 'crm.proyectos.detalleEyebrow' | t:{ categoria: categoria(p) } }}</span>
+            <button class="modal-hero-close" (click)="cerrarDetalle()" [attr.aria-label]="'crm.proyectos.cerrarDetalle' | t" [title]="'crm.proyectos.cerrar' | t">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -442,7 +442,7 @@
               </p>
             </div>
             <div class="modal-hero-actions">
-              <button class="btn-secondary btn-hero-edit" type="button" (click)="abrirEdicion(p.id)">Editar proyecto</button>
+              <button class="btn-secondary btn-hero-edit" type="button" (click)="abrirEdicion(p.id)">{{ 'crm.proyectos.editarProyecto' | t }}</button>
             </div>
           </div>
         </div>
@@ -450,65 +450,65 @@
         <!-- Pestañas de Navegación del Detalle -->
         <nav class="detail-nav-tabs">
           <button class="detail-tab-btn" [class.active]="pestanaDetalle === 'resumen'" (click)="pestanaDetalle = 'resumen'">
-            Resumen
+            {{ 'crm.proyectos.tabResumen' | t }}
           </button>
           <button class="detail-tab-btn" [class.active]="pestanaDetalle === 'tareas'" (click)="pestanaDetalle = 'tareas'">
-            Tareas <span class="tab-badge">{{ tareasDetalle.length }}</span>
+            {{ 'crm.proyectos.tabTareas' | t }} <span class="tab-badge">{{ tareasDetalle.length }}</span>
           </button>
           <button class="detail-tab-btn" [class.active]="pestanaDetalle === 'hitos'" (click)="pestanaDetalle = 'hitos'">
-            Hitos <span class="tab-badge">{{ hitosDetalle.length }}</span>
+            {{ 'crm.proyectos.tabHitos' | t }} <span class="tab-badge">{{ hitosDetalle.length }}</span>
           </button>
           <button class="detail-tab-btn" [class.active]="pestanaDetalle === 'archivos'" (click)="pestanaDetalle = 'archivos'">
-            Archivos <span class="tab-badge">{{ archivosDetalle.length }}</span>
+            {{ 'crm.proyectos.tabArchivos' | t }} <span class="tab-badge">{{ archivosDetalle.length }}</span>
           </button>
           <button class="detail-tab-btn" [class.active]="pestanaDetalle === 'bitacora'" (click)="pestanaDetalle = 'bitacora'">
-            Bitácora & Comentarios <span class="tab-badge">{{ comentariosDetalle.length }}</span>
+            {{ 'crm.proyectos.tabBitacora' | t }} <span class="tab-badge">{{ comentariosDetalle.length }}</span>
           </button>
         </nav>
       </header>
 
       <!-- Cuerpo del Modal -->
       <div class="modal-body-scroll">
-        <p *ngIf="detalleCargando" role="status" class="api-state">Cargando detalles…</p>
-        <p class="auth-error" *ngIf="detalleError" role="alert">{{ detalleError }} <button class="btn-secondary" type="button" (click)="cargarDetalle(detalleId || '')">Reintentar</button></p>
+        <p *ngIf="detalleCargando" role="status" class="api-state">{{ 'crm.proyectos.cargandoDetalles' | t }}</p>
+        <p class="auth-error" *ngIf="detalleError" role="alert">{{ detalleError }} <button class="btn-secondary" type="button" (click)="cargarDetalle(detalleId || '')">{{ 'crm.proyectos.reintentar' | t }}</button></p>
 
         <div *ngIf="!detalleCargando">
           <!-- PESTAÑA 1: RESUMEN -->
           <div *ngIf="pestanaDetalle === 'resumen'" class="detail-tab-content">
             <div class="stats-cards-grid">
               <div class="stat-box">
-                <small>Presupuesto</small>
-                <b>{{ p.presupuesto === null ? 'Sin asignar' : (p.moneda + ' ' + (p.presupuesto | number:'1.2-2')) }}</b>
+                <small>{{ 'crm.proyectos.presupuesto' | t }}</small>
+                <b>{{ p.presupuesto === null ? ('crm.proyectos.sinAsignar' | t) : formatearPresupuesto(p.presupuesto, p.moneda) }}</b>
               </div>
               <div class="stat-box">
-                <small>Fecha Inicio</small>
-                <b>{{ p.fechaInicio ? (p.fechaInicio | date:'dd MMM yyyy') : 'No definida' }}</b>
+                <small>{{ 'crm.proyectos.fechaInicio' | t }}</small>
+                <b>{{ p.fechaInicio ? formatearFecha(p.fechaInicio) : ('crm.proyectos.noDefinida' | t) }}</b>
               </div>
               <div class="stat-box">
-                <small>Fecha Entrega</small>
-                <b>{{ p.fechaEntrega ? (p.fechaEntrega | date:'dd MMM yyyy') : 'No definida' }}</b>
+                <small>{{ 'crm.proyectos.fechaEntrega' | t }}</small>
+                <b>{{ p.fechaEntrega ? formatearFecha(p.fechaEntrega) : ('crm.proyectos.noDefinida' | t) }}</b>
               </div>
             </div>
 
             <!-- Progreso General de Tareas -->
             <div class="task-progress-box">
               <div class="progress-header-row">
-                <strong>Progreso Global de Tareas</strong>
+                <strong>{{ 'crm.proyectos.progresoGlobalTareas' | t }}</strong>
                 <span class="progress-pct-badge">{{ progresoDetalle() }}%</span>
               </div>
               <div class="progress-bar-container">
                 <div class="progress-bar-fill" [style.width.%]="progresoDetalle()"></div>
               </div>
-              <p class="progress-subtext">Calculado en base a {{ tareasDetalle.length }} tarea(s) en este proyecto.</p>
+              <p class="progress-subtext">{{ 'crm.proyectos.progresoSubtexto' | t:{ count: tareasDetalle.length } }}</p>
             </div>
 
             <!-- Descripción -->
             <div class="detail-card-panel">
               <h3>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                Descripción del Proyecto
+                {{ 'crm.proyectos.descripcionProyecto' | t }}
               </h3>
-              <p class="detail-desc-text">{{ p.descripcion || 'Sin descripción registrada para este proyecto.' }}</p>
+              <p class="detail-desc-text">{{ p.descripcion || ('crm.proyectos.sinDescripcion' | t) }}</p>
             </div>
           </div>
 
@@ -518,7 +518,7 @@
               <div class="panel-header-with-action">
                 <h3>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                  Tareas del Proyecto ({{ tareasDetalle.length }})
+                  {{ 'crm.proyectos.tareasDelProyecto' | t:{ count: tareasDetalle.length } }}
                 </h3>
               </div>
 
@@ -531,37 +531,37 @@
                     <span class="task-title-text">{{ t.titulo }}</span>
                   </label>
                   <div class="task-item-meta">
-                    <span class="badge" [ngClass]="'priority-' + t.prioridad.toLowerCase()">{{ t.prioridad }}</span>
-                    <span class="task-due-date" *ngIf="t.fechaVencimiento">Vence: {{ t.fechaVencimiento | date:'dd MMM' }}</span>
-                    <button class="btn-task-del" type="button" (click)="eliminarTarea(t)" title="Eliminar tarea">×</button>
+                    <span class="badge" [ngClass]="'priority-' + t.prioridad.toLowerCase()">{{ etiquetaPrioridad(t.prioridad) }}</span>
+                    <span class="task-due-date" *ngIf="t.fechaVencimiento">{{ 'crm.proyectos.venceFecha' | t:{ fecha: formatearFecha(t.fechaVencimiento, { day: '2-digit', month: 'short' }) } }}</span>
+                    <button class="btn-task-del" type="button" (click)="eliminarTarea(t)" [title]="'crm.proyectos.eliminarTareaTitulo' | t">×</button>
                   </div>
                 </div>
               </div>
 
-              <p *ngIf="!tareasDetalle.length" class="text-empty-italic">No hay tareas creadas todavía en este proyecto.</p>
+              <p *ngIf="!tareasDetalle.length" class="text-empty-italic">{{ 'crm.proyectos.sinTareas' | t }}</p>
 
               <!-- Formulario para Nueva Tarea -->
               <div class="inline-add-box">
-                <h4>+ Agregar nueva tarea</h4>
+                <h4>{{ 'crm.proyectos.agregarNuevaTarea' | t }}</h4>
                 <div class="form-row">
                   <div class="form-group flex-2">
-                    <input class="form-control" [(ngModel)]="nuevaTarea.titulo" placeholder="Título de la tarea..." minlength="2">
+                    <input class="form-control" [(ngModel)]="nuevaTarea.titulo" [placeholder]="'crm.proyectos.placeholderNuevaTarea' | t" minlength="2">
                   </div>
                   <div class="form-group">
                     <select class="form-control" [(ngModel)]="nuevaTarea.prioridad">
-                      <option value="BAJA">Baja</option>
-                      <option value="MEDIA">Media</option>
-                      <option value="ALTA">Alta</option>
-                      <option value="URGENTE">Urgente</option>
+                      <option value="BAJA">{{ 'crm.proyectos.prioridadBaja' | t }}</option>
+                      <option value="MEDIA">{{ 'crm.proyectos.prioridadMedia' | t }}</option>
+                      <option value="ALTA">{{ 'crm.proyectos.prioridadAlta' | t }}</option>
+                      <option value="URGENTE">{{ 'crm.proyectos.prioridadUrgente' | t }}</option>
                     </select>
                   </div>
                   <div class="form-group">
-                    <input type="date" class="form-control" [(ngModel)]="nuevaTarea.fechaVencimiento" title="Fecha límite">
+                    <input type="date" class="form-control" [(ngModel)]="nuevaTarea.fechaVencimiento" [title]="'crm.proyectos.fechaLimite' | t">
                   </div>
                 </div>
                 <p class="auth-error" *ngIf="errorTareas">{{ errorTareas }}</p>
                 <button class="btn-primary" type="button" (click)="crearTarea()" [disabled]="guardandoTarea || !nuevaTarea.titulo.trim()">
-                  {{ guardandoTarea ? 'Creando…' : 'Crear tarea' }}
+                  {{ (guardandoTarea ? 'crm.proyectos.creando' : 'crm.proyectos.crearTarea') | t }}
                 </button>
               </div>
             </div>
@@ -575,11 +575,11 @@
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
-                  Hitos del Proyecto ({{ hitosDetalle.length }})
+                  {{ 'crm.proyectos.hitosDelProyecto' | t:{ count: hitosDetalle.length } }}
                 </h3>
               </div>
 
-              <p *ngIf="!hitosDetalle.length" class="text-empty-italic">Todavía no hay hitos registrados para este proyecto.</p>
+              <p *ngIf="!hitosDetalle.length" class="text-empty-italic">{{ 'crm.proyectos.sinHitos' | t }}</p>
 
               <div class="milestones-list" *ngIf="hitosDetalle.length">
                 <div class="milestone-item-card" *ngFor="let hito of hitosDetalle">
@@ -587,8 +587,8 @@
                     <div>
                       <h4 class="milestone-title">{{ hito.titulo }}</h4>
                       <div class="milestone-badges">
-                        <span class="badge" [ngClass]="hito.estado === 'COMPLETADO' ? 'badge-completado' : 'badge-progreso'">{{ hito.estado }}</span>
-                        <span class="badge badge-subtle">{{ hito.visibleEnPortal ? 'Visible en portal' : 'Solo CRM' }}</span>
+                        <span class="badge" [ngClass]="hito.estado === 'COMPLETADO' ? 'badge-completado' : 'badge-progreso'">{{ etiquetaEstadoHito(hito.estado) }}</span>
+                        <span class="badge badge-subtle">{{ (hito.visibleEnPortal ? 'crm.proyectos.visibleEnPortal' : 'crm.proyectos.soloCrm') | t }}</span>
                       </div>
                     </div>
                     <time class="milestone-date" *ngIf="hito.fechaObjetivo">
@@ -607,46 +607,46 @@
                   <!-- Edición inline de hito -->
                   <div *ngIf="editandoHitoId === hito.id" class="milestone-form-box">
                     <div class="form-group">
-                      <label [for]="'hito-edit-titulo-' + hito.id">Título</label>
+                      <label [for]="'hito-edit-titulo-' + hito.id">{{ 'crm.proyectos.hitoTituloLabel' | t }}</label>
                       <input [id]="'hito-edit-titulo-' + hito.id" class="form-control" [(ngModel)]="hitoBorrador.titulo" minlength="2">
                     </div>
                     <div class="form-group">
-                      <label [for]="'hito-edit-desc-' + hito.id">Descripción</label>
+                      <label [for]="'hito-edit-desc-' + hito.id">{{ 'crm.proyectos.hitoDescLabel' | t }}</label>
                       <textarea [id]="'hito-edit-desc-' + hito.id" class="form-control milestone-textarea" rows="3" [(ngModel)]="hitoBorrador.descripcion"></textarea>
                     </div>
                     <div class="form-row milestone-form-row">
                       <div class="form-group">
-                        <label [for]="'hito-edit-estado-' + hito.id">Estado</label>
+                        <label [for]="'hito-edit-estado-' + hito.id">{{ 'crm.proyectos.hitoEstadoLabel' | t }}</label>
                         <select [id]="'hito-edit-estado-' + hito.id" class="form-control" [(ngModel)]="hitoBorrador.estado">
-                          <option value="PENDIENTE">Pendiente</option>
-                          <option value="EN_PROGRESO">En progreso</option>
-                          <option value="COMPLETADO">Completado</option>
-                          <option value="VENCIDO">Vencido</option>
+                          <option value="PENDIENTE">{{ 'crm.proyectos.hitoPendiente' | t }}</option>
+                          <option value="EN_PROGRESO">{{ 'crm.proyectos.hitoEnProgreso' | t }}</option>
+                          <option value="COMPLETADO">{{ 'crm.proyectos.hitoCompletado' | t }}</option>
+                          <option value="VENCIDO">{{ 'crm.proyectos.hitoVencido' | t }}</option>
                         </select>
                       </div>
                       <div class="form-group">
-                        <label [for]="'hito-edit-fecha-' + hito.id">Fecha objetivo</label>
+                        <label [for]="'hito-edit-fecha-' + hito.id">{{ 'crm.proyectos.hitoFechaObjetivo' | t }}</label>
                         <input [id]="'hito-edit-fecha-' + hito.id" class="form-control" type="date" [(ngModel)]="hitoBorrador.fechaObjetivo">
                       </div>
                     </div>
                     <div class="form-group milestone-checkbox-group">
                       <label class="checkbox-label milestone-checkbox-label">
                         <input type="checkbox" [(ngModel)]="hitoBorrador.visibleEnPortal">
-                        <span>Publicar en el portal del cliente</span>
+                        <span>{{ 'crm.proyectos.publicarPortal' | t }}</span>
                       </label>
                     </div>
                     <div class="form-btn-row">
-                      <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="guardarHito(hito)">Guardar</button>
-                      <button class="btn-secondary" type="button" (click)="editandoHitoId = null">Cancelar</button>
+                      <button class="btn-primary" type="button" [disabled]="guardandoHito" (click)="guardarHito(hito)">{{ 'crm.proyectos.guardar' | t }}</button>
+                      <button class="btn-secondary" type="button" (click)="editandoHitoId = null">{{ 'crm.proyectos.cancelar' | t }}</button>
                     </div>
                   </div>
 
                   <div class="milestone-actions" *ngIf="editandoHitoId !== hito.id">
-                    <button class="btn-sm-action" type="button" (click)="editarHito(hito)">Editar hito</button>
-                    <button class="btn-sm-action" type="button" *ngIf="confirmandoHitoId !== hito.id" (click)="confirmandoHitoId = hito.id">Eliminar</button>
+                    <button class="btn-sm-action" type="button" (click)="editarHito(hito)">{{ 'crm.proyectos.editarHito' | t }}</button>
+                    <button class="btn-sm-action" type="button" *ngIf="confirmandoHitoId !== hito.id" (click)="confirmandoHitoId = hito.id">{{ 'crm.proyectos.eliminar' | t }}</button>
                     <ng-container *ngIf="confirmandoHitoId === hito.id">
-                      <button class="btn-sm-action text-danger" type="button" [disabled]="guardandoHito" (click)="eliminarHito(hito)">Confirmar eliminación</button>
-                      <button class="btn-sm-action" type="button" (click)="confirmandoHitoId = null">Cancelar</button>
+                      <button class="btn-sm-action text-danger" type="button" [disabled]="guardandoHito" (click)="eliminarHito(hito)">{{ 'crm.proyectos.confirmarEliminacion' | t }}</button>
+                      <button class="btn-sm-action" type="button" (click)="confirmandoHitoId = null">{{ 'crm.proyectos.cancelar' | t }}</button>
                     </ng-container>
                   </div>
                 </div>
@@ -654,30 +654,30 @@
 
               <!-- Formulario para nuevo hito -->
               <div class="inline-add-box milestone-add-box">
-                <h4>+ Agregar nuevo hito</h4>
+                <h4>{{ 'crm.proyectos.agregarNuevoHito' | t }}</h4>
                 <div class="form-group">
-                  <label for="nuevo-hito-titulo">Título</label>
-                  <input id="nuevo-hito-titulo" class="form-control" [(ngModel)]="nuevoHito.titulo" minlength="2" placeholder="Ej. Aprobación de bocetos iniciales">
+                  <label for="nuevo-hito-titulo">{{ 'crm.proyectos.hitoTituloLabel' | t }}</label>
+                  <input id="nuevo-hito-titulo" class="form-control" [(ngModel)]="nuevoHito.titulo" minlength="2" [placeholder]="'crm.proyectos.placeholderHitoTitulo' | t">
                 </div>
                 <div class="form-group">
-                  <label for="nuevo-hito-descripcion">Descripción</label>
-                  <textarea id="nuevo-hito-descripcion" class="form-control milestone-textarea" rows="3" [(ngModel)]="nuevoHito.descripcion" placeholder="Detalles de lo que se entregará o revisará..."></textarea>
+                  <label for="nuevo-hito-descripcion">{{ 'crm.proyectos.hitoDescLabel' | t }}</label>
+                  <textarea id="nuevo-hito-descripcion" class="form-control milestone-textarea" rows="3" [(ngModel)]="nuevoHito.descripcion" [placeholder]="'crm.proyectos.placeholderHitoDesc' | t"></textarea>
                 </div>
                 <div class="form-row milestone-form-row">
                   <div class="form-group">
-                    <label for="nuevo-hito-fecha">Fecha objetivo</label>
+                    <label for="nuevo-hito-fecha">{{ 'crm.proyectos.hitoFechaObjetivo' | t }}</label>
                     <input id="nuevo-hito-fecha" class="form-control" type="date" [(ngModel)]="nuevoHito.fechaObjetivo">
                   </div>
                   <div class="form-group milestone-checkbox-group">
                     <label class="checkbox-label milestone-checkbox-label">
                       <input type="checkbox" [(ngModel)]="nuevoHito.visibleEnPortal">
-                      <span>Visible en portal del cliente</span>
+                      <span>{{ 'crm.proyectos.visiblePortalCliente' | t }}</span>
                     </label>
                   </div>
                 </div>
                 <p class="auth-error" *ngIf="errorHitos" role="alert">{{ errorHitos }}</p>
                 <div class="milestone-submit-row">
-                  <button class="btn-primary milestone-submit-btn" type="button" [disabled]="guardandoHito" (click)="crearHito()">{{ guardandoHito ? 'Guardando…' : 'Crear hito' }}</button>
+                  <button class="btn-primary milestone-submit-btn" type="button" [disabled]="guardandoHito" (click)="crearHito()">{{ (guardandoHito ? 'crm.proyectos.guardando' : 'crm.proyectos.crearHito') | t }}</button>
                 </div>
               </div>
             </div>
@@ -689,7 +689,7 @@
               <div class="panel-header-with-action">
                 <h3>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
-                  Archivos y Entregables ({{ archivosDetalle.length }})
+                  {{ 'crm.proyectos.archivosYEntregables' | t:{ count: archivosDetalle.length } }}
                 </h3>
               </div>
 
@@ -698,31 +698,31 @@
                 <div class="pd-upload-grid">
                   <div class="form-group pd-file-picker-group">
                     <label for="proyecto-archivo" class="pd-field-label">
-                      Seleccionar archivo <small class="text-muted">(PDF, PNG, JPG, WebP, GIF, TXT; máx 8 MB)</small>
+                      {{ 'crm.proyectos.seleccionarArchivo' | t }} <small class="text-muted">{{ 'crm.proyectos.formatosArchivo' | t }}</small>
                     </label>
                     <input id="proyecto-archivo" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt" (change)="elegirArchivo($event)" class="custom-file-upload-input">
                   </div>
 
                   <div class="form-group pd-visibility-group">
-                    <label for="archivo-visibilidad" class="pd-field-label">Visibilidad</label>
+                    <label for="archivo-visibilidad" class="pd-field-label">{{ 'crm.proyectos.visibilidad' | t }}</label>
                     <select id="archivo-visibilidad" class="form-control" [(ngModel)]="visibilidadArchivo">
-                      <option value="INTERNA">Solo equipo (Privado)</option>
-                      <option value="CLIENTE">Compartir con cliente (Visible en portal)</option>
+                      <option value="INTERNA">{{ 'crm.proyectos.visibilidadInterna' | t }}</option>
+                      <option value="CLIENTE">{{ 'crm.proyectos.visibilidadCliente' | t }}</option>
                     </select>
                   </div>
 
                   <div class="pd-upload-btn-cell">
                     <button class="btn-primary" type="button" [disabled]="!archivoElegido || subiendoArchivo" (click)="subirArchivo()">
-                      {{ subiendoArchivo ? 'Subiendo…' : 'Subir archivo' }}
+                      {{ (subiendoArchivo ? 'crm.proyectos.subiendo' : 'crm.proyectos.subirArchivo') | t }}
                     </button>
                   </div>
                 </div>
 
-                <progress *ngIf="subiendoArchivo" [value]="progresoArchivo" max="100" class="pd-upload-progress" aria-label="Progreso de carga"></progress>
+                <progress *ngIf="subiendoArchivo" [value]="progresoArchivo" max="100" class="pd-upload-progress" [attr.aria-label]="'crm.proyectos.progresoCarga' | t"></progress>
                 <p class="auth-error" *ngIf="errorArchivos" role="alert" style="margin-top: 8px;">{{ errorArchivos }}</p>
               </div>
 
-              <p *ngIf="!archivosDetalle.length" class="text-empty-italic">No hay archivos ni entregables registrados en este proyecto.</p>
+              <p *ngIf="!archivosDetalle.length" class="text-empty-italic">{{ 'crm.proyectos.sinArchivos' | t }}</p>
 
               <!-- Lista de Archivos -->
               <ul class="project-files-list files-box-list pd-files-list" *ngIf="archivosDetalle.length">
@@ -737,20 +737,20 @@
                     <div>
                       <strong class="pd-file-name">{{ archivo.nombre }}</strong>
                       <div class="pd-file-meta-row">
-                        <span>{{ archivo.tamanoBytes | number }} bytes</span>
+                        <span>{{ 'crm.proyectos.tamanoBytes' | t:{ bytes: formatearNumero(archivo.tamanoBytes) } }}</span>
                         <span>•</span>
                         <span class="badge" [style.background]="archivo.visibilidad === 'CLIENTE' ? '#eff6ff' : '#f1f5f9'" [style.color]="archivo.visibilidad === 'CLIENTE' ? '#1d4ed8' : '#475569'" style="font-size: 11px; font-weight: 700;">
-                          {{ archivo.visibilidad === 'CLIENTE' ? 'Visible al cliente' : 'Solo equipo' }}
+                          {{ (archivo.visibilidad === 'CLIENTE' ? 'crm.proyectos.visibleAlCliente' : 'crm.proyectos.soloEquipo') | t }}
                         </span>
                       </div>
                     </div>
                   </div>
 
                   <div class="pd-file-actions">
-                    <button class="btn-secondary btn-action-pill" type="button" [disabled]="!!descargandoArchivoId" (click)="descargarArchivo(archivo)">{{ descargandoArchivoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
-                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId !== archivo.id" (click)="confirmarEliminarArchivoId = archivo.id">Eliminar</button>
-                    <button class="btn-action-pill btn-action-danger" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" [disabled]="!!eliminandoArchivoId" (click)="eliminarArchivo(archivo)">Confirmar</button>
-                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" (click)="confirmarEliminarArchivoId = null">Cancelar</button>
+                    <button class="btn-secondary btn-action-pill" type="button" [disabled]="!!descargandoArchivoId" (click)="descargarArchivo(archivo)">{{ (descargandoArchivoId === archivo.id ? 'crm.proyectos.descargando' : 'crm.proyectos.descargar') | t }}</button>
+                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId !== archivo.id" (click)="confirmarEliminarArchivoId = archivo.id">{{ 'crm.proyectos.eliminar' | t }}</button>
+                    <button class="btn-action-pill btn-action-danger" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" [disabled]="!!eliminandoArchivoId" (click)="eliminarArchivo(archivo)">{{ 'crm.proyectos.confirmar' | t }}</button>
+                    <button class="btn-secondary btn-action-pill" type="button" *ngIf="confirmarEliminarArchivoId === archivo.id" (click)="confirmarEliminarArchivoId = null">{{ 'crm.proyectos.cancelar' | t }}</button>
                   </div>
                 </li>
               </ul>
@@ -762,28 +762,28 @@
             <div class="detail-card-panel">
               <h3>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                Conversación y Bitácora ({{ comentariosDetalle.length }})
+                {{ 'crm.proyectos.conversacionYBitacora' | t:{ count: comentariosDetalle.length } }}
               </h3>
 
-              <p *ngIf="!comentariosDetalle.length" class="text-empty-italic">Todavía no hay notas ni comentarios registrados.</p>
+              <p *ngIf="!comentariosDetalle.length" class="text-empty-italic">{{ 'crm.proyectos.sinComentarios' | t }}</p>
 
               <ol class="comments-list" *ngIf="comentariosDetalle.length">
                 <li class="comment-card" *ngFor="let c of comentariosDetalle">
                   <div class="comment-header">
                     <span class="comment-author">{{ autor(c) }}</span>
-                    <time class="comment-time">{{ c.creadoEn | date:'dd MMM yyyy, h:mm a' }}</time>
+                    <time class="comment-time">{{ formatearFechaHora(c.creadoEn) }}</time>
                   </div>
                   <p class="comment-content">{{ c.contenido }}</p>
                 </li>
               </ol>
 
               <div class="comment-composer">
-                <label for="crm-comentario" class="composer-label">Nuevo comentario o actualización:</label>
-                <textarea id="crm-comentario" class="form-control" [(ngModel)]="comentarioNuevo" maxlength="2000" rows="3" placeholder="Escribe un comentario o nota interna..."></textarea>
+                <label for="crm-comentario" class="composer-label">{{ 'crm.proyectos.nuevoComentarioLabel' | t }}</label>
+                <textarea id="crm-comentario" class="form-control" [(ngModel)]="comentarioNuevo" maxlength="2000" rows="3" [placeholder]="'crm.proyectos.placeholderComentario' | t"></textarea>
                 <p class="auth-error" *ngIf="errorComentario">{{ errorComentario }}</p>
                 <div class="composer-actions">
                   <button class="btn-primary" type="button" [disabled]="enviandoComentario || !comentarioNuevo.trim()" (click)="enviarComentario()">
-                    {{ enviandoComentario ? 'Enviando…' : 'Enviar comentario' }}
+                    {{ (enviandoComentario ? 'crm.proyectos.enviando' : 'crm.proyectos.enviarComentario') | t }}
                   </button>
                 </div>
               </div>
@@ -794,8 +794,8 @@
 
       <!-- Pie del Modal -->
       <footer class="modal-footer-bar">
-        <button class="btn-secondary" type="button" (click)="cerrarDetalle()">Cerrar</button>
-        <button class="btn-primary" type="button" (click)="abrirEdicion(p.id)">Editar proyecto</button>
+        <button class="btn-secondary" type="button" (click)="cerrarDetalle()">{{ 'crm.proyectos.cerrar' | t }}</button>
+        <button class="btn-primary" type="button" (click)="abrirEdicion(p.id)">{{ 'crm.proyectos.editarProyecto' | t }}</button>
       </footer>
     </ng-container>
   </section>

@@ -22,12 +22,12 @@
   <!-- MENSAJE DE ESTADO DE IDENTIDAD SI FALLA -->
   <div class="portal-error-card banner-alert" *ngIf="errorIdentidad" role="alert">
     <span>{{ errorIdentidad }}</span>
-    <button type="button" class="btn-editorial-retry" (click)="reintentarIdentidad()">Reintentar</button>
+    <button type="button" class="btn-editorial-retry" (click)="reintentarIdentidad()">{{ 'portal.comun.reintentar' | t }}</button>
   </div>
 
   <!-- SECCIÓN DE SALUDO Y MENSAJE CONTEXTUAL -->
   <section class="editorial-greeting" aria-labelledby="saludo-portal">
-    <h2 id="saludo-portal" class="greeting-heading">Hola, {{ nombreCliente }}.</h2>
+    <h2 id="saludo-portal" class="greeting-heading">{{ 'portal.home.saludo' | t:{ nombre: nombreCliente } }}</h2>
     <p class="greeting-subtext">{{ mensajeContextual }}</p>
   </section>
 
@@ -38,9 +38,9 @@
     <section class="editorial-column" [attr.aria-labelledby]="esFotografia ? 'heading-sesiones' : 'heading-proyectos'">
       <div class="editorial-col-header">
         <h3 [id]="esFotografia ? 'heading-sesiones' : 'heading-proyectos'" class="editorial-col-title">
-          {{ esFotografia ? 'TUS SESIONES' : 'TUS PROYECTOS' }}
+          {{ (esFotografia ? 'portal.home.sesionesTitulo' : 'portal.home.proyectosTitulo') | t }}
         </h3>
-        <span class="editorial-counter-badge" [attr.aria-label]="(esFotografia ? sesiones.length : proyectos.length) + ' disponibles'">
+        <span class="editorial-counter-badge" [attr.aria-label]="'portal.home.disponiblesAria' | t:{ count: (esFotografia ? sesiones.length : proyectos.length) }">
           {{ esFotografia ? sesiones.length : proyectos.length }}
         </span>
       </div>
@@ -50,13 +50,13 @@
       <ng-container *ngIf="esFotografia">
         <!-- Estado de carga -->
         <p class="portal-loading-state" *ngIf="cargandoSesiones" role="status" aria-live="polite">
-          <span class="spinner-editorial"></span> Cargando tus sesiones fotográficas…
+          <span class="spinner-editorial"></span> {{ 'portal.home.cargandoSesiones' | t }}
         </p>
 
         <!-- Estado de error -->
         <div class="portal-error-card" *ngIf="errorSesiones" role="alert">
           <span>{{ errorSesiones }}</span>
-          <button type="button" class="btn-editorial-retry" (click)="cargarSesiones()">Reintentar</button>
+          <button type="button" class="btn-editorial-retry" (click)="cargarSesiones()">{{ 'portal.comun.reintentar' | t }}</button>
         </div>
 
         <!-- Estado vacío elegante -->
@@ -73,27 +73,27 @@
               </g>
             </svg>
           </div>
-          <h4 class="empty-state-title">Aún no hay sesiones compartidas</h4>
+          <h4 class="empty-state-title">{{ 'portal.home.sinSesionesTitulo' | t }}</h4>
           <p class="empty-state-desc">
-            Cuando {{ nombreEstudio }} publique una sesión para ti, aparecerá aquí.
+            {{ 'portal.home.sinSesionesDesc' | t:{ estudio: nombreEstudio } }}
           </p>
         </div>
 
         <!-- Sesiones con datos reales (sesiones.length > 0) -->
         <div class="editorial-sessions-container" *ngIf="!cargandoSesiones && !errorSesiones && sesiones.length > 0">
           <!-- Selector de sesión si hay múltiples -->
-          <nav class="session-selector-list" *ngIf="sesiones.length > 1" aria-label="Seleccionar sesión fotográfica">
+          <nav class="session-selector-list" *ngIf="sesiones.length > 1" [attr.aria-label]="'portal.home.seleccionarSesionAria' | t">
             <button *ngFor="let s of sesiones" type="button" class="session-tab-card"
               [class.active]="sesionId === s.id"
               [attr.aria-pressed]="sesionId === s.id"
               (click)="seleccionarSesion(s.id)">
               <div class="session-tab-thumb">
-                <img *ngIf="portadasSesionesUrls.get(s.id) as cover" [src]="cover" [alt]="'Portada de ' + nombreSesion(s)" />
+                <img *ngIf="portadasSesionesUrls.get(s.id) as cover" [src]="cover" [alt]="'portal.home.portadaDeAria' | t:{ nombre: nombreSesion(s) }" />
                 <span *ngIf="!portadasSesionesUrls.get(s.id)" class="session-tab-placeholder">📸</span>
               </div>
               <div class="session-tab-info">
                 <strong>{{ nombreSesion(s) }}</strong>
-                <small>{{ fechaSesion(s) | date:'mediumDate' }} · {{ (s.totalFotos || s.cantidadFotos || 0) }} fotos</small>
+                <small>{{ fechaSesion(s) | date:'mediumDate' }} · {{ (s.totalFotos || s.cantidadFotos || 0) }} {{ ((s.totalFotos || s.cantidadFotos || 0) === 1 ? 'portal.home.fotoSingular' : 'portal.home.fotoPlural') | t }}</small>
               </div>
             </button>
           </nav>
@@ -102,13 +102,13 @@
           <article class="session-detail-view" *ngIf="sesionSeleccionada as actual" aria-live="polite">
             <header class="session-view-header">
               <div>
-                <span class="session-view-eyebrow">SESIÓN FOTOGRÁFICA</span>
+                <span class="session-view-eyebrow">{{ 'portal.home.sesionEyebrow' | t }}</span>
                 <h4 class="session-view-title">{{ nombreSesion(actual) }}</h4>
                 <p class="session-view-desc" *ngIf="actual.descripcion">{{ actual.descripcion }}</p>
               </div>
               <div class="session-view-meta">
                 <span class="session-date-pill" *ngIf="fechaSesion(actual)">{{ fechaSesion(actual) | date:'mediumDate' }}</span>
-                <span class="session-count-pill">{{ (totalFotos || actual.cantidadFotos || 0) }} {{ (totalFotos || actual.cantidadFotos) === 1 ? 'foto' : 'fotos' }}</span>
+                <span class="session-count-pill">{{ (totalFotos || actual.cantidadFotos || 0) }} {{ ((totalFotos || actual.cantidadFotos) === 1 ? 'portal.home.fotoSingular' : 'portal.home.fotoPlural') | t }}</span>
               </div>
             </header>
 
@@ -118,23 +118,23 @@
 
             <!-- Carga y errores de fotos -->
             <p class="portal-loading-state" *ngIf="cargandoFotos" role="status" aria-live="polite">
-              <span class="spinner-editorial"></span> Cargando fotografías…
+              <span class="spinner-editorial"></span> {{ 'portal.home.cargandoFotos' | t }}
             </p>
             <div class="portal-error-card" *ngIf="errorFotos" role="alert">
               <span>{{ errorFotos }}</span>
-              <button type="button" class="btn-editorial-retry" (click)="reintentarFotos()">Reintentar</button>
+              <button type="button" class="btn-editorial-retry" (click)="reintentarFotos()">{{ 'portal.comun.reintentar' | t }}</button>
             </div>
             <p class="empty-inline-state" *ngIf="!cargandoFotos && !errorFotos && fotos.length === 0">
-              Esta sesión fotográfica todavía no tiene fotos disponibles.
+              {{ 'portal.home.sesionSinFotos' | t }}
             </p>
 
             <!-- Cuadrícula de fotos con visor ampliado -->
             <div class="gallery-wrapper" *ngIf="!cargandoFotos && !errorFotos && fotos.length > 0">
-              <div class="photo-grid" role="grid" aria-label="Galería de fotografías">
+              <div class="photo-grid" role="grid" [attr.aria-label]="'portal.home.galeriaAria' | t">
                 <div *ngFor="let foto of fotos; let i = index" class="photo-card" role="gridcell">
                   <button type="button" class="photo-button"
                     (click)="abrirVisor(foto, i)"
-                    [attr.aria-label]="'Ver ' + nombreFoto(foto, i) + ' en tamaño ampliado'">
+                    [attr.aria-label]="'portal.home.verFotoAmpliadaAria' | t:{ nombre: nombreFoto(foto, i) }">
                     <div class="photo-thumb-box">
                       <img *ngIf="miniaturasUrls.get(foto.id) as src"
                         [src]="src"
@@ -148,7 +148,7 @@
                         <span>!</span>
                       </div>
                       <div class="photo-hover-overlay" aria-hidden="true">
-                        <span class="photo-zoom-badge">🔍 Ampliar</span>
+                        <span class="photo-zoom-badge">🔍 {{ 'portal.home.ampliar' | t }}</span>
                       </div>
                     </div>
                     <span class="photo-caption-text">{{ nombreFoto(foto, i) }}</span>
@@ -157,15 +157,15 @@
               </div>
 
               <!-- Paginación de la galería -->
-              <nav class="gallery-pagination" *ngIf="totalPaginas > 1" aria-label="Paginación de la galería">
+              <nav class="gallery-pagination" *ngIf="totalPaginas > 1" [attr.aria-label]="'portal.home.paginacionAria' | t">
                 <button type="button" class="pagination-btn" [disabled]="paginaFotos <= 1" (click)="paginaAnterior()">
-                  ← Anterior
+                  ← {{ 'portal.comun.anterior' | t }}
                 </button>
                 <span class="pagination-status">
-                  Página {{ paginaFotos }} de {{ totalPaginas }} ({{ totalFotos }} fotos)
+                  {{ 'portal.home.paginacionEstado' | t:{ pagina: paginaFotos, totalPaginas: totalPaginas, totalFotos: totalFotos } }}
                 </span>
                 <button type="button" class="pagination-btn" [disabled]="paginaFotos >= totalPaginas" (click)="paginaSiguiente()">
-                  Siguiente →
+                  {{ 'portal.comun.siguiente' | t }} →
                 </button>
               </nav>
             </div>
@@ -176,11 +176,11 @@
       <!-- CONTENIDO PARA OTRAS MODALIDADES (GENERAL, DESARROLLO, DISEÑO) -->
       <ng-container *ngIf="!esFotografia">
         <p class="portal-loading-state" *ngIf="cargandoProyectos" role="status" aria-live="polite">
-          <span class="spinner-editorial"></span> Cargando tus proyectos…
+          <span class="spinner-editorial"></span> {{ 'portal.home.cargandoProyectos' | t }}
         </p>
         <div class="portal-error-card" *ngIf="errorProyectos" role="alert">
           <span>{{ errorProyectos }}</span>
-          <button type="button" class="btn-editorial-retry" (click)="cargarProyectos()">Reintentar</button>
+          <button type="button" class="btn-editorial-retry" (click)="cargarProyectos()">{{ 'portal.comun.reintentar' | t }}</button>
         </div>
 
         <div class="editorial-empty-state" *ngIf="!cargandoProyectos && !errorProyectos && proyectos.length === 0">
@@ -191,15 +191,15 @@
               <line x1="24" y1="52" x2="64" y2="52" stroke="#78716c" />
             </svg>
           </div>
-          <h4 class="empty-state-title">Aún no hay proyectos compartidos</h4>
+          <h4 class="empty-state-title">{{ 'portal.home.sinProyectosTitulo' | t }}</h4>
           <p class="empty-state-desc">
-            Cuando {{ nombreEstudio }} publique un proyecto para ti, aparecerá aquí.
+            {{ 'portal.home.sinProyectosDesc' | t:{ estudio: nombreEstudio } }}
           </p>
         </div>
 
         <!-- Proyectos con datos reales -->
         <div class="editorial-projects-container" *ngIf="!errorProyectos && proyectos.length > 0">
-          <nav class="project-selector-list" *ngIf="proyectos.length > 1" aria-label="Seleccionar proyecto">
+          <nav class="project-selector-list" *ngIf="proyectos.length > 1" [attr.aria-label]="'portal.home.seleccionarProyectoAria' | t">
             <button *ngFor="let item of proyectos" type="button" class="project-tab-card"
               [class.active]="proyectoId === item.id"
               [attr.aria-pressed]="proyectoId === item.id"
@@ -210,16 +210,16 @@
           </nav>
 
           <article class="project-detail-view" aria-live="polite">
-            <p class="portal-loading-state" *ngIf="cargandoDetalle" role="status">Cargando el proyecto…</p>
+            <p class="portal-loading-state" *ngIf="cargandoDetalle" role="status">{{ 'portal.home.cargandoProyecto' | t }}</p>
             <div class="portal-error-card" *ngIf="errorDetalle" role="alert">
               <span>{{ errorDetalle }}</span>
-              <button type="button" class="btn-editorial-retry" (click)="reintentarDetalle()">Reintentar</button>
+              <button type="button" class="btn-editorial-retry" (click)="reintentarDetalle()">{{ 'portal.comun.reintentar' | t }}</button>
             </div>
 
             <ng-container *ngIf="proyecto as actual">
               <header class="project-view-header">
                 <div>
-                  <span class="project-view-eyebrow">PROYECTO</span>
+                  <span class="project-view-eyebrow">{{ 'portal.home.proyectoEyebrow' | t }}</span>
                   <h4 class="project-view-title">{{ actual.nombre }}</h4>
                   <p class="project-view-desc" *ngIf="actual.descripcion">{{ actual.descripcion }}</p>
                 </div>
@@ -227,21 +227,21 @@
               </header>
 
               <div class="project-meta-dates">
-                <span *ngIf="actual.fechaInicio">Inicio: {{ actual.fechaInicio | date:'mediumDate' }}</span>
-                <span *ngIf="actual.fechaEntrega"> · Entrega: {{ actual.fechaEntrega | date:'mediumDate' }}</span>
+                <span *ngIf="actual.fechaInicio">{{ 'portal.home.fechaInicio' | t }} {{ actual.fechaInicio | date:'mediumDate' }}</span>
+                <span *ngIf="actual.fechaEntrega"> · {{ 'portal.home.fechaEntrega' | t }} {{ actual.fechaEntrega | date:'mediumDate' }}</span>
               </div>
 
               <!-- Hitos -->
               <div class="project-section-block">
                 <div class="project-subheading">
-                  <h5>Hitos compartidos</h5>
-                  <span *ngIf="avanceHitos !== null">{{ avanceHitos }}% completado</span>
+                  <h5>{{ 'portal.home.hitosTitulo' | t }}</h5>
+                  <span *ngIf="avanceHitos !== null">{{ 'portal.home.avanceCompletado' | t:{ porcentaje: avanceHitos } }}</span>
                 </div>
                 <div class="progress-bar-track" *ngIf="avanceHitos !== null" role="progressbar"
-                  aria-label="Avance de hitos" [attr.aria-valuenow]="avanceHitos" aria-valuemin="0" aria-valuemax="100">
+                  [attr.aria-label]="'portal.home.avanceHitosAria' | t" [attr.aria-valuenow]="avanceHitos" aria-valuemin="0" aria-valuemax="100">
                   <div class="progress-bar-fill" [style.width.%]="avanceHitos"></div>
                 </div>
-                <p class="empty-inline-state" *ngIf="hitos.length === 0">No hay hitos visibles para este proyecto.</p>
+                <p class="empty-inline-state" *ngIf="hitos.length === 0">{{ 'portal.home.sinHitos' | t }}</p>
                 <ol class="milestones-list" *ngIf="hitos.length">
                   <li *ngFor="let hito of hitos" [class.done]="hito.estado === 'COMPLETADO'">
                     <span class="milestone-bullet" aria-hidden="true">{{ hito.estado === 'COMPLETADO' ? '✓' : '•' }}</span>
@@ -256,8 +256,8 @@
 
               <!-- Archivos -->
               <div class="project-section-block">
-                <h5>Archivos y entregables</h5>
-                <p class="empty-inline-state" *ngIf="archivos.length === 0">No hay archivos disponibles para este proyecto.</p>
+                <h5>{{ 'portal.home.archivosTitulo' | t }}</h5>
+                <p class="empty-inline-state" *ngIf="archivos.length === 0">{{ 'portal.home.sinArchivos' | t }}</p>
                 <ul class="files-list" *ngIf="archivos.length">
                   <li *ngFor="let archivo of archivos">
                     <div>
@@ -265,7 +265,7 @@
                       <p *ngIf="archivo.descripcion">{{ archivo.descripcion }}</p>
                       <small>{{ archivo.tipo }} · {{ tamanoArchivo(archivo.tamanoBytes) }}</small>
                     </div>
-                    <button type="button" class="btn-editorial-download" [disabled]="!!descargandoId" (click)="descargarArchivo(archivo)" [attr.aria-label]="'Descargar archivo ' + archivo.nombre">{{ descargandoId === archivo.id ? 'Descargando…' : 'Descargar' }}</button>
+                    <button type="button" class="btn-editorial-download" [disabled]="!!descargandoId" (click)="descargarArchivo(archivo)" [attr.aria-label]="'portal.home.descargarArchivoAria' | t:{ nombre: archivo.nombre }">{{ (descargandoId === archivo.id ? 'portal.comun.descargando' : 'portal.comun.descargar') | t }}</button>
                   </li>
                 </ul>
                 <p class="portal-error-text" *ngIf="errorDescarga" role="alert">{{ errorDescarga }}</p>
@@ -273,8 +273,8 @@
 
               <!-- Conversación -->
               <div class="project-section-block">
-                <h5>Conversación del proyecto</h5>
-                <p class="empty-inline-state" *ngIf="comentarios.length === 0">Todavía no hay mensajes en este proyecto.</p>
+                <h5>{{ 'portal.home.conversacionTitulo' | t }}</h5>
+                <p class="empty-inline-state" *ngIf="comentarios.length === 0">{{ 'portal.home.sinMensajes' | t }}</p>
                 <ol class="comments-list" *ngIf="comentarios.length">
                   <li *ngFor="let m of comentarios" [class.is-mine]="m.autor === 'CLIENTE'">
                     <div class="comment-head">
@@ -286,13 +286,13 @@
                 </ol>
 
                 <form class="comment-form-box" (ngSubmit)="enviarComentario()">
-                  <label for="comentario-input">Enviar un mensaje al equipo</label>
+                  <label for="comentario-input">{{ 'portal.home.enviarMensajeLabel' | t }}</label>
                   <textarea id="comentario-input" name="contenido" [(ngModel)]="comentario" maxlength="2000" rows="3"
-                    placeholder="Escribe un mensaje para el equipo…"></textarea>
+                    [placeholder]="'portal.home.enviarMensajePlaceholder' | t"></textarea>
                   <div class="comment-form-actions">
-                    <small>Máximo 2000 caracteres.</small>
+                    <small>{{ 'portal.home.maxCaracteres' | t }}</small>
                     <button type="submit" class="btn-editorial-primary" [disabled]="enviandoComentario || !comentario.trim()">
-                      {{ enviandoComentario ? 'Enviando…' : 'Enviar mensaje' }}
+                      {{ (enviandoComentario ? 'portal.home.enviandoMensaje' : 'portal.home.enviarMensajeBtn') | t }}
                     </button>
                   </div>
                   <p class="portal-error-text" *ngIf="errorComentario" role="alert">{{ errorComentario }}</p>
@@ -307,8 +307,8 @@
     <!-- COLUMNA 2: FACTURAS -->
     <section class="editorial-column" aria-labelledby="heading-facturas">
       <div class="editorial-col-header">
-        <h3 id="heading-facturas" class="editorial-col-title">FACTURAS</h3>
-        <span class="editorial-counter-badge" [attr.aria-label]="facturas.length + ' facturas'">
+        <h3 id="heading-facturas" class="editorial-col-title">{{ 'portal.home.facturasTitulo' | t }}</h3>
+        <span class="editorial-counter-badge" [attr.aria-label]="'portal.home.facturasCountAria' | t:{ count: facturas.length }">
           {{ facturas.length }}
         </span>
       </div>
@@ -316,13 +316,13 @@
 
       <!-- Estado de carga -->
       <p class="portal-loading-state" *ngIf="cargandoFacturas" role="status" aria-live="polite">
-        <span class="spinner-editorial"></span> Consultando facturas autorizadas…
+        <span class="spinner-editorial"></span> {{ 'portal.home.cargandoFacturas' | t }}
       </p>
 
       <!-- Estado de error -->
       <div class="portal-error-card" *ngIf="errorFacturas" role="alert">
         <span>{{ errorFacturas }}</span>
-        <button type="button" class="btn-editorial-retry" (click)="cargarFacturas()">Reintentar</button>
+        <button type="button" class="btn-editorial-retry" (click)="cargarFacturas()">{{ 'portal.comun.reintentar' | t }}</button>
       </div>
 
       <!-- Estado cuando el rol es COLABORADOR sin permiso de facturación -->
@@ -333,9 +333,9 @@
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
         </div>
-        <h4 class="empty-state-title">Acceso reservado al titular</h4>
+        <h4 class="empty-state-title">{{ 'portal.home.sinAccesoFacturasTitulo' | t }}</h4>
         <p class="empty-state-desc">
-          Solo el contacto titular del cliente puede consultar las facturas de cobro.
+          {{ 'portal.home.sinAccesoFacturasDesc' | t }}
         </p>
       </div>
 
@@ -351,9 +351,9 @@
             <line x1="18" y1="74" x2="60" y2="16" stroke="#d95247" stroke-width="2.5" />
           </svg>
         </div>
-        <h4 class="empty-state-title">Facturación no compartida</h4>
+        <h4 class="empty-state-title">{{ 'portal.home.finanzasDesactivadasTitulo' | t }}</h4>
         <p class="empty-state-desc">
-          El estudio no ha habilitado la visualización de facturas en este portal.
+          {{ 'portal.home.finanzasDesactivadasDesc' | t }}
         </p>
       </div>
 
@@ -368,9 +368,9 @@
             <line x1="26" y1="60" x2="42" y2="60" stroke="#78716c" />
           </svg>
         </div>
-        <h4 class="empty-state-title">Sin facturas compartidas</h4>
+        <h4 class="empty-state-title">{{ 'portal.home.sinFacturasTitulo' | t }}</h4>
         <p class="empty-state-desc">
-          Las facturas disponibles se mostrarán en este espacio.
+          {{ 'portal.home.sinFacturasDesc' | t }}
         </p>
       </div>
 
@@ -384,8 +384,8 @@
               <span class="invoice-concept">{{ factura.concepto }}</span>
             </div>
             <div class="invoice-dates-row">
-              <span>Emitida {{ factura.fechaEmision | date:'mediumDate' }}</span>
-              <span *ngIf="factura.fechaVencimiento"> · Vence {{ factura.fechaVencimiento | date:'mediumDate' }}</span>
+              <span>{{ 'portal.home.facturaEmitida' | t }} {{ factura.fechaEmision | date:'mediumDate' }}</span>
+              <span *ngIf="factura.fechaVencimiento"> · {{ 'portal.home.facturaVence' | t }} {{ factura.fechaVencimiento | date:'mediumDate' }}</span>
             </div>
           </div>
           <div class="invoice-status-col">
@@ -401,7 +401,7 @@
 
   <!-- PIE DE PÁGINA EDITORIAL -->
   <footer class="portal-footer">
-    <p>Portal gestionado con <strong class="footer-brand-name">Equinox</strong></p>
+    <p>{{ 'portal.home.footerGestionado' | t }} <strong class="footer-brand-name">Equinox</strong></p>
   </footer>
 
   <!-- VISOR AMPLIADO ACCESIBLE (LIGHTBOX MODAL) -->
@@ -414,10 +414,10 @@
           <h3 id="visor-titulo" class="lightbox-title">{{ nombreFoto(actualFoto, indiceFotoSeleccionada) }}</h3>
           <p class="lightbox-subtitle" *ngIf="sesionSeleccionada as s">
             {{ nombreSesion(s) }}<span *ngIf="fechaSesion(s)"> · {{ fechaSesion(s) | date:'mediumDate' }}</span>
-            <span class="lightbox-count"> · Foto {{ indiceFotoSeleccionada + 1 }} de {{ fotos.length }}</span>
+            <span class="lightbox-count"> · {{ 'portal.home.visorContador' | t:{ actual: indiceFotoSeleccionada + 1, total: fotos.length } }}</span>
           </p>
         </div>
-        <button type="button" class="btn-lightbox-close" (click)="cerrarVisor()" aria-label="Cerrar visor ampliado">
+        <button type="button" class="btn-lightbox-close" (click)="cerrarVisor()" [attr.aria-label]="'portal.home.cerrarVisorAria' | t">
           ✕
         </button>
       </header>
@@ -426,19 +426,19 @@
         <button type="button" class="btn-lightbox-nav btn-lightbox-prev"
           [disabled]="indiceFotoSeleccionada <= 0"
           (click)="anteriorFoto()"
-          aria-label="Fotografía anterior">
+          [attr.aria-label]="'portal.home.fotoAnteriorAria' | t">
           ‹
         </button>
 
         <div class="lightbox-image-stage">
           <div class="lightbox-loading" *ngIf="cargandoFotoOriginal" role="status" aria-live="polite">
             <span class="spinner-editorial"></span>
-            <span>Cargando en alta resolución…</span>
+            <span>{{ 'portal.home.cargandoAltaRes' | t }}</span>
           </div>
 
           <div class="lightbox-error" *ngIf="errorFotoOriginal" role="alert">
             <span>{{ errorFotoOriginal }}</span>
-            <button type="button" class="btn-editorial-retry" (click)="cargarFotoOriginal(actualFoto)">Reintentar</button>
+            <button type="button" class="btn-editorial-retry" (click)="cargarFotoOriginal(actualFoto)">{{ 'portal.comun.reintentar' | t }}</button>
           </div>
 
           <img *ngIf="fotoOriginalUrl"
@@ -455,14 +455,14 @@
         <button type="button" class="btn-lightbox-nav btn-lightbox-next"
           [disabled]="indiceFotoSeleccionada >= fotos.length - 1"
           (click)="siguienteFoto()"
-          aria-label="Fotografía siguiente">
+          [attr.aria-label]="'portal.home.fotoSiguienteAria' | t">
           ›
         </button>
       </div>
 
       <footer class="lightbox-footer">
         <p *ngIf="actualFoto.descripcion" class="lightbox-desc">{{ actualFoto.descripcion }}</p>
-        <small class="lightbox-hint">Usa las flechas ← y → del teclado para navegar, o Escape para cerrar.</small>
+        <small class="lightbox-hint">{{ 'portal.home.visorAtajos' | t }}</small>
       </footer>
 
     </div>

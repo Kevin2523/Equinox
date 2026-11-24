@@ -532,3 +532,67 @@
     gap: 2px;
   }
 }
+
+
+/* Selector de idioma por cuenta en dropdown y menú móvil */
+.profile-lang-section {
+  padding: 8px 12px 10px;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  margin: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-lang-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+
+.profile-lang-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.profile-lang-btn {
+  border: 0;
+  background: transparent;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.profile-lang-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.profile-lang-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.profile-lang-error {
+  font-size: 11px;
+  color: #dc2626;
+}
+
+.mobile-lang-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+}
