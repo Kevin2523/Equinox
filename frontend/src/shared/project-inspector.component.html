@@ -9,7 +9,7 @@
 
       <!-- Header Section -->
       <div class="inspector-top-meta">
-        <span class="eyebrow-selection">PROYECTO SELECCIONADO / {{ proyectoIndex }}</span>
+        <span class="eyebrow-selection">{{ 'crm.projectInspector.proyectoSeleccionado' | t:{ index: proyectoIndex } }}</span>
       </div>
 
       <h2 class="project-headline">{{ proyecto.nombre }}</h2>
@@ -27,7 +27,7 @@
       <!-- Progress Section -->
       <div class="progress-section">
         <div class="progress-labels">
-          <span class="progress-title">Progreso</span>
+          <span class="progress-title">{{ 'crm.projectInspector.progreso' | t }}</span>
           <span class="progress-percentage">{{ progresoCalculado }}%</span>
         </div>
         <div class="progress-track">
@@ -43,7 +43,7 @@
           <line x1="8" y1="2" x2="8" y2="6"></line>
           <line x1="3" y1="10" x2="21" y2="10"></line>
         </svg>
-        <span>ENTREGA {{ fechaEntregaFormateada }}</span>
+        <span>{{ 'crm.projectInspector.entregaFecha' | t:{ fecha: fechaEntregaFormateada } }}</span>
       </div>
       <div class="delivery-highlight-box delivery-box-muted" *ngIf="!fechaEntregaFormateada">
         <svg class="delivery-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -52,17 +52,17 @@
           <line x1="8" y1="2" x2="8" y2="6"></line>
           <line x1="3" y1="10" x2="21" y2="10"></line>
         </svg>
-        <span>SIN FECHA DE ENTREGA ASIGNADA</span>
+        <span>{{ 'crm.projectInspector.sinFechaEntrega' | t }}</span>
       </div>
 
       <!-- Milestones Timeline (Hitos del proyecto) -->
       <div class="milestones-block">
         <div class="empty-block-hint" role="status" *ngIf="cargandoDetalles">
-          <p>Cargando hitos...</p>
+          <p>{{ 'crm.projectInspector.cargandoHitos' | t }}</p>
         </div>
         <div class="empty-block-hint milestones-error" role="alert" *ngIf="!cargandoDetalles && errorHitos">
           <p>{{ errorHitos }}</p>
-          <button type="button" class="btn-retry-inline" (click)="reintentarDetalles()">Reintentar</button>
+          <button type="button" class="btn-retry-inline" (click)="reintentarDetalles()">{{ 'crm.projectInspector.reintentar' | t }}</button>
         </div>
         <div class="milestones-list" *ngIf="!cargandoDetalles && !errorHitos && hitos.length > 0">
           <div class="milestone-item" *ngFor="let h of hitos; let last = last">
@@ -97,15 +97,15 @@
             <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
             <line x1="4" y1="22" x2="4" y2="15"></line>
           </svg>
-          <p>Sin hitos registrados para este proyecto.</p>
+          <p>{{ 'crm.projectInspector.sinHitos' | t }}</p>
         </div>
       </div>
 
       <!-- Next Tasks Section ("Lo siguiente") -->
       <div class="next-tasks-block" *ngIf="tareasMostradas.length > 0 || !cargandoDetalles">
         <div class="next-tasks-header" *ngIf="tareasMostradas.length > 0">
-          <h3 class="next-tasks-title">Lo siguiente</h3>
-          <span class="tasks-counter">{{ tareasPendientesCount }} pendientes</span>
+          <h3 class="next-tasks-title">{{ 'crm.projectInspector.loSiguiente' | t }}</h3>
+          <span class="tasks-counter">{{ (tareasPendientesCount === 1 ? 'crm.projectInspector.unaPendiente' : 'crm.projectInspector.nPendientes') | t:{ count: tareasPendientesCount } }}</span>
         </div>
         <div class="task-checkbox-list" *ngIf="tareasMostradas.length > 0">
           <label class="task-checkbox-item" *ngFor="let t of tareasMostradas">
@@ -128,13 +128,13 @@
             <polyline points="9 11 12 14 22 4"></polyline>
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
           </svg>
-          <p>Sin tareas registradas en este proyecto.</p>
+          <p>{{ 'crm.projectInspector.sinTareas' | t }}</p>
         </div>
       </div>
 
       <!-- Action Button (Bottom) -->
       <button class="open-project-btn" type="button" (click)="abrirProyecto(proyecto.id)">
-        <span>Abrir proyecto</span>
+        <span>{{ 'crm.projectInspector.abrirProyecto' | t }}</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="7" y1="17" x2="17" y2="7"></line>
           <polyline points="7 7 17 7 17 17"></polyline>
@@ -156,12 +156,12 @@
           </svg>
         </div>
         <h3 class="empty-inspector-title">
-          {{ api.proyectos.length === 0 ? 'Sin proyectos en el espacio' : 'Selecciona un proyecto' }}
+          {{ (api.proyectos.length === 0 ? 'crm.projectInspector.sinProyectosEspacio' : 'crm.projectInspector.seleccionaProyecto') | t }}
         </h3>
         <p class="empty-inspector-text">
-          {{ api.proyectos.length === 0
-            ? 'No hay proyectos registrados en esta organización. Comienza creando un nuevo proyecto para comenzar.'
-            : 'Haz clic en una carpeta del mapa para inspeccionar sus hitos, tareas pendientes y detalles.' }}
+          {{ (api.proyectos.length === 0
+            ? 'crm.projectInspector.sinProyectosTexto'
+            : 'crm.projectInspector.seleccionaProyectoTexto') | t }}
         </p>
         <button
           *ngIf="api.proyectos.length === 0"
@@ -169,7 +169,7 @@
           class="empty-inspector-btn"
           (click)="state.openQuickCreate('Proyecto')"
         >
-          <span>+ Crear proyecto</span>
+          <span>{{ 'crm.projectInspector.crearProyecto' | t }}</span>
         </button>
       </div>
     </div>

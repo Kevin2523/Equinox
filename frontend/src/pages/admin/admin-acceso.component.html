@@ -1,24 +1,35 @@
 <main class="admin-auth-shell">
   <section class="admin-auth-card" aria-labelledby="admin-auth-title">
     <div class="admin-auth-brand">
-      <span class="admin-auth-logo" aria-hidden="true">
-        <svg viewBox="0 0 32 32" fill="none">
-          <circle cx="16" cy="16" r="14" stroke="#09142e" stroke-width="2.5"/>
-          <path d="M16 6 A 10 10 0 0 1 26 16" fill="#09142e" />
-        </svg>
-      </span>
-      <div>
-        <strong>equinox</strong>
-        <span class="admin-auth-badge">SUPERADMIN</span>
+      <div class="admin-auth-brand-left">
+        <span class="admin-auth-logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="14" stroke="#09142e" stroke-width="2.5"/>
+            <path d="M16 6 A 10 10 0 0 1 26 16" fill="#09142e" />
+          </svg>
+        </span>
+        <div>
+          <strong>equinox</strong>
+          <span class="admin-auth-badge">{{ 'admin.shell.badge' | t }}</span>
+        </div>
       </div>
+      <select
+        class="admin-auth-lang-select"
+        [value]="i18n.locale()"
+        [attr.aria-label]="'admin.shell.idiomaLabel' | t"
+        (change)="cambiarIdiomaLocal($any($event.target).value)">
+        <option *ngFor="let lang of i18n.idiomasDisponibles" [value]="lang.codigo">
+          {{ lang.etiquetaCorta }}
+        </option>
+      </select>
     </div>
 
     <div *ngIf="sesionVencida" class="admin-auth-alert warning" role="status">
-      Tu sesión administrativa expiró o fue revocada. Inicia sesión y verifica tu MFA nuevamente.
+      {{ 'admin.acceso.sesionVencida' | t }}
     </div>
 
     <div *ngIf="!apiDisponible" class="admin-auth-alert error" role="alert">
-      La URL de la API no está configurada en este entorno.
+      {{ 'admin.acceso.apiNoDisponible' | t }}
     </div>
 
     <div *ngIf="error" id="admin-auth-error" class="admin-auth-alert error" role="alert" aria-live="assertive">
@@ -31,13 +42,11 @@
 
     <!-- Paso 1: Credenciales -->
     <form *ngIf="paso === 'CREDENCIALES'" (ngSubmit)="enviarCredenciales()">
-      <h1 id="admin-auth-title">Acceso Superadmin</h1>
-      <p class="admin-auth-subtitle">
-        Ingreso aislado para administración global de Equinox. Se requiere verificación MFA TOTP.
-      </p>
+      <h1 id="admin-auth-title">{{ 'admin.acceso.titulo' | t }}</h1>
+      <p class="admin-auth-subtitle">{{ 'admin.acceso.subtitulo' | t }}</p>
 
       <div class="form-group">
-        <label for="admin-correo">Correo de administrador</label>
+        <label for="admin-correo">{{ 'admin.acceso.correoLabel' | t }}</label>
         <input
           id="admin-correo"
           name="correo"
@@ -46,11 +55,11 @@
           [(ngModel)]="correo"
           required
           autocomplete="username"
-          placeholder="admin@equinox.pa" />
+          [placeholder]="'admin.acceso.correoPlaceholder' | t" />
       </div>
 
       <div class="form-group">
-        <label for="admin-contrasena">Contraseña</label>
+        <label for="admin-contrasena">{{ 'admin.acceso.contrasenaLabel' | t }}</label>
         <div class="admin-password-wrap">
           <input
             id="admin-contrasena"
@@ -65,28 +74,28 @@
             type="button"
             class="admin-toggle-pass"
             (click)="mostrarContrasena = !mostrarContrasena">
-            {{ mostrarContrasena ? 'Ocultar' : 'Ver' }}
+            {{ (mostrarContrasena ? 'admin.acceso.ocultar' : 'admin.acceso.ver') | t }}
           </button>
         </div>
       </div>
 
       <button type="submit" class="btn-primary admin-auth-submit" [disabled]="cargando || !apiDisponible">
-        {{ cargando ? 'Validando acceso...' : 'Continuar con MFA' }}
+        {{ (cargando ? 'admin.acceso.validandoAcceso' : 'admin.acceso.continuarMfa') | t }}
       </button>
 
       <div class="admin-auth-links">
         <button type="button" class="admin-link-btn" (click)="paso = 'RECUPERAR_MFA'; error = ''; mensajeExito = ''">
-          ¿Perdiste acceso a tu autenticador MFA?
+          {{ 'admin.acceso.perdisteMfa' | t }}
         </button>
-        <a routerLink="/inicio-sesion" class="admin-link-btn">Ir al acceso estándar</a>
+        <a routerLink="/inicio-sesion" class="admin-link-btn">{{ 'admin.acceso.irAccesoEstandar' | t }}</a>
       </div>
     </form>
 
     <!-- Paso 2A: Configurar MFA por primera vez -->
     <form *ngIf="paso === 'CONFIGURAR_MFA' && configMfa" (ngSubmit)="confirmarConfiguracionMfa()">
-      <h1 id="admin-auth-title">Configurar autenticador TOTP</h1>
+      <h1 id="admin-auth-title">{{ 'admin.acceso.configMfaTitulo' | t }}</h1>
       <p class="admin-auth-subtitle">
-        Escanea este código QR con tu aplicación autenticadora (Google Authenticator, Authy, 1Password o Microsoft Authenticator) para vincular <strong>{{ configMfa.emisor }} · {{ configMfa.cuenta }}</strong>.
+        {{ 'admin.acceso.configMfaSubtitulo' | t:{ cuenta: configMfa.emisor + ' · ' + configMfa.cuenta } }}
       </p>
 
       <div class="admin-mfa-qr-panel" aria-labelledby="mfa-qr-instrucciones">
@@ -96,11 +105,11 @@
             [src]="qrDataUrl"
             width="220"
             height="220"
-            alt="Código QR para configurar autenticador TOTP de Equinox" />
+            [alt]="'admin.acceso.qrAlt' | t" />
         </div>
 
         <p *ngIf="generandoQr" class="admin-mfa-qr-status" role="status">
-          Generando código QR localmente...
+          {{ 'admin.acceso.generandoQr' | t }}
         </p>
 
         <p *ngIf="errorQr" class="admin-auth-alert error" role="alert">
@@ -108,8 +117,8 @@
         </p>
 
         <p id="mfa-qr-instrucciones" class="admin-mfa-qr-caption">
-          Paso 1: Escanea el QR en tu app autenticadora.<br>
-          Paso 2: Ingresa el código temporal de 6 dígitos que aparece en tu dispositivo.
+          {{ 'admin.acceso.qrPaso1' | t }}<br>
+          {{ 'admin.acceso.qrPaso2' | t }}
         </p>
 
         <div class="admin-mfa-manual-toggle-row">
@@ -119,7 +128,7 @@
             [attr.aria-expanded]="mostrarClaveManual"
             aria-controls="mfa-manual-secret-panel"
             (click)="toggleClaveManual()">
-            {{ mostrarClaveManual ? 'Ocultar clave manual' : '¿No puedes escanear el QR? Mostrar clave manual' }}
+            {{ (mostrarClaveManual ? 'admin.acceso.ocultarClaveManual' : 'admin.acceso.mostrarClaveManual') | t }}
           </button>
         </div>
 
@@ -128,30 +137,30 @@
           id="mfa-manual-secret-panel"
           class="admin-mfa-secret-box"
           role="region"
-          aria-label="Clave manual de configuración TOTP">
-          <small>Clave secreta (Base32) — mantén esta clave confidencial</small>
+          [attr.aria-label]="'admin.acceso.claveManualRegionAria' | t">
+          <small>{{ 'admin.acceso.claveManualAyuda' | t }}</small>
           <code class="admin-mfa-secret-code">{{ configMfa.secretoBase32 }}</code>
           <div class="admin-mfa-copy-row">
             <button
               type="button"
               class="admin-btn-sm"
-              aria-label="Copiar clave secreta Base32 al portapapeles"
-              (click)="copiarTexto(configMfa.secretoBase32, 'Clave manual copiada al portapapeles.')">
-              Copiar clave
+              [attr.aria-label]="'admin.acceso.copiarClaveAria' | t"
+              (click)="copiarTexto(configMfa.secretoBase32, 'admin.acceso.claveCopiada')">
+              {{ 'admin.acceso.copiarClave' | t }}
             </button>
             <button
               type="button"
               class="admin-btn-sm"
-              aria-label="Copiar enlace otpauth al portapapeles"
-              (click)="copiarTexto(configMfa.otpauthUrl, 'Enlace otpauth copiado al portapapeles.')">
-              Copiar enlace otpauth
+              [attr.aria-label]="'admin.acceso.copiarEnlaceAria' | t"
+              (click)="copiarTexto(configMfa.otpauthUrl, 'admin.acceso.enlaceCopiado')">
+              {{ 'admin.acceso.copiarEnlace' | t }}
             </button>
           </div>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="mfa-setup-code">Código de verificación (6 dígitos)</label>
+        <label for="mfa-setup-code">{{ 'admin.acceso.codigoVerifLabel' | t }}</label>
         <input
           #mfaSetupCodeInput
           id="mfa-setup-code"
@@ -170,45 +179,41 @@
       </div>
 
       <button type="submit" class="btn-primary admin-auth-submit" [disabled]="cargando || codigoTotp.length !== 6">
-        {{ cargando ? 'Confirmando MFA...' : 'Activar MFA y entrar' }}
+        {{ (cargando ? 'admin.acceso.confirmandoMfa' : 'admin.acceso.activarMfaEntrar') | t }}
       </button>
 
       <div class="admin-auth-links">
-        <button type="button" class="admin-link-btn" (click)="volverACredenciales()">Volver</button>
+        <button type="button" class="admin-link-btn" (click)="volverACredenciales()">{{ 'admin.comun.volver' | t }}</button>
       </div>
     </form>
 
     <!-- Paso 2A.2: Códigos de recuperación generados -->
     <div *ngIf="paso === 'CODIGOS_RECUPERACION'">
-      <h1 id="admin-auth-title">Guarda tus códigos de recuperación</h1>
-      <p class="admin-auth-subtitle">
-        Cada código puede usarse una sola vez si pierdes tu dispositivo TOTP. No volverán a mostrarse.
-      </p>
+      <h1 id="admin-auth-title">{{ 'admin.acceso.codigosRecTitulo' | t }}</h1>
+      <p class="admin-auth-subtitle">{{ 'admin.acceso.codigosRecSubtitulo' | t }}</p>
 
       <div class="admin-recovery-grid">
         <code *ngFor="let cod of codigosRecuperacion">{{ cod }}</code>
       </div>
 
       <div class="admin-mfa-copy-row" style="margin-bottom: 18px;">
-        <button type="button" class="btn-secondary" (click)="copiarTexto(codigosRecuperacion.join('\n'), 'Códigos de recuperación copiados al portapapeles.')">
-          Copiar todos los códigos
+        <button type="button" class="btn-secondary" (click)="copiarTexto(codigosRecuperacion.join('\n'), 'admin.acceso.codigosCopiados')">
+          {{ 'admin.acceso.copiarCodigos' | t }}
         </button>
       </div>
 
       <button type="button" class="btn-primary admin-auth-submit" (click)="entrarAlPanel()">
-        Entrar al panel Superadmin
+        {{ 'admin.acceso.entrarPanel' | t }}
       </button>
     </div>
 
     <!-- Paso 2B: Verificar MFA -->
     <form *ngIf="paso === 'VERIFICAR_MFA'" (ngSubmit)="verificarMfa()">
-      <h1 id="admin-auth-title">Verificación MFA requerida</h1>
-      <p class="admin-auth-subtitle">
-        Ingresa el código temporal de tu autenticador TOTP o un código de recuperación.
-      </p>
+      <h1 id="admin-auth-title">{{ 'admin.acceso.verifMfaTitulo' | t }}</h1>
+      <p class="admin-auth-subtitle">{{ 'admin.acceso.verifMfaSubtitulo' | t }}</p>
 
       <div class="form-group" *ngIf="!usarCodigoRecuperacion">
-        <label for="mfa-verify-code">Código TOTP (6 dígitos)</label>
+        <label for="mfa-verify-code">{{ 'admin.acceso.codigoTotpLabel' | t }}</label>
         <input
           #mfaVerifyCodeInput
           id="mfa-verify-code"
@@ -226,7 +231,7 @@
       </div>
 
       <div class="form-group" *ngIf="usarCodigoRecuperacion">
-        <label for="mfa-recovery-code">Código de recuperación</label>
+        <label for="mfa-recovery-code">{{ 'admin.acceso.codigoRecLabel' | t }}</label>
         <input
           id="mfa-recovery-code"
           name="codigoRecuperacion"
@@ -238,7 +243,7 @@
       </div>
 
       <button type="submit" class="btn-primary admin-auth-submit" [disabled]="cargando">
-        {{ cargando ? 'Verificando...' : 'Verificar y entrar' }}
+        {{ (cargando ? 'admin.acceso.verificando' : 'admin.acceso.verificarEntrar') | t }}
       </button>
 
       <div class="admin-auth-links">
@@ -246,22 +251,20 @@
           type="button"
           class="admin-link-btn"
           (click)="usarCodigoRecuperacion = !usarCodigoRecuperacion; error = ''">
-          {{ usarCodigoRecuperacion ? 'Usar código TOTP' : 'Usar código de recuperación' }}
+          {{ (usarCodigoRecuperacion ? 'admin.acceso.usarTotp' : 'admin.acceso.usarCodigoRec') | t }}
         </button>
-        <button type="button" class="admin-link-btn" (click)="volverACredenciales()">Cancelar</button>
+        <button type="button" class="admin-link-btn" (click)="volverACredenciales()">{{ 'admin.comun.cancelar' | t }}</button>
       </div>
     </form>
 
     <!-- Paso 3: Recuperación MFA -->
     <div *ngIf="paso === 'RECUPERAR_MFA'">
-      <h1 id="admin-auth-title">Recuperar acceso MFA</h1>
-      <p class="admin-auth-subtitle">
-        Solicita un token de restablecimiento MFA o ingresa el token recibido junto con tu contraseña actual.
-      </p>
+      <h1 id="admin-auth-title">{{ 'admin.acceso.recMfaTitulo' | t }}</h1>
+      <p class="admin-auth-subtitle">{{ 'admin.acceso.recMfaSubtitulo' | t }}</p>
 
       <form (ngSubmit)="solicitarRecuperacion()" style="margin-bottom: 22px;">
         <div class="form-group">
-          <label for="rec-correo">Correo de administrador</label>
+          <label for="rec-correo">{{ 'admin.acceso.correoLabel' | t }}</label>
           <input
             id="rec-correo"
             name="correoRecuperacion"
@@ -269,16 +272,16 @@
             class="form-control"
             [(ngModel)]="correoRecuperacion"
             required
-            placeholder="admin@equinox.pa" />
+            [placeholder]="'admin.acceso.correoPlaceholder' | t" />
         </div>
         <button type="submit" class="btn-secondary admin-auth-submit" [disabled]="cargando">
-          Solicitar recuperación MFA
+          {{ 'admin.acceso.solicitarRecMfa' | t }}
         </button>
       </form>
 
       <form (ngSubmit)="restablecerMfa()">
         <div class="form-group">
-          <label for="rec-token">Token de recuperación</label>
+          <label for="rec-token">{{ 'admin.acceso.tokenRecLabel' | t }}</label>
           <input
             id="rec-token"
             name="tokenRecuperacion"
@@ -286,10 +289,10 @@
             class="form-control"
             [(ngModel)]="tokenRecuperacion"
             required
-            placeholder="Token recibido" />
+            [placeholder]="'admin.acceso.tokenRecPlaceholder' | t" />
         </div>
         <div class="form-group">
-          <label for="rec-pass">Contraseña de la cuenta</label>
+          <label for="rec-pass">{{ 'admin.acceso.passCuentaLabel' | t }}</label>
           <input
             id="rec-pass"
             name="nuevaContrasena"
@@ -300,12 +303,12 @@
             placeholder="••••••••••••" />
         </div>
         <button type="submit" class="btn-primary admin-auth-submit" [disabled]="cargando">
-          Restablecer MFA
+          {{ 'admin.acceso.restablecerMfaBtn' | t }}
         </button>
       </form>
 
       <div class="admin-auth-links">
-        <button type="button" class="admin-link-btn" (click)="volverACredenciales()">Volver al acceso</button>
+        <button type="button" class="admin-link-btn" (click)="volverACredenciales()">{{ 'admin.acceso.volverAcceso' | t }}</button>
       </div>
     </div>
   </section>

@@ -11,14 +11,14 @@
   (touchmove)="onTouchMove($event)"
   (touchend)="onTouchEnd()"
   (touchcancel)="onTouchEnd()"
-  aria-label="Panel de proyectos del estudio"
+  [attr.aria-label]="'crm.workMap.panelAria' | t"
 >
   <!-- Canvas Header (Top-Left on Desktop, External Header above Map on Mobile) -->
   <div class="canvas-header">
     <div class="canvas-heading-copy">
-      <p class="canvas-eyebrow">{{ studioName }} / ESPACIO 01</p>
-      <h1 class="canvas-title">Todo conectado.</h1>
-      <p class="canvas-subtitle">{{ totalProyectosVisibles === 0 ? 'Sin proyectos en movimiento' : (totalProyectosVisibles + (totalProyectosVisibles === 1 ? ' proyecto en movimiento' : ' proyectos en movimiento')) }}</p>
+      <p class="canvas-eyebrow">{{ 'crm.workMap.espacioEyebrow' | t:{ studio: studioName } }}</p>
+      <h1 class="canvas-title">{{ 'crm.workMap.titulo' | t }}</h1>
+      <p class="canvas-subtitle">{{ (totalProyectosVisibles === 0 ? 'crm.workMap.sinProyectosMovimiento' : (totalProyectosVisibles === 1 ? 'crm.workMap.unProyectoMovimiento' : 'crm.workMap.nProyectosMovimiento')) | t:{ count: totalProyectosVisibles } }}</p>
     </div>
   </div>
 
@@ -60,7 +60,7 @@
         (click)="resetZoom()"
         (keydown.enter)="resetZoom()"
         (keydown.space)="$event.preventDefault(); resetZoom()"
-        title="Restablecer vista"
+        [title]="'crm.workMap.restablecerVista' | t"
         role="button"
         tabindex="0"
       >
@@ -81,10 +81,10 @@
               <path d="M12 5v14M5 12h14"/>
             </svg>
           </div>
-          <h3 class="empty-map-title">Sin proyectos activos</h3>
-          <p class="empty-map-text">Esta organización aún no tiene proyectos registrados.</p>
+          <h3 class="empty-map-title">{{ 'crm.workMap.vacioTitulo' | t }}</h3>
+          <p class="empty-map-text">{{ 'crm.workMap.vacioTexto' | t }}</p>
           <button type="button" class="empty-map-action" (click)="state.openQuickCreate('Proyecto')">
-            + Crear primer proyecto
+            {{ 'crm.workMap.crearPrimerProyecto' | t }}
           </button>
         </div>
       </div>
@@ -127,7 +127,7 @@
                 <div class="card-editorial-main">
                   <span class="card-micro-tag">{{ p.cliente?.empresa || p.cliente?.nombre || studioName }}</span>
                   <span class="card-editorial-title">{{ p.nombre }}</span>
-                  <span class="card-editorial-meta" *ngIf="p.formattedDate">Entrega: {{ p.formattedDate }}</span>
+                  <span class="card-editorial-meta" *ngIf="p.formattedDate">{{ 'crm.workMap.entregaEtiqueta' | t:{ fecha: p.formattedDate } }}</span>
                 </div>
                 <div class="card-editorial-side">
                   <span class="card-monogram">{{ p.initials }}</span>
@@ -139,13 +139,13 @@
                 <div class="blueprint-grid-overlay"></div>
                 <div class="blueprint-content">
                   <div class="blueprint-header">
-                    <span class="blueprint-badge">FICHA TECNICA</span>
+                    <span class="blueprint-badge">{{ 'crm.workMap.fichaTecnica' | t }}</span>
                     <span class="blueprint-ref">#{{ p.tabNum }}</span>
                   </div>
                   <div class="blueprint-title">{{ p.nombre }}</div>
                   <div class="blueprint-footer">
                     <span class="blueprint-status">{{ p.statusDisplay }}</span>
-                    <span class="blueprint-metric" *ngIf="p._count?.tareas">{{ p._count?.tareas }} tareas</span>
+                    <span class="blueprint-metric" *ngIf="p._count?.tareas">{{ (p._count?.tareas === 1 ? 'crm.workMap.unaTarea' : 'crm.workMap.nTareas') | t:{ count: p._count?.tareas || 0 } }}</span>
                   </div>
                 </div>
               </div>
@@ -156,7 +156,7 @@
                   <div class="craft-stamp">{{ p.initials }}</div>
                 </div>
                 <div class="craft-right">
-                  <span class="craft-eyebrow">{{ p.cliente?.nombre || 'PROYECTO' }}</span>
+                  <span class="craft-eyebrow">{{ p.cliente?.nombre || ('crm.workMap.proyectoEtiqueta' | t) }}</span>
                   <span class="craft-title">{{ p.nombre }}</span>
                   <span class="craft-status-pill">{{ p.statusDisplay }}</span>
                 </div>
@@ -196,32 +196,32 @@
 
   <!-- Bottom-Left Floating Zoom Widget -->
   <div class="zoom-dock">
-    <button class="zoom-btn" (click)="zoomOut()" aria-label="Reducir zoom" title="Alejar">−</button>
+    <button class="zoom-btn" (click)="zoomOut()" [attr.aria-label]="'crm.workMap.reducirZoom' | t" [title]="'crm.workMap.alejar' | t">−</button>
     <span class="zoom-pct">{{ zoomLevel }}%</span>
-    <button class="zoom-btn" (click)="zoomIn()" aria-label="Aumentar zoom" title="Acercar">+</button>
+    <button class="zoom-btn" (click)="zoomIn()" [attr.aria-label]="'crm.workMap.aumentarZoom' | t" [title]="'crm.workMap.acercar' | t">+</button>
     <div class="zoom-divider"></div>
-    <span class="zoom-hint">Arrastra para explorar</span>
+    <span class="zoom-hint">{{ 'crm.workMap.arrastraExplorar' | t }}</span>
   </div>
 
   <!-- Bottom-Center Floating Command Dock -->
   <div class="command-dock">
     <button class="dock-create-btn" id="createBtn" (click)="state.openQuickCreate('Proyecto')">
-      <span>+ Crear proyecto</span>
+      <span>{{ 'crm.workMap.crearProyecto' | t }}</span>
     </button>
     <div class="dock-divider"></div>
-    <button class="dock-icon-btn" id="dockSearch" (click)="state.openSearch()" title="Buscar">
+    <button class="dock-icon-btn" id="dockSearch" (click)="state.openSearch()" [title]="'crm.workMap.buscar' | t" [attr.aria-label]="'crm.workMap.buscar' | t">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
     </button>
     <div class="dock-divider"></div>
-    <button class="dock-icon-btn" (click)="abrirProyectos()" title="Ver proyectos">
+    <button class="dock-icon-btn" (click)="abrirProyectos()" [title]="'crm.workMap.verProyectos' | t" [attr.aria-label]="'crm.workMap.verProyectos' | t">
       <svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v11H3zM3 11h18"/></svg>
     </button>
   </div>
 
     <!-- State Toasts -->
-    <div class="map-status-toast" *ngIf="cargando">Cargando proyectos…</div>
+    <div class="map-status-toast" *ngIf="cargando">{{ 'crm.workMap.cargandoProyectos' | t }}</div>
     <div class="map-status-toast map-status-error" *ngIf="error" role="alert">
-      {{ error }} <button type="button" (click)="cargar()">Reintentar</button>
+      {{ error }} <button type="button" (click)="cargar()">{{ 'crm.workMap.reintentar' | t }}</button>
     </div>
   </div>
 </section>

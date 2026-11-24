@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../auth/auth.service';
 import { TipoFreelance } from '../../auth/auth.model';
@@ -13,21 +13,25 @@ import {
   PaginacionAdmin
 } from '../../models/admin.model';
 import { AdminApiService, extraerErrorAdmin } from '../../services/admin-api.service';
+import { TPipe } from '../../shared/t.pipe';
+import { I18nService } from '../../state/i18n.service';
 import {
-  ETIQUETAS_ESTADO_SUSCRIPCION,
-  ETIQUETAS_TIPO_FREELANCE,
+  CLAVES_ESTADO_SUSCRIPCION,
+  CLAVES_TIPO_FREELANCE,
   claseEstadoSuscripcion,
-  formatearFechaAdmin
+  formatearFechaAdmin,
+  formatearNumeroAdmin
 } from './admin-formatters';
 
 @Component({
   selector: 'app-admin-organizaciones',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TPipe],
   templateUrl: './admin-organizaciones.component.html',
   styleUrls: ['./admin.shared.css', './admin-organizaciones.component.css']
 })
 export class AdminOrganizacionesComponent implements OnInit {
+  readonly i18n = inject(I18nService);
   organizaciones: OrganizacionAdminItem[] = [];
   paginacion: PaginacionAdmin = { pagina: 1, limite: 20, total: 0, totalPaginas: 0 };
   resumen: OrganizacionesResumenConteo = { total: 0, activas: 0, suspendidas: 0 };
@@ -69,15 +73,22 @@ export class AdminOrganizacionesComponent implements OnInit {
 
   readonly tipos: TipoFreelance[] = ['GENERAL', 'DESARROLLO_SOFTWARE', 'FOTOGRAFIA', 'DISENO_GRAFICO'];
   readonly estados: EstadoSuscripcion[] = ['SIN_SUSCRIPCION', 'PRUEBA', 'ACTIVA', 'SUSPENDIDA', 'CANCELADA'];
-  readonly etiquetasTipo = ETIQUETAS_TIPO_FREELANCE;
-  readonly etiquetasEstado = ETIQUETAS_ESTADO_SUSCRIPCION;
+  readonly clavesTipo = CLAVES_TIPO_FREELANCE;
+  readonly clavesEstado = CLAVES_ESTADO_SUSCRIPCION;
   readonly claseEstado = claseEstadoSuscripcion;
-  readonly formatearFecha = formatearFechaAdmin;
 
   constructor(
     private adminApi: AdminApiService,
     private auth: AuthService
   ) {}
+
+  formatearFecha(valor?: string | null, incluirHora = true): string {
+    return formatearFechaAdmin(valor, incluirHora, this.i18n.bcp47());
+  }
+
+  formatearNumero(valor: number): string {
+    return formatearNumeroAdmin(valor, this.i18n.bcp47());
+  }
 
   get esAdminGlobal(): boolean {
     return this.auth.esAdminGlobal;
@@ -139,7 +150,7 @@ export class AdminOrganizacionesComponent implements OnInit {
         };
       }
     } catch (err: any) {
-      this.error = extraerErrorAdmin(err, 'No se pudieron cargar las organizaciones.');
+      this.error = extraerErrorAdmin(err, this.i18n.t('admin.orgs.errorCargar'));
     } finally {
       this.cargando = false;
     }
@@ -168,54 +179,64 @@ export class AdminOrganizacionesComponent implements OnInit {
 
   nombrePropietario(org: OrganizacionAdminItem): string {
     if (!org.propietarios || org.propietarios.length === 0) {
-      return 'Sin propietario';
+      return this.i18n.t('admin.orgs.sinPropietario');
     }
     const p = org.propietarios[0];
-    return [p.nombre, p.apellido].filter(Boolean).join(' ').trim() || 'Sin propietario';
+    return [p.nombre, p.apellido].filter(Boolean).join(' ').trim() || this.i18n.t('admin.orgs.sinPropietario');
   }
 
   correoPropietario(org: OrganizacionAdminItem): string {
     if (org.propietarios && org.propietarios.length > 0) {
       return org.propietarios[0].correo;
     }
-    return org.correoContacto || 'Sin correo';
+    return org.correoContacto || this.i18n.t('admin.orgs.sinCorreo');
   }
 
-  pluralizar(cantidad: number, singular: string, plural: string): string {
-    return `${cantidad} ${cantidad === 1 ? singular : plural}`;
+  pluralizarClave(cantidad: number, claveBase: string): string {
+    const sufijo = cantidad === 1 ? 'Singular' : 'Plural';
+    return `${this.formatearNumero(cantidad)} ${this.i18n.t(`${claveBase}${sufijo}`)}`;
   }
 
   textoOperacionPrincipal(org: OrganizacionAdminItem): string {
     if (org.tipoFreelance === 'FOTOGRAFIA') {
       return [
-        this.pluralizar(org.conteos.clientes, 'cliente', 'clientes'),
-        this.pluralizar(org.conteos.sesionesFotograficas, 'sesión', 'sesiones'),
-        this.pluralizar(org.conteos.fotos ?? 0, 'foto', 'fotos')
+        this.pluralizarClave(org.conteos.clientes, 'admin.orgs.unidad.cliente'),
+        this.pluralizarClave(org.conteos.sesionesFotograficas, 'admin.orgs.unidad.sesion'),
+        this.pluralizarClave(org.conteos.fotos ?? 0, 'admin.orgs.unidad.foto')
       ].join(' · ');
     }
     return [
-      this.pluralizar(org.conteos.clientes, 'cliente', 'clientes'),
-      this.pluralizar(org.conteos.proyectos, 'proyecto', 'proyectos')
+      this.pluralizarClave(org.conteos.clientes, 'admin.orgs.unidad.cliente'),
+      this.pluralizarClave(org.conteos.proyectos, 'admin.orgs.unidad.proyecto')
     ].join(' · ');
   }
 
   textoOperacionSecundaria(org: OrganizacionAdminItem): string {
     return [
-      this.pluralizar(org.conteos.miembros, 'miembro', 'miembros'),
-      this.pluralizar(org.conteos.facturas, 'factura', 'facturas')
+      this.pluralizarClave(org.conteos.miembros, 'admin.orgs.unidad.miembro'),
+      this.pluralizarClave(org.conteos.facturas, 'admin.orgs.unidad.factura')
     ].join(' · ');
   }
 
   textoMostrando(): string {
     const total = this.paginacion.total;
-    if (total === 0) return 'Mostrando 0 organizaciones';
-    const sufijo = total === 1 ? 'organización' : 'organizaciones';
+    if (total === 0) return this.i18n.t('admin.orgs.mostrandoCero');
+    const unidad = this.i18n.t(total === 1 ? 'admin.orgs.unidad.organizacionSingular' : 'admin.orgs.unidad.organizacionPlural');
     if (this.paginacion.pagina <= 1) {
-      return `Mostrando ${this.organizaciones.length} de ${total} ${sufijo}`;
+      return this.i18n.t('admin.orgs.mostrandoSimple', {
+        cantidad: this.formatearNumero(this.organizaciones.length),
+        total: this.formatearNumero(total),
+        unidad
+      });
     }
     const inicio = (this.paginacion.pagina - 1) * this.paginacion.limite + 1;
     const fin = inicio + this.organizaciones.length - 1;
-    return `Mostrando ${inicio}–${fin} de ${total} ${sufijo}`;
+    return this.i18n.t('admin.orgs.mostrandoRango', {
+      inicio: this.formatearNumero(inicio),
+      fin: this.formatearNumero(fin),
+      total: this.formatearNumero(total),
+      unidad
+    });
   }
 
   paginasVisibles(): Array<number | '...'> {
@@ -248,16 +269,15 @@ export class AdminOrganizacionesComponent implements OnInit {
     event?.stopPropagation();
     this.menuAbiertoId = null;
     if (!this.esAdminGlobal) {
-      this.error = 'Acceso denegado: se requiere rol ADMIN_GLOBAL con MFA verificado.';
+      this.error = this.i18n.t('admin.comun.errorAccesoDenegado');
       return;
     }
     this.errorConfirm = '';
     this.confirmacion = {
       tipo: 'SUSPENDER',
       organizacionId: org.id,
-      titulo: `Suspender acceso de ${org.nombre}`,
-      descripcion:
-        'Se suspenderá el acceso operativo de la organización (Organizacion.suspendidaEn) y se revocarán de inmediato sus sesiones activas. No altera el estado comercial de su suscripción.',
+      titulo: this.i18n.t('admin.orgs.confirmSuspenderTitulo', { nombre: org.nombre }),
+      descripcion: this.i18n.t('admin.orgs.confirmSuspenderDesc'),
       motivo: '',
       motivoRequerido: true
     };
@@ -267,16 +287,15 @@ export class AdminOrganizacionesComponent implements OnInit {
     event?.stopPropagation();
     this.menuAbiertoId = null;
     if (!this.esAdminGlobal) {
-      this.error = 'Acceso denegado: se requiere rol ADMIN_GLOBAL con MFA verificado.';
+      this.error = this.i18n.t('admin.comun.errorAccesoDenegado');
       return;
     }
     this.errorConfirm = '';
     this.confirmacion = {
       tipo: 'REACTIVAR',
       organizacionId: org.id,
-      titulo: `Reactivar acceso de ${org.nombre}`,
-      descripcion:
-        'Se restaurará el acceso operativo de la organización limpiando Organizacion.suspendidaEn. Su suscripción manual permanece sin cambios.',
+      titulo: this.i18n.t('admin.orgs.confirmReactivarTitulo', { nombre: org.nombre }),
+      descripcion: this.i18n.t('admin.orgs.confirmReactivarDesc'),
       motivo: '',
       motivoRequerido: false
     };
@@ -284,7 +303,7 @@ export class AdminOrganizacionesComponent implements OnInit {
 
   pedirCambiarRol(orgId: string, miembro: OrganizacionMiembroAdmin): void {
     if (!this.esAdminGlobal) {
-      this.error = 'Acceso denegado: se requiere rol ADMIN_GLOBAL con MFA verificado.';
+      this.error = this.i18n.t('admin.comun.errorAccesoDenegado');
       return;
     }
     const nuevoRol: 'PROPIETARIO' | 'COLABORADOR' =
@@ -295,8 +314,8 @@ export class AdminOrganizacionesComponent implements OnInit {
       organizacionId: orgId,
       miembro,
       nuevoRol,
-      titulo: `Cambiar rol de ${miembro.usuario.nombre}`,
-      descripcion: `El rol en el estudio cambiará de ${miembro.rol} a ${nuevoRol}.`,
+      titulo: this.i18n.t('admin.orgs.confirmRolTitulo', { nombre: miembro.usuario.nombre }),
+      descripcion: this.i18n.t('admin.orgs.confirmRolDesc', { actual: miembro.rol, nuevo: nuevoRol }),
       motivo: '',
       motivoRequerido: false
     };
@@ -305,13 +324,13 @@ export class AdminOrganizacionesComponent implements OnInit {
   async ejecutarConfirmacion(): Promise<void> {
     if (!this.confirmacion || this.ejecutandoConfirm) return;
     if (!this.esAdminGlobal) {
-      this.errorConfirm = 'Acceso denegado: se requiere rol ADMIN_GLOBAL con MFA verificado.';
+      this.errorConfirm = this.i18n.t('admin.comun.errorAccesoDenegado');
       return;
     }
     const c = this.confirmacion;
     const motivo = c.motivo.trim();
     if (c.motivoRequerido && motivo.length < 3) {
-      this.errorConfirm = 'Ingresa un motivo de al menos 3 caracteres para suspender la organización.';
+      this.errorConfirm = this.i18n.t('admin.orgs.errorMotivoSuspender');
       return;
     }
     this.ejecutandoConfirm = true;
@@ -320,14 +339,14 @@ export class AdminOrganizacionesComponent implements OnInit {
       if (c.tipo === 'SUSPENDER') {
         const res = await this.adminApi.suspenderOrganizacion(c.organizacionId, { confirmar: true, motivo });
         if (this.detalle?.id === c.organizacionId) this.detalle = res.organizacion;
-        this.mostrarToast(`Organización suspendida (${res.sesionesRevocadas} sesiones revocadas).`);
+        this.mostrarToast(this.i18n.t('admin.orgs.toastSuspendida', { sesiones: this.formatearNumero(res.sesionesRevocadas) }));
       } else if (c.tipo === 'REACTIVAR') {
         const org = await this.adminApi.reactivarOrganizacion(c.organizacionId, {
           confirmar: true,
           ...(motivo ? { motivo } : {})
         });
         if (this.detalle?.id === c.organizacionId) this.detalle = org;
-        this.mostrarToast('Acceso de organización reactivado.');
+        this.mostrarToast(this.i18n.t('admin.orgs.toastReactivada'));
       } else if (c.tipo === 'CAMBIAR_ROL' && c.miembro && c.nuevoRol) {
         await this.adminApi.cambiarRolMiembro(c.organizacionId, c.miembro.id, {
           rol: c.nuevoRol,
@@ -336,12 +355,12 @@ export class AdminOrganizacionesComponent implements OnInit {
         if (this.detalle?.id === c.organizacionId) {
           this.detalle = await this.adminApi.obtenerOrganizacion(c.organizacionId);
         }
-        this.mostrarToast(`Rol actualizado a ${c.nuevoRol}.`);
+        this.mostrarToast(this.i18n.t('admin.orgs.toastRolActualizado', { rol: c.nuevoRol }));
       }
       this.confirmacion = null;
       await this.cargar(this.paginacion.pagina);
     } catch (err: any) {
-      this.errorConfirm = extraerErrorAdmin(err, 'No se pudo completar la acción.');
+      this.errorConfirm = extraerErrorAdmin(err, this.i18n.t('admin.comun.errorAccion'));
     } finally {
       this.ejecutandoConfirm = false;
     }
@@ -356,7 +375,7 @@ export class AdminOrganizacionesComponent implements OnInit {
     try {
       this.detalle = await this.adminApi.obtenerOrganizacion(orgId);
     } catch (err: any) {
-      this.error = extraerErrorAdmin(err, 'No se pudo cargar el detalle de la organización.');
+      this.error = extraerErrorAdmin(err, this.i18n.t('admin.orgs.errorDetalle'));
     } finally {
       this.cargandoDetalle = false;
     }
@@ -399,10 +418,10 @@ export class AdminOrganizacionesComponent implements OnInit {
       });
       this.detalle = actualizada;
       this.editando = false;
-      this.mostrarToast('Organización actualizada y auditada.');
+      this.mostrarToast(this.i18n.t('admin.orgs.toastActualizada'));
       await this.cargar(this.paginacion.pagina);
     } catch (err: any) {
-      this.errorEdicion = extraerErrorAdmin(err, 'No se pudo actualizar la organización.');
+      this.errorEdicion = extraerErrorAdmin(err, this.i18n.t('admin.orgs.errorActualizar'));
     } finally {
       this.guardandoEdicion = false;
     }

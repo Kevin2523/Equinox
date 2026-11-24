@@ -904,3 +904,43 @@
     font-size: 18.5px;
   }
 }
+
+
+/* Selector de idioma pre-auth (local) */
+.preauth-lang-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.preauth-lang-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.preauth-lang-btn {
+  border: 0;
+  background: transparent;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 5px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.preauth-lang-btn:hover {
+  color: #0f172a;
+}
+
+.preauth-lang-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+}

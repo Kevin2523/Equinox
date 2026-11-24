@@ -1,18 +1,22 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService, extraerErrorAdmin } from '../../services/admin-api.service';
 import { EventoAuditoriaAdmin, PaginacionAdmin } from '../../models/admin.model';
-import { formatearFechaAdmin } from './admin-formatters';
+import { TPipe } from '../../shared/t.pipe';
+import { I18nService } from '../../state/i18n.service';
+import { formatearFechaAdmin, formatearNumeroAdmin } from './admin-formatters';
 
 @Component({
   selector: 'app-admin-auditoria',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TPipe],
   templateUrl: './admin-auditoria.component.html',
   styleUrls: ['./admin.shared.css']
 })
 export class AdminAuditoriaComponent implements OnInit {
+  readonly i18n = inject(I18nService);
+
   eventos: EventoAuditoriaAdmin[] = [];
   paginacion: PaginacionAdmin = { pagina: 1, limite: 20, total: 0, totalPaginas: 0 };
 
@@ -26,9 +30,15 @@ export class AdminAuditoriaComponent implements OnInit {
   error = '';
   seleccionado: EventoAuditoriaAdmin | null = null;
 
-  readonly formatearFecha = formatearFechaAdmin;
-
   constructor(private adminApi: AdminApiService) {}
+
+  formatearFecha(valor?: string | null, incluirHora = true): string {
+    return formatearFechaAdmin(valor, incluirHora, this.i18n.bcp47());
+  }
+
+  formatearNumero(valor: number): string {
+    return formatearNumeroAdmin(valor, this.i18n.bcp47());
+  }
 
   ngOnInit(): void {
     void this.cargar(1);
@@ -59,7 +69,7 @@ export class AdminAuditoriaComponent implements OnInit {
       this.eventos = res.datos;
       this.paginacion = res.paginacion;
     } catch (err: any) {
-      this.error = extraerErrorAdmin(err, 'No se pudo cargar la bitácora de auditoría.');
+      this.error = extraerErrorAdmin(err, this.i18n.t('admin.auditoria.errorCargar'));
     } finally {
       this.cargando = false;
     }
@@ -75,7 +85,7 @@ export class AdminAuditoriaComponent implements OnInit {
   }
 
   formatearMetadatos(metadatos?: Record<string, unknown> | null): string {
-    if (!metadatos) return 'Sin metadatos adicionales.';
+    if (!metadatos) return this.i18n.t('admin.auditoria.sinMetadatos');
     try {
       return JSON.stringify(metadatos, null, 2);
     } catch {

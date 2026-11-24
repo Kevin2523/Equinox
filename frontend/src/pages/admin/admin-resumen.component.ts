@@ -1,57 +1,62 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AdminApiService, extraerErrorAdmin } from '../../services/admin-api.service';
 import { EstadoSuscripcion, EventoAuditoriaAdmin, ResumenAdmin } from '../../models/admin.model';
 import { TipoFreelance } from '../../auth/auth.model';
+import { TPipe } from '../../shared/t.pipe';
+import { I18nService } from '../../state/i18n.service';
 import {
-  ETIQUETAS_ESTADO_SUSCRIPCION,
-  ETIQUETAS_TIPO_FREELANCE,
+  CLAVES_ESTADO_SUSCRIPCION,
+  CLAVES_TIPO_FREELANCE,
   claseEstadoSuscripcion,
-  formatearFechaAdmin
+  formatearFechaAdmin,
+  formatearNumeroAdmin
 } from './admin-formatters';
 
-const ETIQUETAS_ACCION_AUDITORIA: Record<string, string> = {
-  ORGANIZACION_ACTUALIZADA: 'Organización actualizada',
-  ORGANIZACION_SUSPENDIDA: 'Organización suspendida',
-  ORGANIZACION_REACTIVADA: 'Organización reactivada',
-  MIEMBRO_ROL_ACTUALIZADO: 'Rol de miembro actualizado',
-  SESION_REVOCADA: 'Sesión revocada',
-  SESIONES_REVOCADAS: 'Sesiones revocadas',
-  ACCESO_CLIENTE_ACTUALIZADO: 'Acceso de cliente actualizado',
-  PLAN_SUSCRIPCION_CREADO: 'Plan de suscripción creado',
-  PLAN_SUSCRIPCION_ACTUALIZADO: 'Plan de suscripción actualizado',
-  SUSCRIPCION_MANUAL_ASIGNADA: 'Suscripción manual asignada',
-  SUSCRIPCION_MANUAL_ACTUALIZADA: 'Suscripción manual actualizada',
-  SUSCRIPCION_MANUAL_CANCELADA: 'Suscripción manual cancelada',
-  ADMIN_DESAFIO_MFA_EMITIDO: 'Desafío MFA de admin emitido',
-  ADMIN_MFA_CONFIGURACION_INICIADA: 'Configuración MFA iniciada',
-  ADMIN_MFA_CONFIGURADO: 'MFA de admin configurado',
-  ADMIN_MFA_FALLIDO: 'Verificación MFA fallida',
-  ADMIN_MFA_RESTABLECIDO: 'MFA de admin restablecido',
-  ADMIN_MFA_RECUPERACION_CODIGO_USADO: 'Código de recuperación MFA usado',
-  ADMIN_INICIO_SESION: 'Inicio de sesión de admin',
-  ADMIN_CIERRE_SESION: 'Cierre de sesión de admin'
-};
+const ACCIONES_AUDITORIA_CONOCIDAS = new Set([
+  'ORGANIZACION_ACTUALIZADA',
+  'ORGANIZACION_SUSPENDIDA',
+  'ORGANIZACION_REACTIVADA',
+  'MIEMBRO_ROL_ACTUALIZADO',
+  'SESION_REVOCADA',
+  'SESIONES_REVOCADAS',
+  'ACCESO_CLIENTE_ACTUALIZADO',
+  'PLAN_SUSCRIPCION_CREADO',
+  'PLAN_SUSCRIPCION_ACTUALIZADO',
+  'SUSCRIPCION_MANUAL_ASIGNADA',
+  'SUSCRIPCION_MANUAL_ACTUALIZADA',
+  'SUSCRIPCION_MANUAL_CANCELADA',
+  'ADMIN_DESAFIO_MFA_EMITIDO',
+  'ADMIN_MFA_CONFIGURACION_INICIADA',
+  'ADMIN_MFA_CONFIGURADO',
+  'ADMIN_MFA_FALLIDO',
+  'ADMIN_MFA_RESTABLECIDO',
+  'ADMIN_MFA_RECUPERACION_CODIGO_USADO',
+  'ADMIN_INICIO_SESION',
+  'ADMIN_CIERRE_SESION'
+]);
 
-const ETIQUETAS_ENTIDAD_AUDITORIA: Record<string, string> = {
-  Organizacion: 'Organización',
-  Usuario: 'Usuario',
-  SuscripcionOrganizacion: 'Suscripción',
-  PlanSuscripcion: 'Plan de suscripción',
-  Sesion: 'Sesión',
-  AccesoCliente: 'Acceso de cliente',
-  MiembroOrganizacion: 'Miembro de organización'
-};
+const ENTIDADES_AUDITORIA_CONOCIDAS = new Set([
+  'Organizacion',
+  'Usuario',
+  'SuscripcionOrganizacion',
+  'PlanSuscripcion',
+  'Sesion',
+  'AccesoCliente',
+  'MiembroOrganizacion'
+]);
 
 @Component({
   selector: 'app-admin-resumen',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, TPipe],
   templateUrl: './admin-resumen.component.html',
   styleUrls: ['./admin.shared.css', './admin-resumen.component.css']
 })
 export class AdminResumenComponent implements OnInit {
+  readonly i18n = inject(I18nService);
+
   resumen: ResumenAdmin | null = null;
   cargando = true;
   error = '';
@@ -69,12 +74,19 @@ export class AdminResumenComponent implements OnInit {
     'SUSPENDIDA',
     'CANCELADA'
   ];
-  readonly etiquetasTipo = ETIQUETAS_TIPO_FREELANCE;
-  readonly etiquetasEstado = ETIQUETAS_ESTADO_SUSCRIPCION;
+  readonly clavesTipo = CLAVES_TIPO_FREELANCE;
+  readonly clavesEstado = CLAVES_ESTADO_SUSCRIPCION;
   readonly claseEstado = claseEstadoSuscripcion;
-  readonly formatearFecha = formatearFechaAdmin;
 
   constructor(private adminApi: AdminApiService) {}
+
+  formatearFecha(valor?: string | null, incluirHora = true): string {
+    return formatearFechaAdmin(valor, incluirHora, this.i18n.bcp47());
+  }
+
+  formatearNumero(valor: number): string {
+    return formatearNumeroAdmin(valor, this.i18n.bcp47());
+  }
 
   ngOnInit(): void {
     void this.cargar();
@@ -86,7 +98,7 @@ export class AdminResumenComponent implements OnInit {
     try {
       this.resumen = await this.adminApi.obtenerResumen();
     } catch (err: any) {
-      this.error = extraerErrorAdmin(err, 'No se pudo cargar el resumen de plataforma.');
+      this.error = extraerErrorAdmin(err, this.i18n.t('admin.resumen.errorCargar'));
     } finally {
       this.cargando = false;
     }
@@ -109,7 +121,7 @@ export class AdminResumenComponent implements OnInit {
         return {
           tipo,
           indice,
-          etiqueta: this.etiquetasTipo[tipo],
+          etiqueta: this.i18n.t(this.clavesTipo[tipo]),
           cantidad,
           porcentaje: this.porcentajeModalidad(cantidad, total)
         };
@@ -126,11 +138,12 @@ export class AdminResumenComponent implements OnInit {
   }
 
   etiquetaAccion(accion?: string | null): string {
-    if (!accion) return 'Acción administrativa';
-    const conocida = ETIQUETAS_ACCION_AUDITORIA[accion];
-    if (conocida) return conocida;
+    if (!accion) return this.i18n.t('admin.resumen.accionDefecto');
+    if (ACCIONES_AUDITORIA_CONOCIDAS.has(accion)) {
+      return this.i18n.t(`admin.auditoria.accion.${accion}`);
+    }
     const legible = accion.toLowerCase().replace(/_/g, ' ').trim();
-    return legible ? legible.charAt(0).toUpperCase() + legible.slice(1) : 'Acción administrativa';
+    return legible ? legible.charAt(0).toUpperCase() + legible.slice(1) : this.i18n.t('admin.resumen.accionDefecto');
   }
 
   claseAccion(accion?: string | null): string {
@@ -155,13 +168,16 @@ export class AdminResumenComponent implements OnInit {
   }
 
   etiquetaEntidad(entidad?: string | null): string {
-    if (!entidad) return 'Plataforma';
-    return ETIQUETAS_ENTIDAD_AUDITORIA[entidad] ?? entidad;
+    if (!entidad) return this.i18n.t('admin.resumen.entidadDefecto');
+    if (ENTIDADES_AUDITORIA_CONOCIDAS.has(entidad)) {
+      return this.i18n.t(`admin.auditoria.entidad.${entidad}`);
+    }
+    return entidad;
   }
 
   formatearActor(ev: EventoAuditoriaAdmin): string {
     const nombre = ev.actorNombre?.trim();
     if (nombre) return nombre;
-    return ev.actorUsuarioId ? 'Administrador' : 'Sistema';
+    return ev.actorUsuarioId ? this.i18n.t('admin.comun.administrador') : this.i18n.t('admin.comun.sistema');
   }
 }

@@ -20,13 +20,31 @@ function loadRegistroComponent() {
   const mockExports = {};
   const mockModule = { exports: mockExports };
 
+  const catalogoEs = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, '../src/assets/i18n/publico-shell/es.json'), 'utf8')
+  );
+  const i18nMock = {
+    locale: () => 'es',
+    idiomasDisponibles: [],
+    establecerIdiomaLocal: () => 'es',
+    t: (key, params) => {
+      const plantilla = catalogoEs[key] || key;
+      if (!params) return plantilla;
+      return plantilla.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) =>
+        params[name] !== undefined && params[name] !== null ? String(params[name]) : match
+      );
+    }
+  };
+
   const localRequire = (id) => {
-    if (id === '@angular/core') return { Component: () => (t) => t };
+    if (id === '@angular/core') return { Component: () => (t) => t, Pipe: () => (t) => t, inject: () => i18nMock };
     if (id === '@angular/common') return { CommonModule: {} };
     if (id === '@angular/forms') return { FormsModule: {} };
     if (id === '@angular/router') return { Router: class {}, RouterLink: {} };
     if (id === '../auth/auth.service') return { AuthService: class {} };
     if (id === '../auth/api.config') return { API_ORIGIN: 'http://localhost:3000' };
+    if (id === '../state/i18n.service') return { I18nService: class {} };
+    if (id === '../shared/t.pipe') return { TPipe: class {} };
     throw new Error(`Import no simulado: ${id}`);
   };
 

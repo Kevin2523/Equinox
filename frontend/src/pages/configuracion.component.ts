@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UiStateService } from '../state/ui-state.service';
+import { I18nService } from '../state/i18n.service';
+import { IdiomaSoportado } from '../i18n/i18n.types';
 import { AuthService } from '../auth/auth.service';
 import {
   OrganizacionData,
@@ -10,6 +12,7 @@ import {
 } from '../auth/organizacion.service';
 import { TipoFreelance } from '../auth/auth.model';
 import { PortalPreviewComponent } from '../shared/portal-preview.component';
+import { TPipe } from '../shared/t.pipe';
 import {
   COLOR_PRIMARIO_DEFECTO,
   COLOR_SECUNDARIO_DEFECTO,
@@ -20,7 +23,7 @@ import {
   obtenerFontStack,
 } from '../utils/branding.util';
 
-export type SeccionConfiguracion = 'estudio' | 'portal' | 'acceso';
+export type SeccionConfiguracion = 'estudio' | 'portal' | 'acceso' | 'preferencias';
 export type ModoVistaPrevia = 'desktop' | 'movil';
 export type EstadoGuardadoConfig = 'limpio' | 'sin_guardar' | 'guardando' | 'guardado' | 'error';
 
@@ -39,12 +42,13 @@ interface FormularioConfiguracion {
 @Component({
   selector: 'app-configuracion',
   standalone: true,
-  imports: [CommonModule, FormsModule, PortalPreviewComponent],
+  imports: [CommonModule, FormsModule, PortalPreviewComponent, TPipe],
   templateUrl: './configuracion.component.html',
   styleUrl: './configuracion.component.css',
 })
 export class ConfiguracionComponent implements OnInit {
   public state = inject(UiStateService);
+  public i18n = inject(I18nService);
   public auth = inject(AuthService);
   public orgService = inject(OrganizacionService);
 
@@ -74,10 +78,14 @@ export class ConfiguracionComponent implements OnInit {
 
   guardandoTipo = false;
   guardandoFinanzas = false;
+  guardandoIdioma = false;
+  idiomaSeleccionado: IdiomaSoportado = this.i18n.idiomaActual;
   mensajeExitoTipo = '';
   errorTipo = '';
   mensajeExitoFinanzas = '';
   errorFinanzas = '';
+  mensajeExitoIdioma = '';
+  errorIdioma = '';
 
   get esPropietario(): boolean {
     const sesion = this.auth.sesion;
@@ -109,8 +117,8 @@ export class ConfiguracionComponent implements OnInit {
 
   get placeholderMensajeBienvenida(): string {
     return this.esFotografia
-      ? 'Bienvenido a tu galería de sesiones fotográficas.'
-      : 'Bienvenido a tu portal de proyectos.';
+      ? this.i18n.t('crm.configuracion.mensajeBienvenidaPlaceholderFoto')
+      : this.i18n.t('crm.configuracion.mensajeBienvenidaPlaceholderGeneral');
   }
 
   get colorPrimarioPreview(): string {
@@ -181,6 +189,7 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    this.idiomaSeleccionado = this.i18n.idiomaActual;
     await this.cargarDatos();
   }
 
@@ -194,7 +203,7 @@ export class ConfiguracionComponent implements OnInit {
       }
       await this.recargarVistaPrevia();
     } catch {
-      this.errorGuardado = 'No se pudo cargar la información de la organización.';
+      this.errorGuardado = this.i18n.t('crm.configuracion.errCargarOrg');
     } finally {
       this.cargandoOrg = false;
     }
@@ -285,14 +294,11 @@ export class ConfiguracionComponent implements OnInit {
       }, 4500);
     } catch (err: any) {
       if (err?.status === 403) {
-        this.errorGuardado =
-          'Solo el propietario del estudio tiene permisos para guardar cambios.';
+        this.errorGuardado = this.i18n.t('crm.configuracion.errSoloPropGuardar');
       } else if (err?.status === 422 || err?.status === 400) {
-        this.errorGuardado =
-          'Revisa los datos ingresados: hay campos con formato inválido.';
+        this.errorGuardado = this.i18n.t('crm.configuracion.errCamposInvalidos');
       } else {
-        this.errorGuardado =
-          'No se pudieron guardar los cambios. Inténtalo de nuevo.';
+        this.errorGuardado = this.i18n.t('crm.configuracion.errGuardar');
       }
     } finally {
       this.guardando = false;
@@ -311,25 +317,21 @@ export class ConfiguracionComponent implements OnInit {
 
     try {
       await this.orgService.actualizarPortalMostrarFinanzas(nuevoValor);
-      this.mensajeExitoFinanzas = nuevoValor
-        ? 'Visualización de facturas en el portal activada.'
-        : 'Visualización de facturas en el portal desactivada.';
+      const msgExito = nuevoValor
+        ? this.i18n.t('crm.configuracion.facturasActivadas')
+        : this.i18n.t('crm.configuracion.facturasDesactivadas');
+      this.mensajeExitoFinanzas = msgExito;
       setTimeout(() => {
-        if (
-          this.mensajeExitoFinanzas === 'Visualización de facturas en el portal activada.' ||
-          this.mensajeExitoFinanzas === 'Visualización de facturas en el portal desactivada.'
-        ) {
+        if (this.mensajeExitoFinanzas === msgExito) {
           this.mensajeExitoFinanzas = '';
         }
       }, 4000);
     } catch (err: any) {
       this.portalMostrarFinanzas = valorAnterior;
       if (err?.status === 403) {
-        this.errorFinanzas =
-          'Solo el propietario tiene permisos para modificar la visualización de facturas.';
+        this.errorFinanzas = this.i18n.t('crm.configuracion.errFacturasSoloProp');
       } else {
-        this.errorFinanzas =
-          'No se pudo actualizar la configuración del portal. Inténtalo de nuevo.';
+        this.errorFinanzas = this.i18n.t('crm.configuracion.errFacturasGuardar');
       }
     } finally {
       this.guardandoFinanzas = false;
@@ -348,23 +350,50 @@ export class ConfiguracionComponent implements OnInit {
       await this.orgService.actualizarTipoFreelance(nuevoTipo);
       this.tipoFreelanceActual = nuevoTipo;
       this.tipoFreelanceSeleccionado = nuevoTipo;
-      this.mensajeExitoTipo = 'Modalidad actualizada con éxito.';
+      const msgExitoTipo = this.i18n.t('crm.configuracion.modalidadExito');
+      this.mensajeExitoTipo = msgExitoTipo;
       await this.recargarVistaPrevia();
       setTimeout(() => {
-        if (this.mensajeExitoTipo === 'Modalidad actualizada con éxito.') {
+        if (this.mensajeExitoTipo === msgExitoTipo) {
           this.mensajeExitoTipo = '';
         }
       }, 4000);
     } catch (err: any) {
       this.tipoFreelanceSeleccionado = this.tipoFreelanceActual;
       if (err?.status === 403) {
-        this.errorTipo =
-          'Solo el propietario tiene permisos para cambiar la modalidad de trabajo.';
+        this.errorTipo = this.i18n.t('crm.configuracion.modalidadSoloProp');
       } else {
-        this.errorTipo = 'No se pudo actualizar la modalidad. Inténtalo de nuevo.';
+        this.errorTipo = this.i18n.t('crm.configuracion.errModalidad');
       }
     } finally {
       this.guardandoTipo = false;
+    }
+  }
+
+  async cambiarIdiomaPersonal(nuevoIdioma: IdiomaSoportado): Promise<void> {
+    if (this.guardandoIdioma || nuevoIdioma === this.i18n.idiomaActual) {
+      return;
+    }
+
+    const anterior = this.i18n.idiomaActual;
+    this.guardandoIdioma = true;
+    this.errorIdioma = '';
+    this.mensajeExitoIdioma = '';
+
+    try {
+      const confirmado = await this.i18n.guardarIdiomaUsuario(nuevoIdioma);
+      this.idiomaSeleccionado = confirmado;
+      this.auth.actualizarIdiomaLocal(confirmado);
+      const etiqueta = this.i18n.t(`configuracion.idioma.${confirmado}`);
+      this.mensajeExitoIdioma = this.i18n.t('configuracion.idioma.guardado', { idioma: etiqueta });
+      setTimeout(() => {
+        this.mensajeExitoIdioma = '';
+      }, 4000);
+    } catch {
+      this.idiomaSeleccionado = anterior;
+      this.errorIdioma = this.i18n.t('configuracion.idioma.error');
+    } finally {
+      this.guardandoIdioma = false;
     }
   }
 

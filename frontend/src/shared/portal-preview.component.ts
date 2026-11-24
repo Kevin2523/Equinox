@@ -6,9 +6,11 @@ import {
   Input,
   OnChanges,
   OnDestroy,
+  Optional,
   ViewChild,
 } from '@angular/core';
 import { VistaPreviaOrganizacion } from '../auth/organizacion.service';
+import { I18nService } from '../state/i18n.service';
 import {
   COLOR_PRIMARIO_DEFECTO,
   COLOR_SECUNDARIO_DEFECTO,
@@ -17,11 +19,12 @@ import {
   obtenerFontStack,
 } from '../utils/branding.util';
 import { PortalHeroComponent } from './portal-hero.component';
+import { TPipe } from './t.pipe';
 
 @Component({
   selector: 'app-portal-preview',
   standalone: true,
-  imports: [CommonModule, PortalHeroComponent],
+  imports: [CommonModule, PortalHeroComponent, TPipe],
   templateUrl: './portal-preview.component.html',
   styleUrls: ['../shared/portal-editorial.css', './portal-preview.component.css'],
 })
@@ -45,6 +48,19 @@ export class PortalPreviewComponent implements AfterViewInit, OnChanges, OnDestr
 
   private observer?: ResizeObserver;
 
+  constructor(@Optional() public i18n?: I18nService) {}
+
+  private t(key: string, fallback: string, params?: Record<string, string | number>): string {
+    if (this.i18n) {
+      return this.i18n.t(key, params);
+    }
+    if (!params) return fallback;
+    return fallback.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) => {
+      const valor = params[name];
+      return valor !== undefined && valor !== null ? String(valor) : match;
+    });
+  }
+
   get primarioSeguro(): string {
     return normalizarHex(this.colorPrimario) ?? COLOR_PRIMARIO_DEFECTO;
   }
@@ -62,7 +78,7 @@ export class PortalPreviewComponent implements AfterViewInit, OnChanges, OnDestr
   }
 
   get nombreEstudioVisible(): string {
-    return this.nombreEstudio.trim() || 'Tu estudio';
+    return this.nombreEstudio.trim() || this.t('portal.preview.tuEstudio', 'Tu estudio');
   }
 
   get clienteNombre(): string | null {
@@ -77,10 +93,19 @@ export class PortalPreviewComponent implements AfterViewInit, OnChanges, OnDestr
   get mensajeContextual(): string {
     const personalizado = this.mensajeBienvenida.trim();
     if (personalizado) return personalizado;
+    const estudio = this.nombreEstudioVisible;
     if (this.esFotografia) {
-      return `Aquí encontrarás las sesiones y documentos que ${this.nombreEstudioVisible} comparta contigo.`;
+      return this.t(
+        'portal.home.mensajeFotografia',
+        `Aquí encontrarás las sesiones y documentos que ${estudio} comparta contigo.`,
+        { estudio }
+      );
     }
-    return `Aquí encontrarás los proyectos, documentos y facturas que ${this.nombreEstudioVisible} comparta contigo.`;
+    return this.t(
+      'portal.home.mensajeGeneral',
+      `Aquí encontrarás los proyectos, documentos y facturas que ${estudio} comparta contigo.`,
+      { estudio }
+    );
   }
 
   get totalElementosColumnaPrincipal(): number {

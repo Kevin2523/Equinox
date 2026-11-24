@@ -1,15 +1,15 @@
 <main class="invitation-page auth-layout">
   <div class="invitation-layout">
     <!-- Panel izquierdo: Azul marino oscuro con marca, titular 'Un espacio para colaborar.', anillos 3D y pie 'EQUINOX / PORTAL DE CLIENTES' -->
-    <aside class="hero-panel" aria-label="Presentación de Equinox">
+    <aside class="hero-panel" [attr.aria-label]="'publico.comun.heroPresentacionAria' | t">
       <div class="hero-header">
         <div class="hero-brand">
           <span class="brand-mark" aria-hidden="true"></span>
-          <span class="brand-text">equinox</span>
+          <span class="brand-text">{{ 'publico.comun.marca' | t }}</span>
         </div>
-        <h1 class="hero-title">Un espacio<br>para colaborar.</h1>
-        <p class="hero-subtitle" *ngIf="!esFotografia">Tu proyecto y tu equipo,<br>más cerca.</p>
-        <p class="hero-subtitle" *ngIf="esFotografia">Tus sesiones y fotografías,<br>más cerca.</p>
+        <h1 class="hero-title">{{ 'publico.invitacion.heroTituloLinea1' | t }}<br>{{ 'publico.invitacion.heroTituloLinea2' | t }}</h1>
+        <p class="hero-subtitle" *ngIf="!esFotografia">{{ 'publico.invitacion.heroSubtituloGeneral1' | t }}<br>{{ 'publico.invitacion.heroSubtituloGeneral2' | t }}</p>
+        <p class="hero-subtitle" *ngIf="esFotografia">{{ 'publico.invitacion.heroSubtituloFoto1' | t }}<br>{{ 'publico.invitacion.heroSubtituloFoto2' | t }}</p>
       </div>
 
       <!-- Ilustración de dos grandes anillos metálicos 3D azul y dorado -->
@@ -104,17 +104,32 @@
       </div>
 
       <div class="hero-footer">
-        <span class="hero-tag">EQUINOX / PORTAL DE CLIENTES</span>
+        <span class="hero-tag">{{ 'publico.invitacion.heroTag' | t }}</span>
       </div>
     </aside>
 
     <!-- Panel derecho: Fondo claro con 'Acceso al portal', formulario y estados -->
     <section class="form-panel invitation-card" aria-labelledby="invitation-heading">
       <div class="form-container">
+        <div class="preauth-lang-row">
+          <div class="preauth-lang-bar" role="group" [attr.aria-label]="'publico.comun.seleccionarIdioma' | t">
+            <button
+              *ngFor="let idioma of i18n.idiomasDisponibles"
+              type="button"
+              class="preauth-lang-btn"
+              [class.active]="i18n.locale() === idioma.codigo"
+              [attr.aria-pressed]="i18n.locale() === idioma.codigo"
+              (click)="i18n.establecerIdiomaLocal(idioma.codigo)"
+            >
+              {{ idioma.etiquetaCorta }}
+            </button>
+          </div>
+        </div>
+
         <!-- Estado de carga inicial -->
         <div class="invitation-loading" *ngIf="cargando" role="status">
           <div class="loading-spinner" aria-hidden="true"></div>
-          <p class="auth-intro">Consultando invitación…</p>
+          <p class="auth-intro">{{ 'publico.invitacion.cargando' | t }}</p>
         </div>
 
         <!-- Estado de error sin invitación (inválida, expirada, revocada, ya aceptada o red) -->
@@ -126,7 +141,7 @@
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
           </div>
-          <h2 class="state-title">No se pudo acceder a la invitación</h2>
+          <h2 class="state-title">{{ 'publico.invitacion.errorTitulo' | t }}</h2>
           <div class="auth-error">
             {{ error }}
             <button
@@ -136,15 +151,15 @@
               (click)="cargar()"
               [disabled]="cargando"
             >
-              Reintentar
+              {{ 'publico.invitacion.reintentar' | t }}
             </button>
           </div>
           <a
             class="auth-text-link invitation-login btn-secondary-link"
             routerLink="/inicio-sesion"
-            *ngIf="error.includes('ya fue aceptada')"
+            *ngIf="esInvitacionYaAceptada"
           >
-            Iniciar sesión
+            {{ 'publico.invitacion.iniciarSesion' | t }}
           </a>
         </div>
 
@@ -152,17 +167,17 @@
         <ng-container *ngIf="invitacion as invite">
           <!-- Cabecera de la invitación -->
           <header class="form-header">
-            <span class="eyebrow-badge">ACCESO AL PORTAL</span>
-            <h1 id="invitation-heading" class="form-title">Te invitaron a colaborar</h1>
+            <span class="eyebrow-badge">{{ 'publico.invitacion.eyebrow' | t }}</span>
+            <h1 id="invitation-heading" class="form-title">{{ 'publico.invitacion.titulo' | t }}</h1>
             <p class="invitation-intro">
-              <strong>{{ invite.organizacion.nombre }}</strong> te invita al portal de <strong>{{ invite.cliente.nombre }}</strong><span *ngIf="invite.cliente.empresa"> ({{ invite.cliente.empresa }})</span>.
+              <strong>{{ invite.organizacion.nombre }}</strong> {{ 'publico.invitacion.intro' | t }} <strong>{{ invite.cliente.nombre }}</strong><span *ngIf="invite.cliente.empresa"> ({{ invite.cliente.empresa }})</span>.
             </p>
           </header>
 
           <!-- Tarjeta informativa con correo enmascarado y rol de acceso -->
           <div class="invitation-summary-card">
             <div class="summary-col">
-              <span class="summary-label">Correo de la invitación</span>
+              <span class="summary-label">{{ 'publico.invitacion.correoLabel' | t }}</span>
               <div class="summary-value email-value">
                 <svg class="icon-lock" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
@@ -172,7 +187,7 @@
             </div>
             <div class="summary-divider" aria-hidden="true"></div>
             <div class="summary-col">
-              <span class="summary-label">Tu acceso</span>
+              <span class="summary-label">{{ 'publico.invitacion.accesoLabel' | t }}</span>
               <div class="summary-value role-value">{{ rolLegible }}</div>
             </div>
           </div>
@@ -184,10 +199,10 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2>¡Invitación aceptada!</h2>
-            <p>{{ mensajeExito || 'Tu cuenta ha sido vinculada correctamente.' }} Inicia sesión para entrar al portal; la invitación no inicia una sesión automáticamente.</p>
+            <h2>{{ 'publico.invitacion.aceptadaTitulo' | t }}</h2>
+            <p>{{ mensajeExito || ('publico.invitacion.aceptadaFallback' | t) }} {{ 'publico.invitacion.aceptadaNota' | t }}</p>
             <a class="btn-submit auth-submit success-action" routerLink="/inicio-sesion">
-              <span>Ir a iniciar sesión</span>
+              <span>{{ 'publico.invitacion.irLogin' | t }}</span>
               <svg class="btn-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
               </svg>
@@ -198,11 +213,11 @@
           <form *ngIf="!aceptada" #form="ngForm" (ngSubmit)="aceptar(form)" class="invitation-form" novalidate>
             <!-- Caso cuenta nueva -->
             <ng-container *ngIf="!invite.esUsuarioExistente">
-              <p class="form-instructions">Completa tus datos para aceptar la invitación.</p>
+              <p class="form-instructions">{{ 'publico.invitacion.instruccionesNueva' | t }}</p>
 
               <div class="form-row-duo">
                 <div class="form-group">
-                  <label for="invite-nombre" class="form-label">Nombre *</label>
+                  <label for="invite-nombre" class="form-label">{{ 'publico.invitacion.nombreLabel' | t }}</label>
                   <input
                     id="invite-nombre"
                     class="form-input"
@@ -212,31 +227,31 @@
                     required
                     minlength="2"
                     autocomplete="given-name"
-                    placeholder="Tu nombre"
+                    [placeholder]="'publico.invitacion.nombrePlaceholder' | t"
                     #nombreCtrl="ngModel"
                     [disabled]="enviando"
                   >
                   <small class="auth-validation" *ngIf="nombreCtrl.invalid && (nombreCtrl.touched || enviada)">
-                    Introduce al menos 2 caracteres.
+                    {{ 'publico.invitacion.nombreInvalido' | t }}
                   </small>
                 </div>
 
                 <div class="form-group">
-                  <label for="invite-apellido" class="form-label">Apellido (opcional)</label>
+                  <label for="invite-apellido" class="form-label">{{ 'publico.invitacion.apellidoLabel' | t }}</label>
                   <input
                     id="invite-apellido"
                     class="form-input"
                     name="apellido"
                     [(ngModel)]="datos.apellido"
                     autocomplete="family-name"
-                    placeholder="Tu apellido"
+                    [placeholder]="'publico.invitacion.apellidoPlaceholder' | t"
                     [disabled]="enviando"
                   >
                 </div>
               </div>
 
               <div class="form-group">
-                <label for="invite-password" class="form-label">Contraseña *</label>
+                <label for="invite-password" class="form-label">{{ 'publico.invitacion.contrasenaLabel' | t }}</label>
                 <div class="password-input-wrapper" [class.input-error]="passCtrl.invalid && (passCtrl.touched || enviada)">
                   <input
                     id="invite-password"
@@ -247,7 +262,7 @@
                     required
                     minlength="8"
                     autocomplete="new-password"
-                    placeholder="Crea una contraseña"
+                    [placeholder]="'publico.invitacion.contrasenaPlaceholder' | t"
                     #passCtrl="ngModel"
                     [disabled]="enviando"
                   >
@@ -255,7 +270,7 @@
                     type="button"
                     class="password-toggle-btn"
                     (click)="toggleMostrarContrasena()"
-                    [attr.aria-label]="mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                    [attr.aria-label]="mostrarContrasena ? ('publico.comun.ocultarContrasena' | t) : ('publico.comun.mostrarContrasena' | t)"
                     [attr.aria-pressed]="mostrarContrasena"
                     tabindex="0"
                   >
@@ -269,19 +284,19 @@
                     </svg>
                   </button>
                 </div>
-                <p class="field-hint" *ngIf="!passCtrl.invalid || (!passCtrl.touched && !enviada)">Al menos 8 caracteres.</p>
+                <p class="field-hint" *ngIf="!passCtrl.invalid || (!passCtrl.touched && !enviada)">{{ 'publico.invitacion.contrasenaAyuda' | t }}</p>
                 <small class="auth-validation" *ngIf="passCtrl.invalid && (passCtrl.touched || enviada)">
-                  La contraseña debe tener al menos 8 caracteres.
+                  {{ 'publico.invitacion.contrasenaInvalida' | t }}
                 </small>
               </div>
             </ng-container>
 
             <!-- Caso cuenta existente -->
             <ng-container *ngIf="invite.esUsuarioExistente">
-              <p class="form-instructions">Ya existe una cuenta para este correo. Confirma tu contraseña actual para vincular el portal.</p>
+              <p class="form-instructions">{{ 'publico.invitacion.instruccionesExistente' | t }}</p>
 
               <div class="form-group">
-                <label for="invite-current-password" class="form-label">Contraseña actual *</label>
+                <label for="invite-current-password" class="form-label">{{ 'publico.invitacion.contrasenaActualLabel' | t }}</label>
                 <div class="password-input-wrapper" [class.input-error]="currPassCtrl.invalid && (currPassCtrl.touched || enviada)">
                   <input
                     id="invite-current-password"
@@ -291,7 +306,7 @@
                     [(ngModel)]="datos.contrasena"
                     required
                     autocomplete="current-password"
-                    placeholder="Tu contraseña actual"
+                    [placeholder]="'publico.invitacion.contrasenaActualPlaceholder' | t"
                     #currPassCtrl="ngModel"
                     [disabled]="enviando"
                   >
@@ -299,7 +314,7 @@
                     type="button"
                     class="password-toggle-btn"
                     (click)="toggleMostrarContrasena()"
-                    [attr.aria-label]="mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                    [attr.aria-label]="mostrarContrasena ? ('publico.comun.ocultarContrasena' | t) : ('publico.comun.mostrarContrasena' | t)"
                     [attr.aria-pressed]="mostrarContrasena"
                     tabindex="0"
                   >
@@ -314,14 +329,14 @@
                   </button>
                 </div>
                 <small class="auth-validation" *ngIf="currPassCtrl.invalid && (currPassCtrl.touched || enviada)">
-                  Introduce tu contraseña actual.
+                  {{ 'publico.invitacion.contrasenaActualInvalida' | t }}
                 </small>
               </div>
             </ng-container>
 
             <!-- Mensajes de error general -->
             <p class="auth-validation general-validation" *ngIf="enviada && form.invalid">
-              Revisa los campos requeridos antes de continuar.
+              {{ 'publico.invitacion.revisarCampos' | t }}
             </p>
             <p class="auth-error" role="alert" *ngIf="error">
               {{ error }}
@@ -329,7 +344,7 @@
 
             <!-- Botón principal de aceptación -->
             <button class="btn-submit auth-submit" type="submit" [disabled]="enviando">
-              <span>{{ enviando ? 'Aceptando…' : 'Aceptar invitación' }}</span>
+              <span>{{ enviando ? ('publico.invitacion.aceptando' | t) : ('publico.invitacion.aceptar' | t) }}</span>
               <svg class="btn-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
               </svg>
@@ -337,7 +352,7 @@
 
             <!-- Leyenda explicativa al pie -->
             <p class="submit-note">
-              {{ invite.esUsuarioExistente ? 'Vincularás tu cuenta y accederás al portal.' : 'Crearás tu cuenta y accederás al portal.' }}
+              {{ (invite.esUsuarioExistente ? 'publico.invitacion.notaExistente' : 'publico.invitacion.notaNueva') | t }}
             </p>
           </form>
         </ng-container>

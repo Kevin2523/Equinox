@@ -26,13 +26,36 @@ global.URL.revokeObjectURL = (url) => {
   urlsRevocadas.add(url);
 };
 
-const angular = { Component: () => (target) => target, Directive: () => (target) => target, Injectable: () => (target) => target, Input: () => () => {}, HostListener: () => () => {} };
+const angular = {
+  Component: () => (target) => target,
+  Directive: () => (target) => target,
+  Injectable: () => (target) => target,
+  Pipe: () => (target) => target,
+  Input: () => () => {},
+  Optional: () => () => {},
+  HostListener: () => () => {},
+  inject: () => null,
+  signal: (val) => {
+    let v = val;
+    const fn = () => v;
+    fn.set = (next) => { v = next; };
+    fn.asReadonly = () => fn;
+    return fn;
+  },
+  computed: (fn) => fn
+};
 const sourceRoot = path.resolve(__dirname, '../src');
 const moduleCache = new Map();
 
 function load(relativePath) {
   const filename = path.resolve(sourceRoot, relativePath);
   if (moduleCache.has(filename)) return moduleCache.get(filename);
+  if (filename.endsWith('.json')) {
+    const parsed = JSON.parse(fs.readFileSync(filename, 'utf8'));
+    const wrapped = { __esModule: true, default: parsed, ...parsed };
+    moduleCache.set(filename, wrapped);
+    return wrapped;
+  }
   const source = fs.readFileSync(filename, 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, experimentalDecorators: true
@@ -47,7 +70,11 @@ function load(relativePath) {
     if (id === '@angular/router') return { Router: class Router {}, ActivatedRoute: class ActivatedRoute {} };
     if (id === 'rxjs') return require('rxjs');
     if (id.startsWith('.')) {
-      const target = path.resolve(path.dirname(filename), `${id}.ts`);
+      const resolved = path.resolve(path.dirname(filename), id);
+      if (resolved.endsWith('.json')) {
+        return load(path.relative(sourceRoot, resolved));
+      }
+      const target = `${resolved}.ts`;
       return load(path.relative(sourceRoot, target));
     }
     throw new Error(`Import no previsto en la prueba: ${id}`);
@@ -341,9 +368,9 @@ test('La plantilla y estilos del portal fotográfico cumplen accesibilidad, sin 
   assert.match(template, /\*ngIf="!esFotografia"/);
   assert.match(template, /\*ngIf="esFotografia"/);
 
-  // Vista fotográfica contiene sesiones y galería editorial
-  assert.match(template, /TUS SESIONES/);
-  assert.match(template, /SESIÓN FOTOGRÁFICA/);
+  // Vista fotográfica contiene sesiones y galería editorial (i18n keys)
+  assert.match(template, /portal\.home\.sesionesTitulo/);
+  assert.match(template, /portal\.home\.sesionEyebrow/);
   assert.match(template, /role="grid"/);
   assert.match(template, /role="gridcell"/);
 
@@ -351,9 +378,9 @@ test('La plantilla y estilos del portal fotográfico cumplen accesibilidad, sin 
   assert.match(template, /role="dialog"/);
   assert.match(template, /aria-modal="true"/);
   assert.match(template, /aria-labelledby="visor-titulo"/);
-  assert.match(template, /aria-label="Cerrar visor ampliado"/);
-  assert.match(template, /aria-label="Fotografía anterior"/);
-  assert.match(template, /aria-label="Fotografía siguiente"/);
+  assert.match(template, /portal\.home\.cerrarVisorAria/);
+  assert.match(template, /portal\.home\.fotoAnteriorAria/);
+  assert.match(template, /portal\.home\.fotoSiguienteAria/);
 
   // NO debe contener enlaces de descarga para fotos (requisito: no descarga implícita)
   assert.doesNotMatch(template, /<a[^>]*download[^>]*foto/i);
@@ -363,4 +390,87 @@ test('La plantilla y estilos del portal fotográfico cumplen accesibilidad, sin 
   assert.match(styles, /\.editorial-lightbox-backdrop/);
   assert.match(styles, /:focus-visible/);
   assert.match(styles, /@media \(max-width: 760px\)/);
+});
+
+test('Paridad de claves i18n es/en/pt en assets/i18n/fotografia-portal y placeholders consistentes', () => {
+  const baseDir = path.resolve(sourceRoot, 'assets/i18n/fotografia-portal');
+  const es = JSON.parse(fs.readFileSync(path.join(baseDir, 'es.json'), 'utf8'));
+  const en = JSON.parse(fs.readFileSync(path.join(baseDir, 'en.json'), 'utf8'));
+  const pt = JSON.parse(fs.readFileSync(path.join(baseDir, 'pt.json'), 'utf8'));
+
+  const clavesEs = Object.keys(es).sort();
+  const clavesEn = Object.keys(en).sort();
+  const clavesPt = Object.keys(pt).sort();
+
+  assert.ok(clavesEs.length > 100, 'Debe contener el catálogo completo de portal y fotografía');
+  assert.deepEqual(clavesEn, clavesEs, 'en.json debe tener exactamente las mismas claves que es.json');
+  assert.deepEqual(clavesPt, clavesEs, 'pt.json debe tener exactamente las mismas claves que es.json');
+
+  const extraerPlaceholders = (texto) => {
+    const matches = texto.match(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g) || [];
+    return matches.map((m) => m.replace(/[\{\}\s]/g, '')).sort();
+  };
+
+  for (const clave of clavesEs) {
+    assert.ok(clave.startsWith('portal.'), `La clave ${clave} debe usar prefijo portal.`);
+    assert.equal(typeof es[clave], 'string');
+    assert.equal(typeof en[clave], 'string');
+    assert.equal(typeof pt[clave], 'string');
+    assert.ok(es[clave].trim().length > 0, `es.json[${clave}] no debe estar vacío`);
+    assert.ok(en[clave].trim().length > 0, `en.json[${clave}] no debe estar vacío`);
+    assert.ok(pt[clave].trim().length > 0, `pt.json[${clave}] no debe estar vacío`);
+
+    const phEs = extraerPlaceholders(es[clave]);
+    assert.deepEqual(extraerPlaceholders(en[clave]), phEs, `Placeholders distintos en en.json[${clave}]`);
+    assert.deepEqual(extraerPlaceholders(pt[clave]), phEs, `Placeholders distintos en pt.json[${clave}]`);
+  }
+});
+
+test('ClientShellComponent guarda idioma solo para la cuenta portal sin contaminar locale público ni organización', async () => {
+  const { ClientShellComponent } = load('shells/client-shell.component.ts');
+  const llamadasGuardar = [];
+  const llamadasAuthIdioma = [];
+  let localStorageTocado = false;
+  const origLocalStorage = global.localStorage;
+  global.localStorage = {
+    getItem: () => null,
+    setItem: () => { localStorageTocado = true; },
+    removeItem: () => { localStorageTocado = true; }
+  };
+
+  try {
+    let localeActual = 'es';
+    const mockI18n = {
+      get idiomaActual() { return localeActual; },
+      t: (k) => k,
+      guardarIdiomaUsuario: async (idioma) => {
+        llamadasGuardar.push(idioma);
+        localeActual = idioma;
+        return idioma;
+      }
+    };
+    const mockAuth = {
+      sesion: { usuario: { id: 'u-cliente-1', nombre: 'Ana', idioma: 'es' }, contexto: { tipoAcceso: 'CLIENTE', rolCliente: 'TITULAR' } },
+      actualizarIdiomaLocal: (idioma) => { llamadasAuthIdioma.push(idioma); }
+    };
+
+    const shell = new ClientShellComponent(mockAuth, mockI18n);
+    assert.equal(shell.idiomaActual, 'es');
+    assert.equal(shell.idiomasDisponibles.length, 3);
+
+    await shell.cambiarIdioma('en');
+    assert.deepEqual(llamadasGuardar, ['en']);
+    assert.deepEqual(llamadasAuthIdioma, ['en']);
+    assert.equal(shell.idiomaActual, 'en');
+    assert.equal(localStorageTocado, false, 'No debe escribir equinox_idioma_local en localStorage');
+
+    // Si falla el guardado, restaura el select y muestra error sin contaminar
+    const fakeSelect = { value: 'pt' };
+    mockI18n.guardarIdiomaUsuario = async () => { throw new Error('network'); };
+    await shell.cambiarIdioma('pt', fakeSelect);
+    assert.equal(fakeSelect.value, 'en');
+    assert.ok(shell.errorIdioma.length > 0);
+  } finally {
+    global.localStorage = origLocalStorage;
+  }
 });

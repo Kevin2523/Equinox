@@ -3,10 +3,8 @@
 
   <header class="admin-page-header">
     <div>
-      <h1 id="usuarios-titulo" class="admin-page-title">Usuarios y accesos</h1>
-      <p class="admin-page-subtitle">
-        Gestión de cuentas de plataforma, membresías de organización, accesos de cliente y revocación de sesiones activas.
-      </p>
+      <h1 id="usuarios-titulo" class="admin-page-title">{{ 'admin.usuarios.titulo' | t }}</h1>
+      <p class="admin-page-subtitle">{{ 'admin.usuarios.subtitulo' | t }}</p>
     </div>
   </header>
 
@@ -16,31 +14,31 @@
       name="busqueda"
       class="admin-search-input"
       [(ngModel)]="busqueda"
-      placeholder="Buscar por nombre, apellido o correo..."
-      aria-label="Buscar usuarios" />
+      [placeholder]="'admin.usuarios.buscarPlaceholder' | t"
+      [attr.aria-label]="'admin.usuarios.buscarAria' | t" />
 
-    <select name="filtroRol" class="admin-select" [(ngModel)]="filtroRol" (change)="buscar()" aria-label="Filtrar por rol de plataforma">
-      <option value="">Todos los roles</option>
-      <option value="USUARIO">Usuario</option>
-      <option value="ADMIN_GLOBAL">Admin global</option>
+    <select name="filtroRol" class="admin-select" [(ngModel)]="filtroRol" (change)="buscar()" [attr.aria-label]="'admin.usuarios.filtrarRolAria' | t">
+      <option value="">{{ 'admin.usuarios.todosRoles' | t }}</option>
+      <option value="USUARIO">{{ 'admin.comun.rolPlataforma.USUARIO' | t }}</option>
+      <option value="ADMIN_GLOBAL">{{ 'admin.comun.rolPlataforma.ADMIN_GLOBAL' | t }}</option>
     </select>
 
-    <select name="filtroTipoAcceso" class="admin-select" [(ngModel)]="filtroTipoAcceso" (change)="buscar()" aria-label="Filtrar por tipo de acceso">
-      <option value="">Todos los accesos</option>
-      <option value="ORGANIZACION">Organización</option>
-      <option value="CLIENTE">Cliente</option>
-      <option value="ADMIN_GLOBAL">Admin global</option>
+    <select name="filtroTipoAcceso" class="admin-select" [(ngModel)]="filtroTipoAcceso" (change)="buscar()" [attr.aria-label]="'admin.usuarios.filtrarAccesoAria' | t">
+      <option value="">{{ 'admin.usuarios.todosAccesos' | t }}</option>
+      <option value="ORGANIZACION">{{ 'admin.usuarios.accesoOrganizacion' | t }}</option>
+      <option value="CLIENTE">{{ 'admin.usuarios.accesoCliente' | t }}</option>
+      <option value="ADMIN_GLOBAL">{{ 'admin.comun.rolPlataforma.ADMIN_GLOBAL' | t }}</option>
     </select>
 
-    <button type="submit" class="admin-btn-sm primary">Buscar</button>
+    <button type="submit" class="admin-btn-sm primary">{{ 'admin.comun.buscar' | t }}</button>
     <button type="button" class="admin-btn-sm" (click)="limpiarFiltros()" *ngIf="busqueda || filtroRol || filtroTipoAcceso">
-      Limpiar
+      {{ 'admin.comun.limpiar' | t }}
     </button>
   </form>
 
   <div *ngIf="error" class="admin-error-banner" role="alert">
     <span>{{ error }}</span>
-    <button type="button" class="admin-btn-sm" (click)="cargar()">Reintentar</button>
+    <button type="button" class="admin-btn-sm" (click)="cargar()">{{ 'admin.comun.reintentar' | t }}</button>
   </div>
 
   <div *ngIf="cargando" class="admin-card" aria-busy="true">
@@ -50,9 +48,9 @@
   </div>
 
   <div *ngIf="!cargando && usuarios.length === 0 && !error" class="admin-state-box">
-    <h3>No se encontraron usuarios</h3>
-    <p>Prueba ajustando los filtros o el término de búsqueda.</p>
-    <button type="button" class="btn-secondary" (click)="limpiarFiltros()">Restablecer filtros</button>
+    <h3>{{ 'admin.usuarios.vacioTitulo' | t }}</h3>
+    <p>{{ 'admin.usuarios.vacioDesc' | t }}</p>
+    <button type="button" class="btn-secondary" (click)="limpiarFiltros()">{{ 'admin.comun.restablecerFiltros' | t }}</button>
   </div>
 
   <ng-container *ngIf="!cargando && usuarios.length > 0">
@@ -60,12 +58,12 @@
       <table class="admin-table">
         <thead>
           <tr>
-            <th>Usuario</th>
-            <th>Rol plataforma</th>
-            <th>Membresías / Accesos</th>
-            <th>Sesiones activas</th>
-            <th>Último acceso</th>
-            <th>Acciones</th>
+            <th>{{ 'admin.usuarios.colUsuario' | t }}</th>
+            <th>{{ 'admin.usuarios.colRolPlataforma' | t }}</th>
+            <th>{{ 'admin.usuarios.colMembresiasAccesos' | t }}</th>
+            <th>{{ 'admin.usuarios.colSesionesActivas' | t }}</th>
+            <th>{{ 'admin.usuarios.colUltimoAcceso' | t }}</th>
+            <th>{{ 'admin.comun.acciones' | t }}</th>
           </tr>
         </thead>
         <tbody>
@@ -76,30 +74,30 @@
             </td>
             <td>
               <span class="admin-badge" [ngClass]="u.rolPlataforma === 'ADMIN_GLOBAL' ? 'admin-badge-purple' : 'admin-badge-neutral'">
-                {{ etiquetasRol[u.rolPlataforma] }}
+                {{ clavesRol[u.rolPlataforma] | t }}
               </span>
             </td>
             <td>
-              <span class="admin-cell-primary">{{ u.membresias.length }} org(s)</span>
-              <span class="admin-cell-secondary">{{ u.accesosCliente.length }} acceso(s) cliente</span>
+              <span class="admin-cell-primary">{{ 'admin.usuarios.countOrgs' | t:{ count: formatearNumero(u.membresias.length) } }}</span>
+              <span class="admin-cell-secondary">{{ 'admin.usuarios.countAccesosCliente' | t:{ count: formatearNumero(u.accesosCliente.length) } }}</span>
             </td>
             <td>
               <span class="admin-badge" [ngClass]="u.sesionesActivasCount > 0 ? 'admin-badge-blue' : 'admin-badge-neutral'">
-                {{ u.sesionesActivasCount }} activa(s)
+                {{ 'admin.usuarios.countSesionesActivas' | t:{ count: formatearNumero(u.sesionesActivasCount) } }}
               </span>
             </td>
             <td>{{ formatearFecha(u.ultimoAccesoEn) }}</td>
             <td>
               <div class="admin-row-actions">
                 <button type="button" class="admin-btn-sm" (click)="verDetalle(u.id)" [disabled]="cargandoDetalle">
-                  Ver detalle
+                  {{ 'admin.comun.verDetalle' | t }}
                 </button>
                 <button
                   type="button"
                   class="admin-btn-sm danger"
                   *ngIf="u.sesionesActivasCount > 0"
                   (click)="pedirRevocarTodas(u)">
-                  Revocar sesiones
+                  {{ 'admin.usuarios.revocarSesiones' | t }}
                 </button>
               </div>
             </td>
@@ -116,51 +114,51 @@
             <span class="admin-cell-secondary">{{ u.correo }}</span>
           </div>
           <span class="admin-badge" [ngClass]="u.rolPlataforma === 'ADMIN_GLOBAL' ? 'admin-badge-purple' : 'admin-badge-neutral'">
-            {{ etiquetasRol[u.rolPlataforma] }}
+            {{ clavesRol[u.rolPlataforma] | t }}
           </span>
         </div>
 
         <div class="admin-mobile-card-grid">
           <div class="admin-mobile-card-field">
-            <small>Membresías / Accesos</small>
-            <span class="admin-cell-primary">{{ u.membresias.length }} org(s)</span>
-            <span class="admin-cell-secondary">{{ u.accesosCliente.length }} acceso(s) cliente</span>
+            <small>{{ 'admin.usuarios.colMembresiasAccesos' | t }}</small>
+            <span class="admin-cell-primary">{{ 'admin.usuarios.countOrgs' | t:{ count: formatearNumero(u.membresias.length) } }}</span>
+            <span class="admin-cell-secondary">{{ 'admin.usuarios.countAccesosCliente' | t:{ count: formatearNumero(u.accesosCliente.length) } }}</span>
           </div>
           <div class="admin-mobile-card-field">
-            <small>Sesiones activas</small>
+            <small>{{ 'admin.usuarios.colSesionesActivas' | t }}</small>
             <span class="admin-badge" [ngClass]="u.sesionesActivasCount > 0 ? 'admin-badge-blue' : 'admin-badge-neutral'">
-              {{ u.sesionesActivasCount }} activa(s)
+              {{ 'admin.usuarios.countSesionesActivas' | t:{ count: formatearNumero(u.sesionesActivasCount) } }}
             </span>
           </div>
           <div class="admin-mobile-card-field">
-            <small>Último acceso</small>
+            <small>{{ 'admin.usuarios.colUltimoAcceso' | t }}</small>
             <span class="admin-cell-secondary">{{ formatearFecha(u.ultimoAccesoEn) }}</span>
           </div>
         </div>
 
         <div class="admin-mobile-card-actions">
           <button type="button" class="admin-btn-sm" (click)="verDetalle(u.id)" [disabled]="cargandoDetalle">
-            Ver detalle
+            {{ 'admin.comun.verDetalle' | t }}
           </button>
           <button
             type="button"
             class="admin-btn-sm danger"
             *ngIf="u.sesionesActivasCount > 0"
             (click)="pedirRevocarTodas(u)">
-            Revocar sesiones
+            {{ 'admin.usuarios.revocarSesiones' | t }}
           </button>
         </div>
       </article>
     </div>
 
     <div class="admin-pagination" style="margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-md);">
-      <span>Página {{ paginacion.pagina }} de {{ paginacion.totalPaginas || 1 }} · {{ paginacion.total }} usuarios</span>
+      <span>{{ 'admin.usuarios.paginacionResumen' | t:{ pagina: formatearNumero(paginacion.pagina), totalPaginas: formatearNumero(paginacion.totalPaginas || 1), total: formatearNumero(paginacion.total) } }}</span>
       <div class="admin-pagination-controls">
         <button type="button" class="admin-btn-sm" (click)="cargar(paginacion.pagina - 1)" [disabled]="paginacion.pagina <= 1">
-          Anterior
+          {{ 'admin.comun.anterior' | t }}
         </button>
         <button type="button" class="admin-btn-sm" (click)="cargar(paginacion.pagina + 1)" [disabled]="paginacion.pagina >= paginacion.totalPaginas">
-          Siguiente
+          {{ 'admin.comun.siguiente' | t }}
         </button>
       </div>
     </div>
@@ -172,55 +170,55 @@
       <div class="admin-modal-header">
         <div>
           <h2 id="usr-detalle-titulo" class="admin-modal-title">{{ detalle.nombre }} {{ detalle.apellido || '' }}</h2>
-          <span class="admin-cell-secondary">{{ detalle.correo }} · {{ etiquetasRol[detalle.rolPlataforma] }}</span>
+          <span class="admin-cell-secondary">{{ detalle.correo }} · {{ clavesRol[detalle.rolPlataforma] | t }}</span>
         </div>
-        <button type="button" class="admin-modal-close" (click)="cerrarDetalle()" aria-label="Cerrar detalle">✕</button>
+        <button type="button" class="admin-modal-close" (click)="cerrarDetalle()" [attr.aria-label]="'admin.comun.cerrarDetalleAria' | t">✕</button>
       </div>
 
       <div class="admin-kv-grid">
         <div class="admin-kv-item">
-          <small>Correo verificado</small>
-          <span>{{ detalle.correoVerificadoEn ? formatearFecha(detalle.correoVerificadoEn) : 'Pendiente' }}</span>
+          <small>{{ 'admin.usuarios.correoVerificado' | t }}</small>
+          <span>{{ detalle.correoVerificadoEn ? formatearFecha(detalle.correoVerificadoEn) : ('admin.usuarios.pendiente' | t) }}</span>
         </div>
         <div class="admin-kv-item">
-          <small>Último acceso</small>
+          <small>{{ 'admin.usuarios.colUltimoAcceso' | t }}</small>
           <span>{{ formatearFecha(detalle.ultimoAccesoEn) }}</span>
         </div>
       </div>
 
       <div class="admin-card-header" style="margin-top: 8px;">
-        <h3 class="admin-card-title">Sesiones activas ({{ detalle.sesionesActivas.length }})</h3>
+        <h3 class="admin-card-title">{{ 'admin.usuarios.sesionesActivasTitulo' | t:{ count: formatearNumero(detalle.sesionesActivas.length) } }}</h3>
         <button
           type="button"
           class="admin-btn-sm danger"
           *ngIf="detalle.sesionesActivas.length > 0"
           (click)="pedirRevocarTodas(detalle)">
-          Revocar todas
+          {{ 'admin.usuarios.revocarTodas' | t }}
         </button>
       </div>
       <div *ngIf="detalle.sesionesActivas.length === 0" class="admin-state-box" style="padding: 18px; margin-bottom: 18px;">
-        <p style="margin: 0;">Sin sesiones activas en este momento.</p>
+        <p style="margin: 0;">{{ 'admin.usuarios.sinSesionesActivas' | t }}</p>
       </div>
       <div *ngIf="detalle.sesionesActivas.length > 0" class="admin-table-wrap" style="margin-bottom: 18px;">
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Tipo</th>
-              <th>MFA</th>
-              <th>Creada</th>
-              <th>Expira</th>
-              <th>Acción</th>
+              <th>{{ 'admin.usuarios.colTipo' | t }}</th>
+              <th>{{ 'admin.usuarios.colMfa' | t }}</th>
+              <th>{{ 'admin.usuarios.colCreada' | t }}</th>
+              <th>{{ 'admin.usuarios.colExpira' | t }}</th>
+              <th>{{ 'admin.comun.accion' | t }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let s of detalle.sesionesActivas">
-              <td data-label="Tipo"><span class="admin-badge admin-badge-blue">{{ s.tipoAcceso }}</span></td>
-              <td data-label="MFA">{{ s.mfaVerificado ? 'Verificado' : 'No' }}</td>
-              <td data-label="Creada">{{ formatearFecha(s.creadoEn) }}</td>
-              <td data-label="Expira">{{ formatearFecha(s.expiraEn) }}</td>
-              <td data-label="Acción">
+              <td [attr.data-label]="'admin.usuarios.colTipo' | t"><span class="admin-badge admin-badge-blue">{{ s.tipoAcceso }}</span></td>
+              <td [attr.data-label]="'admin.usuarios.colMfa' | t">{{ (s.mfaVerificado ? 'admin.usuarios.verificado' : 'admin.comun.no') | t }}</td>
+              <td [attr.data-label]="'admin.usuarios.colCreada' | t">{{ formatearFecha(s.creadoEn) }}</td>
+              <td [attr.data-label]="'admin.usuarios.colExpira' | t">{{ formatearFecha(s.expiraEn) }}</td>
+              <td [attr.data-label]="'admin.comun.accion' | t">
                 <button type="button" class="admin-btn-sm danger" (click)="pedirRevocarSesion(detalle.id, s.id)">
-                  Revocar
+                  {{ 'admin.usuarios.revocar' | t }}
                 </button>
               </td>
             </tr>
@@ -228,38 +226,40 @@
         </table>
       </div>
 
-      <h3 class="admin-card-title" style="margin-bottom: 10px;">Accesos de cliente ({{ detalle.accesosCliente.length }})</h3>
+      <h3 class="admin-card-title" style="margin-bottom: 10px;">
+        {{ 'admin.usuarios.accesosClienteTitulo' | t:{ count: formatearNumero(detalle.accesosCliente.length) } }}
+      </h3>
       <div *ngIf="detalle.accesosCliente.length === 0" class="admin-state-box" style="padding: 18px;">
-        <p style="margin: 0;">Este usuario no tiene accesos de cliente asociados.</p>
+        <p style="margin: 0;">{{ 'admin.usuarios.sinAccesosCliente' | t }}</p>
       </div>
       <div *ngIf="detalle.accesosCliente.length > 0" class="admin-table-wrap">
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Cliente</th>
-              <th>Organización</th>
-              <th>Rol</th>
-              <th>Estado</th>
-              <th>Acción</th>
+              <th>{{ 'admin.usuarios.colCliente' | t }}</th>
+              <th>{{ 'admin.usuarios.colOrganizacion' | t }}</th>
+              <th>{{ 'admin.usuarios.colRol' | t }}</th>
+              <th>{{ 'admin.usuarios.colEstado' | t }}</th>
+              <th>{{ 'admin.comun.accion' | t }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let a of detalle.accesosCliente">
-              <td data-label="Cliente">{{ a.clienteNombre || a.clienteId }}</td>
-              <td data-label="Organización">{{ a.organizacionNombre || a.organizacionId }}</td>
-              <td data-label="Rol">{{ a.rol }}</td>
-              <td data-label="Estado">
+              <td [attr.data-label]="'admin.usuarios.colCliente' | t">{{ a.clienteNombre || a.clienteId }}</td>
+              <td [attr.data-label]="'admin.usuarios.colOrganizacion' | t">{{ a.organizacionNombre || a.organizacionId }}</td>
+              <td [attr.data-label]="'admin.usuarios.colRol' | t">{{ a.rol }}</td>
+              <td [attr.data-label]="'admin.usuarios.colEstado' | t">
                 <span class="admin-badge" [ngClass]="a.activo ? 'admin-badge-green' : 'admin-badge-coral'">
-                  {{ a.activo ? 'Activo' : 'Desactivado' }}
+                  {{ (a.activo ? 'admin.usuarios.estadoActivo' : 'admin.usuarios.estadoDesactivado') | t }}
                 </span>
               </td>
-              <td data-label="Acción">
+              <td [attr.data-label]="'admin.comun.accion' | t">
                 <button
                   type="button"
                   class="admin-btn-sm"
                   [ngClass]="a.activo ? 'danger' : 'primary'"
                   (click)="pedirToggleAcceso(detalle.id, a)">
-                  {{ a.activo ? 'Desactivar' : 'Reactivar' }}
+                  {{ (a.activo ? 'admin.usuarios.desactivar' : 'admin.usuarios.reactivar') | t }}
                 </button>
               </td>
             </tr>
@@ -268,7 +268,7 @@
       </div>
 
       <div class="admin-modal-footer">
-        <button type="button" class="btn-secondary" (click)="cerrarDetalle()">Cerrar</button>
+        <button type="button" class="btn-secondary" (click)="cerrarDetalle()">{{ 'admin.comun.cerrar' | t }}</button>
       </div>
     </div>
   </div>
@@ -278,21 +278,21 @@
     <div class="admin-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-usr-titulo" (click)="$event.stopPropagation()">
       <div class="admin-modal-header">
         <h2 id="confirm-usr-titulo" class="admin-modal-title">{{ c.titulo }}</h2>
-        <button type="button" class="admin-modal-close" (click)="confirmacion = null" aria-label="Cancelar">✕</button>
+        <button type="button" class="admin-modal-close" (click)="confirmacion = null" [attr.aria-label]="'admin.comun.cancelar' | t">✕</button>
       </div>
       <p style="font-size: 13px; color: var(--ink-secondary); margin: 0 0 16px;">{{ c.descripcion }}</p>
 
       <div *ngIf="errorAccion" class="admin-error-banner" role="alert">{{ errorAccion }}</div>
 
       <div class="form-group">
-        <label for="usr-motivo">Motivo administrativo (auditoría)</label>
-        <input id="usr-motivo" name="motivo" class="form-control" [(ngModel)]="c.motivo" placeholder="Ej. Solicitud de soporte o incidente" />
+        <label for="usr-motivo">{{ 'admin.comun.motivoAuditoriaLabel' | t }}</label>
+        <input id="usr-motivo" name="motivo" class="form-control" [(ngModel)]="c.motivo" [placeholder]="'admin.usuarios.motivoPlaceholder' | t" />
       </div>
 
       <div class="admin-modal-footer">
-        <button type="button" class="btn-secondary" (click)="confirmacion = null" [disabled]="ejecutandoAccion">Cancelar</button>
+        <button type="button" class="btn-secondary" (click)="confirmacion = null" [disabled]="ejecutandoAccion">{{ 'admin.comun.cancelar' | t }}</button>
         <button type="button" class="btn-primary" (click)="ejecutarConfirmacion()" [disabled]="ejecutandoAccion">
-          {{ ejecutandoAccion ? 'Procesando...' : 'Confirmar acción' }}
+          {{ (ejecutandoAccion ? 'admin.comun.procesando' : 'admin.usuarios.confirmarAccion') | t }}
         </button>
       </div>
     </div>

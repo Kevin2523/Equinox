@@ -9,6 +9,7 @@ import { AuthService } from '../auth/auth.service';
 import { obtenerBaseApi } from '../auth/api.config';
 import { FacturasApiService, FacturaApi, TotalesFacturasApi, TotalMonedaApi } from '../services/facturas-api.service';
 import { OrganizacionApiService, ActualizarOrganizacionApi } from '../services/organizacion-api.service';
+import { I18nService } from './i18n.service';
 import {
   Cliente,
   Proyecto,
@@ -126,6 +127,7 @@ export class UiStateService {
   facturasApi?: FacturasApiService;
   organizacionApi?: OrganizacionApiService;
   private http?: HttpClient;
+  private i18n?: I18nService;
 
   constructor(
     equinox: EquinoxService,
@@ -135,7 +137,8 @@ export class UiStateService {
     auth: AuthService,
     facturasApi?: FacturasApiService,
     organizacionApi?: OrganizacionApiService,
-    http?: HttpClient
+    http?: HttpClient,
+    i18n?: I18nService
   ) {
     this.equinox = equinox;
     this.clientesProyectosApi = clientesProyectosApi;
@@ -145,6 +148,7 @@ export class UiStateService {
     this.facturasApi = facturasApi;
     this.organizacionApi = organizacionApi;
     this.http = http;
+    this.i18n = i18n;
     this.initialize();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       const segmento = event.urlAfterRedirects.split('?')[0].split('/')[1];
@@ -216,7 +220,11 @@ export class UiStateService {
       if (panel?.actividadReciente && Array.isArray(panel.actividadReciente)) {
         this.notificaciones = panel.actividadReciente.slice(0, 8).map((act: any) => ({
           id: act.id,
-          titulo: act.accion === 'CREAR' ? 'Registro creado' : act.accion === 'COMPLETAR' ? 'Tarea completada' : 'Actividad',
+          titulo: act.accion === 'CREAR'
+            ? this.t('publico.uiState.notif.registroCreado', undefined, 'Registro creado')
+            : act.accion === 'COMPLETAR'
+              ? this.t('publico.uiState.notif.tareaCompletada', undefined, 'Tarea completada')
+              : this.t('publico.uiState.notif.actividad', undefined, 'Actividad'),
           descripcion: act.descripcion || `${act.entidad}: ${act.accion}`,
           tiempo: this.formatearTiempoRelativo(new Date(act.creadoEn)),
           leida: true
@@ -231,16 +239,29 @@ export class UiStateService {
     }
   }
 
+  private t(key: string, params?: Record<string, string | number>, fallback?: string): string {
+    if (this.i18n) {
+      const traduccion = this.i18n.t(key, params);
+      if (traduccion !== key || !fallback) return traduccion;
+    }
+    if (!fallback) return key;
+    if (!params) return fallback;
+    return fallback.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) => {
+      const val = params[name];
+      return val !== undefined && val !== null ? String(val) : match;
+    });
+  }
+
   private formatearTiempoRelativo(fecha: Date): string {
     if (!fecha || isNaN(fecha.getTime())) return '';
     const diffMs = Date.now() - fecha.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return 'Hace un momento';
-    if (diffMins < 60) return `Hace ${diffMins} min`;
+    if (diffMins < 1) return this.t('publico.uiState.tiempo.momento', undefined, 'Hace un momento');
+    if (diffMins < 60) return this.t('publico.uiState.tiempo.minutos', { n: diffMins }, `Hace ${diffMins} min`);
     const diffHoras = Math.floor(diffMins / 60);
-    if (diffHoras < 24) return `Hace ${diffHoras} h`;
+    if (diffHoras < 24) return this.t('publico.uiState.tiempo.horas', { n: diffHoras }, `Hace ${diffHoras} h`);
     const diffDias = Math.floor(diffHoras / 24);
-    return `Hace ${diffDias} d`;
+    return this.t('publico.uiState.tiempo.dias', { n: diffDias }, `Hace ${diffDias} d`);
   }
 
   get mapActive(): boolean {
@@ -336,7 +357,9 @@ export class UiStateService {
     this.equinox.seleccionarProyecto(p);
     void this.clientesProyectosApi.seleccionarProyecto(p.id).catch(() => {});
     this.tab = 'resumen';
-    this.equinox.mostrarToast(`Proyecto seleccionado: ${p.nombre}`);
+    this.equinox.mostrarToast(
+      this.t('publico.uiState.toast.proyectoSeleccionado', { nombre: p.nombre }, `Proyecto seleccionado: ${p.nombre}`)
+    );
   }
 
   switchTab(t: 'resumen' | 'tareas' | 'archivos' | 'factura' | 'feedback') {
@@ -394,7 +417,7 @@ export class UiStateService {
       }
     } catch {
       if (solicitud === this.solicitudClientesFactura && this.createModalOpen && this.activeCreateType === 'Factura') {
-        this.createError = 'No se pudieron cargar los clientes. Reintenta.';
+        this.createError = this.t('publico.uiState.err.cargarClientesFactura', undefined, 'No se pudieron cargar los clientes. Reintenta.');
       }
     } finally {
       if (solicitud === this.solicitudClientesFactura) this.cargandoClientesFactura = false;
@@ -405,7 +428,7 @@ export class UiStateService {
     if (this.activeCreateType === 'Cliente') {
       const nombre = this.nuevoCliente.nombre.trim();
       if (nombre.length < 2) {
-        this.createError = 'Escribe el nombre del contacto (mínimo 2 caracteres).';
+        this.createError = this.t('publico.uiState.err.clienteNombreCorto', undefined, 'Escribe el nombre del contacto (mínimo 2 caracteres).');
         return;
       }
       this.crearLoading = true; this.createError = '';
@@ -418,56 +441,76 @@ export class UiStateService {
           notasInternas: this.nuevoCliente.notas.trim() || null
         });
         this.nuevoCliente = { nombre: '', empresa: '', correo: '', telefono: '', notas: '' };
-        this.equinox.mostrarToast('Cliente creado con éxito');
-      } catch (error: any) { this.createError = error?.status === 422 ? 'Revisa los datos ingresados.' : 'No se pudo guardar el cliente.'; this.crearLoading = false; return; }
+        this.equinox.mostrarToast(this.t('publico.uiState.toast.clienteCreado', undefined, 'Cliente creado con éxito'));
+      } catch (error: any) {
+        this.createError = error?.status === 422
+          ? this.t('publico.uiState.err.datosRevisar', undefined, 'Revisa los datos ingresados.')
+          : this.t('publico.uiState.err.guardarCliente', undefined, 'No se pudo guardar el cliente.');
+        this.crearLoading = false;
+        return;
+      }
       this.crearLoading = false;
     } else if (this.activeCreateType === 'Proyecto') {
       const nombre = this.nuevoProyecto.nombre.trim();
       if (nombre.length < 2) {
-        this.createError = 'Escribe el nombre del proyecto (mínimo 2 caracteres).';
+        this.createError = this.t('publico.uiState.err.proyectoNombreCorto', undefined, 'Escribe el nombre del proyecto (mínimo 2 caracteres).');
         return;
       }
-      if (!this.nuevoProyecto.clienteId) { this.createError = 'Selecciona un cliente de tu organización.'; return; }
+      if (!this.nuevoProyecto.clienteId) {
+        this.createError = this.t('publico.uiState.err.proyectoClienteReq', undefined, 'Selecciona un cliente de tu organización.');
+        return;
+      }
       this.crearLoading = true; this.createError = '';
       try {
         await this.clientesProyectosApi.crearProyecto({ nombre, clienteId: this.nuevoProyecto.clienteId, descripcion: this.nuevoProyecto.descripcion || null, estado: this.nuevoProyecto.estado, presupuesto: Number(this.nuevoProyecto.presupuesto) || 0, moneda: this.nuevoProyecto.moneda || 'PAB', fechaInicio: this.nuevoProyecto.fechaInicio || null, fechaEntrega: this.nuevoProyecto.fechaEntrega || null });
         this.nuevoProyecto = { nombre: '', clienteId: this.clientes[0]?.id || '', descripcion: '', estado: 'BORRADOR', presupuesto: 0, moneda: 'PAB', fechaInicio: '', fechaEntrega: '' };
-      } catch (error: any) { this.createError = error?.status === 422 ? 'El cliente seleccionado o los datos no son válidos.' : 'No se pudo guardar el proyecto.'; this.crearLoading = false; return; }
+      } catch (error: any) {
+        this.createError = error?.status === 422
+          ? this.t('publico.uiState.err.proyectoDatosInvalidos', undefined, 'El cliente seleccionado o los datos no son válidos.')
+          : this.t('publico.uiState.err.guardarProyecto', undefined, 'No se pudo guardar el proyecto.');
+        this.crearLoading = false;
+        return;
+      }
       this.crearLoading = false;
     } else if (this.activeCreateType === 'Tarea') {
       const pId = this.nuevaTarea.proyectoId;
       if (this.nuevaTarea.titulo.trim().length < 2 || !pId || !this.proyectos.some((p) => p.id === pId)) {
-        this.createError = 'Escribe un título de al menos dos caracteres y selecciona un proyecto.'; return;
+        this.createError = this.t('publico.uiState.err.tareaReq', undefined, 'Escribe un título de al menos dos caracteres y selecciona un proyecto.');
+        return;
       }
       this.crearLoading = true; this.createError = '';
       try {
         await this.trabajo.crearTarea(pId, { titulo: this.nuevaTarea.titulo.trim(), prioridad: this.nuevaTarea.prioridad,
           fechaVencimiento: this.nuevaTarea.fechaVencimiento || null });
         this.nuevaTarea = { proyectoId: '', titulo: '', prioridad: 'ALTA', fechaVencimiento: '' };
-      } catch { this.createError = 'No se pudo crear la tarea. Reintenta.'; this.crearLoading = false; return; }
+      } catch {
+        this.createError = this.t('publico.uiState.err.crearTarea', undefined, 'No se pudo crear la tarea. Reintenta.');
+        this.crearLoading = false;
+        return;
+      }
       this.crearLoading = false;
     } else if (this.activeCreateType === 'Factura') {
       if (this.cargandoClientesFactura) return;
       if (!this.nuevaFactura.concepto || !this.nuevaFactura.monto) {
-        this.createError = 'El concepto y el monto son obligatorios.';
+        this.createError = this.t('publico.uiState.err.facturaConceptoMonto', undefined, 'El concepto y el monto son obligatorios.');
         return;
       }
       const textoMontoFactura = String(this.nuevaFactura.monto).trim();
       if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(textoMontoFactura) || Number(textoMontoFactura) <= 0) {
-        this.createError = 'Introduce un monto positivo con máximo dos decimales.';
+        this.createError = this.t('publico.uiState.err.montoPositivo', undefined, 'Introduce un monto positivo con máximo dos decimales.');
         return;
       }
       if (!this.nuevaFactura.clienteId || !this.clientes.some(c => c.id === this.nuevaFactura.clienteId)) {
-        this.createError = 'Selecciona un cliente válido.';
+        this.createError = this.t('publico.uiState.err.facturaClienteValido', undefined, 'Selecciona un cliente válido.');
         return;
       }
       if (this.nuevaFactura.fechaVencimiento && !/^\d{4}-\d{2}-\d{2}$/.test(this.nuevaFactura.fechaVencimiento)) {
-        this.createError = 'Selecciona una fecha de vencimiento válida.';
+        this.createError = this.t('publico.uiState.err.facturaFechaValida', undefined, 'Selecciona una fecha de vencimiento válida.');
         return;
       }
       const cId = this.nuevaFactura.clienteId;
       if (!cId) {
-        this.createError = 'Debes seleccionar un cliente válido.';
+        this.createError = this.t('publico.uiState.err.facturaClienteReq', undefined, 'Debes seleccionar un cliente válido.');
         return;
       }
       this.crearLoading = true;
@@ -488,22 +531,22 @@ export class UiStateService {
           this.compartirNuevaFactura = false;
           this.createModalOpen = false;
           this.activeCreateType = null;
-          this.equinox.mostrarToast('Factura generada con éxito');
+          this.equinox.mostrarToast(this.t('publico.uiState.toast.facturaGenerada', undefined, 'Factura generada con éxito'));
         } else {
-          this.createError = 'Servicio de facturación no disponible.';
+          this.createError = this.t('publico.uiState.err.facturacionNoDisp', undefined, 'Servicio de facturación no disponible.');
         }
       } catch (error: any) {
         if (error?.status === 403) {
-          this.createError = 'Solo los propietarios pueden emitir facturas.';
+          this.createError = this.t('publico.uiState.err.soloPropietariosFacturas', undefined, 'Solo los propietarios pueden emitir facturas.');
         } else if (error?.status === 422) {
           const detalle = error?.error?.detalles?.[0];
           this.createError = typeof error?.error?.error === 'string' && error.error.error !== 'Datos inválidos'
             ? error.error.error
             : detalle && Array.isArray(detalle.path) && typeof detalle.message === 'string'
               ? `${detalle.path.join('.') || 'Factura'}: ${detalle.message}`
-              : 'Revisa los datos ingresados en la factura.';
+              : this.t('publico.uiState.err.facturaDatos', undefined, 'Revisa los datos ingresados en la factura.');
         } else {
-          this.createError = 'No se pudo generar la factura en el servidor.';
+          this.createError = this.t('publico.uiState.err.facturaServidor', undefined, 'No se pudo generar la factura en el servidor.');
         }
         return;
       } finally {
@@ -522,7 +565,7 @@ export class UiStateService {
 
   private adaptarProyecto(proyecto: ProyectoApi): Proyecto {
     const badge: Proyecto['estadoBadgeClass'] = proyecto.estado === 'ACTIVO' ? 'progreso' : proyecto.estado === 'COMPLETADO' ? 'completado' : proyecto.estado === 'BORRADOR' ? 'planificacion' : proyecto.estado === 'PAUSADO' ? 'aprobar' : 'revision';
-    return { id: proyecto.id, key: proyecto.id, nombre: proyecto.nombre, clienteId: proyecto.clienteId, clienteNombre: proyecto.cliente?.nombre || '', tipo: 'Proyecto', descripcion: proyecto.descripcion || '', progreso: 0, estado: proyecto.estado, estadoBadgeClass: badge, presupuesto: Number(proyecto.presupuesto || 0), fechaEntrega: proyecto.fechaEntrega || '', tag: proyecto.nombre.slice(0, 2).toUpperCase(), color: '#3568f6', x: 50, y: 50, visualClass: 'visual-building', participantes: [], tareas: [], hitos: [], archivos: [], facturas: [], comentarios: [], entregaDestacada: { fecha: proyecto.fechaEntrega || '', descripcion: '' } };
+    return { id: proyecto.id, key: proyecto.id, nombre: proyecto.nombre, clienteId: proyecto.clienteId, clienteNombre: proyecto.cliente?.nombre || '', tipo: this.t('publico.uiState.tipoProyecto', undefined, 'Proyecto'), descripcion: proyecto.descripcion || '', progreso: 0, estado: proyecto.estado, estadoBadgeClass: badge, presupuesto: Number(proyecto.presupuesto || 0), fechaEntrega: proyecto.fechaEntrega || '', tag: proyecto.nombre.slice(0, 2).toUpperCase(), color: '#3568f6', x: 50, y: 50, visualClass: 'visual-building', participantes: [], tareas: [], hitos: [], archivos: [], facturas: [], comentarios: [], entregaDestacada: { fecha: proyecto.fechaEntrega || '', descripcion: '' } };
   }
 
   closeCreateModal() {
@@ -543,7 +586,7 @@ export class UiStateService {
       await this.trabajo.crearTarea(id, { titulo, prioridad: 'ALTA' });
       if (this.inlineTaskTitle.trim() === titulo) this.inlineTaskTitle = '';
     } catch {
-      this.inlineTaskError = 'No se pudo crear la tarea. Reintenta.';
+      this.inlineTaskError = this.t('publico.uiState.err.crearTarea', undefined, 'No se pudo crear la tarea. Reintenta.');
     } finally { this.inlineTaskLoading = false; }
   }
 
@@ -556,7 +599,7 @@ export class UiStateService {
       await this.trabajo.comentar(id, contenido);
       if (this.inlineCommentText.trim() === contenido) this.inlineCommentText = '';
     } catch {
-      this.inlineCommentError = 'No se pudo enviar el comentario. Reintenta.';
+      this.inlineCommentError = this.t('publico.uiState.err.comentario', undefined, 'No se pudo enviar el comentario. Reintenta.');
     } finally { this.inlineCommentLoading = false; }
   }
 
@@ -594,11 +637,11 @@ export class UiStateService {
     const textoMonto = String(this.nuevoPago.monto).trim();
     const monto = Number(textoMonto);
     if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(textoMonto) || !Number.isFinite(monto) || monto <= 0) {
-      this.pagoError = 'Introduce un monto positivo con máximo dos decimales.';
+      this.pagoError = this.t('publico.uiState.err.montoPositivo', undefined, 'Introduce un monto positivo con máximo dos decimales.');
       return;
     }
     if (!this.facturasApi || !this.auth.token) {
-      this.pagoError = 'No hay conexión autenticada con el servidor.';
+      this.pagoError = this.t('publico.uiState.err.sinConexionAuth', undefined, 'No hay conexión autenticada con el servidor.');
       return;
     }
     const generacion = this.sesionGeneracion;
@@ -619,15 +662,17 @@ export class UiStateService {
       const num = factura.numero;
       this.pagoModalOpen = false;
       this.facturaSeleccionadaPago = null;
-      this.equinox.mostrarToast(`Pago registrado para la factura ${num}`);
+      this.equinox.mostrarToast(
+        this.t('publico.uiState.toast.pagoRegistrado', { numero: num }, `Pago registrado para la factura ${num}`)
+      );
     } catch (error: any) {
       if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
       if (error?.status === 403) {
-        this.pagoError = 'Solo los propietarios pueden registrar pagos.';
+        this.pagoError = this.t('publico.uiState.err.soloPropietariosPagos', undefined, 'Solo los propietarios pueden registrar pagos.');
       } else if (error?.status === 422) {
-        this.pagoError = error?.error?.mensaje || 'El monto o los datos del pago no son válidos.';
+        this.pagoError = error?.error?.mensaje || this.t('publico.uiState.err.pagoDatosInvalidos', undefined, 'El monto o los datos del pago no son válidos.');
       } else {
-        this.pagoError = 'No se pudo registrar el pago en el servidor.';
+        this.pagoError = this.t('publico.uiState.err.pagoServidor', undefined, 'No se pudo registrar el pago en el servidor.');
       }
     } finally {
       if (generacion === this.sesionGeneracion && sesionId === this.obtenerIdentificadorSesion()) this.pagoLoading = false;
@@ -676,7 +721,7 @@ export class UiStateService {
         return;
       }
       this.portalMostrarFinanzas = null;
-      this.errorPortalFinanzas = 'No se pudo consultar si las facturas están habilitadas en el portal.';
+      this.errorPortalFinanzas = this.t('publico.uiState.err.portalFinanzasConsultar', undefined, 'No se pudo consultar si las facturas están habilitadas en el portal.');
     } finally {
       if (
         (this.sesionGeneracion || 0) === generacion &&
@@ -700,7 +745,7 @@ export class UiStateService {
       this.portalMostrarFinanzas = resultado.portalMostrarFinanzas;
     } catch {
       if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
-      this.errorPortalFinanzas = 'No se pudo guardar la configuración del portal. Reintenta.';
+      this.errorPortalFinanzas = this.t('publico.uiState.err.portalFinanzasGuardar', undefined, 'No se pudo guardar la configuración del portal. Reintenta.');
     } finally {
       if (generacion === this.sesionGeneracion && sesionId === this.obtenerIdentificadorSesion()) this.cargandoPortalFinanzas = false;
     }
@@ -722,7 +767,7 @@ export class UiStateService {
       await this.cargarFacturas();
     } catch {
       if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
-      this.errorVisibilidadFactura = 'No se pudo cambiar la visibilidad de la factura. Reintenta.';
+      this.errorVisibilidadFactura = this.t('publico.uiState.err.visibilidadFactura', undefined, 'No se pudo cambiar la visibilidad de la factura. Reintenta.');
     } finally {
       if (generacion === this.sesionGeneracion && sesionId === this.obtenerIdentificadorSesion()) this.visibilidadFacturaEnCursoId = null;
     }
@@ -766,7 +811,7 @@ export class UiStateService {
       ) {
         return;
       }
-      this.errorFacturas = 'No se pudieron cargar las facturas autorizadas.';
+      this.errorFacturas = this.t('publico.uiState.err.cargarFacturas', undefined, 'No se pudieron cargar las facturas autorizadas.');
       this.facturasReales = [];
       this.totalesFacturas = null;
       this.facturasRealesSubject?.next([]);
@@ -790,7 +835,7 @@ export class UiStateService {
       numero: f.numero,
       concepto: f.concepto,
       clienteId: f.clienteId,
-      clienteNombre: f.cliente?.nombre || this.clientes?.find((c) => c.id === f.clienteId)?.nombre || 'Cliente',
+      clienteNombre: f.cliente?.nombre || this.clientes?.find((c) => c.id === f.clienteId)?.nombre || this.t('publico.uiState.clienteDefecto', undefined, 'Cliente'),
       proyectoId: f.proyectoId || undefined,
       proyectoNombre: f.proyecto?.nombre || this.proyectos?.find((p) => p.id === f.proyectoId)?.nombre || '',
       monto,
@@ -799,7 +844,7 @@ export class UiStateService {
       montoPendiente,
       estado,
       fechaEmision: f.fechaEmision ? f.fechaEmision.slice(0, 10) : '',
-      fechaVencimiento: f.fechaVencimiento ? f.fechaVencimiento.slice(0, 10) : 'Sin fecha',
+      fechaVencimiento: f.fechaVencimiento ? f.fechaVencimiento.slice(0, 10) : this.t('publico.uiState.sinFecha', undefined, 'Sin fecha'),
       pagadaEn: f.pagadaEn ? f.pagadaEn.slice(0, 10) : undefined
     };
   }
@@ -825,7 +870,7 @@ export class UiStateService {
       const tareas = (await Promise.all(proyectos.map((proyecto) => this.trabajo.listarTareas(proyecto.id)))).flat();
       if (this.auth.token === token) this.trabajo.registrarTareas(tareas);
     } catch {
-      if (this.auth.token === token) this.searchError = 'No se pudieron buscar las tareas.';
+      if (this.auth.token === token) this.searchError = this.t('publico.uiState.err.buscarTareas', undefined, 'No se pudieron buscar las tareas.');
     } finally { this.searchLoading = false; }
   }
 
@@ -837,7 +882,7 @@ export class UiStateService {
     this.searchOpen = false;
     if (type === 'proyecto') {
       void this.clientesProyectosApi.seleccionarProyecto(item.id).catch(() => {
-        this.equinox.mostrarToast('No se pudo consultar el proyecto.');
+        this.equinox.mostrarToast(this.t('publico.uiState.err.consultarProyecto', undefined, 'No se pudo consultar el proyecto.'));
       });
       this.navigate('hoy');
     } else if (type === 'cliente') {
@@ -905,7 +950,7 @@ export class UiStateService {
       ) {
         return;
       }
-      this.errorConfiguracion = 'No se pudo cargar la configuración de la organización.';
+      this.errorConfiguracion = this.t('publico.uiState.err.cargarOrg', undefined, 'No se pudo cargar la configuración de la organización.');
     } finally {
       if (
         (this.sesionGeneracion || 0) === generacion &&
@@ -919,7 +964,7 @@ export class UiStateService {
 
   async saveConfig(): Promise<void> {
     if (!this.puedeGestionarOrganizacion) {
-      this.errorConfiguracion = 'Solo los propietarios pueden modificar la configuración de la organización.';
+      this.errorConfiguracion = this.t('publico.uiState.err.soloPropietariosOrg', undefined, 'Solo los propietarios pueden modificar la configuración de la organización.');
       return;
     }
     if (!this.organizacionApi || !this.auth.token || this.guardandoConfiguracion) return;
@@ -943,16 +988,16 @@ export class UiStateService {
       await this.organizacionApi.actualizar(payload);
       if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
       this.equinox.actualizarConfiguracion(this.configuracion);
-      this.exitoConfiguracion = 'Configuración guardada correctamente.';
-      this.equinox.mostrarToast('Configuración guardada con éxito');
+      this.exitoConfiguracion = this.t('publico.uiState.exito.configGuardada', undefined, 'Configuración guardada correctamente.');
+      this.equinox.mostrarToast(this.t('publico.uiState.toast.configGuardada', undefined, 'Configuración guardada con éxito'));
     } catch (error: any) {
       if (generacion !== this.sesionGeneracion || sesionId !== this.obtenerIdentificadorSesion()) return;
       if (error?.status === 403) {
-        this.errorConfiguracion = 'Solo los propietarios pueden modificar la configuración de la organización.';
+        this.errorConfiguracion = this.t('publico.uiState.err.soloPropietariosOrg', undefined, 'Solo los propietarios pueden modificar la configuración de la organización.');
       } else if (error?.status === 422) {
-        this.errorConfiguracion = 'Revisa los datos ingresados en la configuración.';
+        this.errorConfiguracion = this.t('publico.uiState.err.configDatos', undefined, 'Revisa los datos ingresados en la configuración.');
       } else {
-        this.errorConfiguracion = 'No se pudo guardar la configuración en el servidor.';
+        this.errorConfiguracion = this.t('publico.uiState.err.configGuardar', undefined, 'No se pudo guardar la configuración en el servidor.');
       }
     } finally {
       if (generacion === this.sesionGeneracion && sesionId === this.obtenerIdentificadorSesion()) this.guardandoConfiguracion = false;

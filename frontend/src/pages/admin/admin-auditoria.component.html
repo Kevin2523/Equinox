@@ -1,10 +1,8 @@
 <section class="admin-page" aria-labelledby="auditoria-titulo">
   <header class="admin-page-header">
     <div>
-      <h1 id="auditoria-titulo" class="admin-page-title">Auditoría administrativa</h1>
-      <p class="admin-page-subtitle">
-        Registro inmutable de acciones sensibles ejecutadas en la plataforma por administradores globales.
-      </p>
+      <h1 id="auditoria-titulo" class="admin-page-title">{{ 'admin.auditoria.titulo' | t }}</h1>
+      <p class="admin-page-subtitle">{{ 'admin.auditoria.subtitulo' | t }}</p>
     </div>
   </header>
 
@@ -14,41 +12,41 @@
       name="busqueda"
       class="admin-search-input"
       [(ngModel)]="busqueda"
-      placeholder="Buscar por acción, entidad, ID o correo de actor..."
-      aria-label="Buscar en auditoría" />
+      [placeholder]="'admin.auditoria.buscarPlaceholder' | t"
+      [attr.aria-label]="'admin.auditoria.buscarAria' | t" />
 
     <input
       type="text"
       name="filtroAccion"
       class="admin-select"
       [(ngModel)]="filtroAccion"
-      placeholder="Acción exacta"
-      aria-label="Filtrar por acción" />
+      [placeholder]="'admin.auditoria.accionPlaceholder' | t"
+      [attr.aria-label]="'admin.auditoria.filtrarAccionAria' | t" />
 
     <input
       type="text"
       name="filtroEntidad"
       class="admin-select"
       [(ngModel)]="filtroEntidad"
-      placeholder="Entidad (ej. Organizacion)"
-      aria-label="Filtrar por entidad" />
+      [placeholder]="'admin.auditoria.entidadPlaceholder' | t"
+      [attr.aria-label]="'admin.auditoria.filtrarEntidadAria' | t" />
 
-    <input type="date" name="filtroDesde" class="admin-select" [(ngModel)]="filtroDesde" aria-label="Desde fecha" />
-    <input type="date" name="filtroHasta" class="admin-select" [(ngModel)]="filtroHasta" aria-label="Hasta fecha" />
+    <input type="date" name="filtroDesde" class="admin-select" [(ngModel)]="filtroDesde" [attr.aria-label]="'admin.auditoria.desdeFechaAria' | t" />
+    <input type="date" name="filtroHasta" class="admin-select" [(ngModel)]="filtroHasta" [attr.aria-label]="'admin.auditoria.hastaFechaAria' | t" />
 
-    <button type="submit" class="admin-btn-sm primary">Filtrar</button>
+    <button type="submit" class="admin-btn-sm primary">{{ 'admin.auditoria.filtrar' | t }}</button>
     <button
       type="button"
       class="admin-btn-sm"
       (click)="limpiarFiltros()"
       *ngIf="busqueda || filtroAccion || filtroEntidad || filtroDesde || filtroHasta">
-      Limpiar
+      {{ 'admin.comun.limpiar' | t }}
     </button>
   </form>
 
   <div *ngIf="error" class="admin-error-banner" role="alert">
     <span>{{ error }}</span>
-    <button type="button" class="admin-btn-sm" (click)="cargar()">Reintentar</button>
+    <button type="button" class="admin-btn-sm" (click)="cargar()">{{ 'admin.comun.reintentar' | t }}</button>
   </div>
 
   <div *ngIf="cargando" class="admin-card" aria-busy="true">
@@ -57,9 +55,9 @@
   </div>
 
   <div *ngIf="!cargando && eventos.length === 0 && !error" class="admin-state-box">
-    <h3>Sin eventos de auditoría</h3>
-    <p>No hay registros que coincidan con los filtros aplicados.</p>
-    <button type="button" class="btn-secondary" (click)="limpiarFiltros()">Restablecer filtros</button>
+    <h3>{{ 'admin.auditoria.vacioTitulo' | t }}</h3>
+    <p>{{ 'admin.auditoria.vacioDesc' | t }}</p>
+    <button type="button" class="btn-secondary" (click)="limpiarFiltros()">{{ 'admin.comun.restablecerFiltros' | t }}</button>
   </div>
 
   <ng-container *ngIf="!cargando && eventos.length > 0">
@@ -67,12 +65,12 @@
       <table class="admin-table">
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Acción</th>
-            <th>Entidad</th>
-            <th>Actor</th>
-            <th>IP</th>
-            <th>Detalle</th>
+            <th>{{ 'admin.comun.fecha' | t }}</th>
+            <th>{{ 'admin.comun.accion' | t }}</th>
+            <th>{{ 'admin.comun.entidad' | t }}</th>
+            <th>{{ 'admin.comun.actor' | t }}</th>
+            <th>{{ 'admin.auditoria.colIp' | t }}</th>
+            <th>{{ 'admin.auditoria.colDetalle' | t }}</th>
           </tr>
         </thead>
         <tbody>
@@ -83,10 +81,10 @@
               <span class="admin-cell-primary">{{ ev.entidad }}</span>
               <span class="admin-cell-secondary" *ngIf="ev.entidadId">{{ ev.entidadId }}</span>
             </td>
-            <td>{{ ev.actorCorreo || ev.actorUsuarioId || 'Sistema' }}</td>
+            <td>{{ ev.actorCorreo || ev.actorUsuarioId || ('admin.comun.sistema' | t) }}</td>
             <td>{{ ev.ip || '—' }}</td>
             <td>
-              <button type="button" class="admin-btn-sm" (click)="seleccionado = ev">Ver detalle</button>
+              <button type="button" class="admin-btn-sm" (click)="seleccionado = ev">{{ 'admin.comun.verDetalle' | t }}</button>
             </td>
           </tr>
         </tbody>
@@ -104,34 +102,34 @@
 
         <div class="admin-mobile-card-grid">
           <div class="admin-mobile-card-field">
-            <small>Entidad</small>
+            <small>{{ 'admin.comun.entidad' | t }}</small>
             <span class="admin-cell-primary">{{ ev.entidad }}</span>
             <span class="admin-cell-secondary" *ngIf="ev.entidadId">{{ ev.entidadId }}</span>
           </div>
           <div class="admin-mobile-card-field">
-            <small>Actor</small>
-            <span class="admin-cell-secondary">{{ ev.actorCorreo || ev.actorUsuarioId || 'Sistema' }}</span>
+            <small>{{ 'admin.comun.actor' | t }}</small>
+            <span class="admin-cell-secondary">{{ ev.actorCorreo || ev.actorUsuarioId || ('admin.comun.sistema' | t) }}</span>
           </div>
           <div class="admin-mobile-card-field">
-            <small>IP</small>
+            <small>{{ 'admin.auditoria.colIp' | t }}</small>
             <span class="admin-cell-secondary">{{ ev.ip || '—' }}</span>
           </div>
         </div>
 
         <div class="admin-mobile-card-actions">
-          <button type="button" class="admin-btn-sm" (click)="seleccionado = ev">Ver detalle</button>
+          <button type="button" class="admin-btn-sm" (click)="seleccionado = ev">{{ 'admin.comun.verDetalle' | t }}</button>
         </div>
       </article>
     </div>
 
     <div class="admin-pagination" style="margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-md);">
-      <span>Página {{ paginacion.pagina }} de {{ paginacion.totalPaginas || 1 }} · {{ paginacion.total }} eventos</span>
+      <span>{{ 'admin.auditoria.paginacionResumen' | t:{ pagina: formatearNumero(paginacion.pagina), totalPaginas: formatearNumero(paginacion.totalPaginas || 1), total: formatearNumero(paginacion.total) } }}</span>
       <div class="admin-pagination-controls">
         <button type="button" class="admin-btn-sm" (click)="cargar(paginacion.pagina - 1)" [disabled]="paginacion.pagina <= 1">
-          Anterior
+          {{ 'admin.comun.anterior' | t }}
         </button>
         <button type="button" class="admin-btn-sm" (click)="cargar(paginacion.pagina + 1)" [disabled]="paginacion.pagina >= paginacion.totalPaginas">
-          Siguiente
+          {{ 'admin.comun.siguiente' | t }}
         </button>
       </div>
     </div>
@@ -145,35 +143,35 @@
           <h2 id="aud-detalle-titulo" class="admin-modal-title">{{ ev.accion }}</h2>
           <span class="admin-cell-secondary">{{ formatearFecha(ev.creadoEn) }} · {{ ev.id }}</span>
         </div>
-        <button type="button" class="admin-modal-close" (click)="seleccionado = null" aria-label="Cerrar detalle">✕</button>
+        <button type="button" class="admin-modal-close" (click)="seleccionado = null" [attr.aria-label]="'admin.comun.cerrarDetalleAria' | t">✕</button>
       </div>
 
       <div class="admin-kv-grid">
         <div class="admin-kv-item">
-          <small>Actor</small>
-          <span>{{ ev.actorCorreo || ev.actorUsuarioId || 'Sistema' }}</span>
+          <small>{{ 'admin.comun.actor' | t }}</small>
+          <span>{{ ev.actorCorreo || ev.actorUsuarioId || ('admin.comun.sistema' | t) }}</span>
         </div>
         <div class="admin-kv-item">
-          <small>Entidad</small>
+          <small>{{ 'admin.comun.entidad' | t }}</small>
           <span>{{ ev.entidad }} ({{ ev.entidadId || '—' }})</span>
         </div>
         <div class="admin-kv-item">
-          <small>Dirección IP</small>
+          <small>{{ 'admin.auditoria.direccionIp' | t }}</small>
           <span>{{ ev.ip || '—' }}</span>
         </div>
         <div class="admin-kv-item">
-          <small>Agente de usuario</small>
+          <small>{{ 'admin.auditoria.userAgent' | t }}</small>
           <span>{{ ev.userAgent || '—' }}</span>
         </div>
       </div>
 
       <div class="form-group">
-        <label>Metadatos</label>
+        <label>{{ 'admin.auditoria.metadatos' | t }}</label>
         <pre style="margin: 0; padding: 14px; background: #f8faff; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; white-space: pre-wrap; word-break: break-word; overflow-x: auto;">{{ formatearMetadatos(ev.metadatos) }}</pre>
       </div>
 
       <div class="admin-modal-footer">
-        <button type="button" class="btn-secondary" (click)="seleccionado = null">Cerrar</button>
+        <button type="button" class="btn-secondary" (click)="seleccionado = null">{{ 'admin.comun.cerrar' | t }}</button>
       </div>
     </div>
   </div>

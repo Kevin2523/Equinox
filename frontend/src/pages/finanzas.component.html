@@ -10,8 +10,8 @@
   <!-- Header Section -->
   <header class="finanzas-header">
     <div class="header-titles">
-      <h1 class="header-main-title">Facturación y pagos</h1>
-      <p class="header-subtitle">Cobros, cuentas por cobrar y flujo de caja con moneda explícita.</p>
+      <h1 class="header-main-title">{{ 'crm.finanzas.titulo' | t }}</h1>
+      <p class="header-subtitle">{{ 'crm.finanzas.subtitulo' | t }}</p>
     </div>
 
     <div class="header-actions">
@@ -58,7 +58,7 @@
         <svg class="icon-plus" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
         </svg>
-        <span>Nueva factura</span>
+        <span>{{ 'crm.finanzas.nuevaFactura' | t }}</span>
       </button>
     </div>
   </header>
@@ -69,16 +69,16 @@
       <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
     </svg>
     <span>{{ error }}</span>
-    <button type="button" class="btn-reintentar" (click)="cargarDatos()">Reintentar</button>
+    <button type="button" class="btn-reintentar" (click)="cargarDatos()">{{ 'crm.finanzas.reintentar' | t }}</button>
   </div>
 
   <!-- Portal Finance Settings -->
-  <section class="finance-portal-settings" aria-label="Facturas en el portal del cliente">
+  <section class="finance-portal-settings" [attr.aria-label]="'crm.finanzas.portalTitulo' | t">
     <div class="portal-settings-copy">
-      <strong>Facturas en el portal del cliente</strong>
-      <p *ngIf="cargandoPortalFinanzas && portalMostrarFinanzas === null">Consultando configuración…</p>
-      <p *ngIf="portalMostrarFinanzas === false">La organización tiene desactivada la consulta de facturas en el portal.</p>
-      <p *ngIf="portalMostrarFinanzas === true">El portal muestra solo las facturas compartidas con cada cliente; los borradores siguen privados.</p>
+      <strong>{{ 'crm.finanzas.portalTitulo' | t }}</strong>
+      <p *ngIf="cargandoPortalFinanzas && portalMostrarFinanzas === null">{{ 'crm.finanzas.portalConsultando' | t }}</p>
+      <p *ngIf="portalMostrarFinanzas === false">{{ 'crm.finanzas.portalDesactivado' | t }}</p>
+      <p *ngIf="portalMostrarFinanzas === true">{{ 'crm.finanzas.portalActivado' | t }}</p>
       <p class="portal-settings-error" role="alert" *ngIf="errorPortalFinanzas">{{ errorPortalFinanzas }}</p>
     </div>
     <button
@@ -87,14 +87,14 @@
       *ngIf="portalMostrarFinanzas !== null && puedeGestionarFacturas"
       (click)="cambiarPortalFinanzas()"
       [disabled]="cargandoPortalFinanzas">
-      {{ portalMostrarFinanzas ? 'Desactivar en el portal' : 'Habilitar en el portal' }}
+      {{ (portalMostrarFinanzas ? 'crm.finanzas.portalDesactivar' : 'crm.finanzas.portalHabilitar') | t }}
     </button>
     <button
       type="button"
       class="btn-secondary"
       *ngIf="portalMostrarFinanzas === null && !cargandoPortalFinanzas"
       (click)="cargarConfiguracionPortalFinanzas()">
-      Reintentar
+      {{ 'crm.finanzas.reintentar' | t }}
     </button>
   </section>
 
@@ -105,31 +105,31 @@
   <!-- Hero Dark Metrics Card -->
   <section class="balance-hero-dark">
     <div class="hero-col hero-col-pendiente">
-      <span class="hero-label">PENDIENTE POR COBRAR</span>
+      <span class="hero-label">{{ 'crm.finanzas.heroPendiente' | t }}</span>
       <div class="hero-amount-main">
         {{ formatearMonto(resumenPrincipal.pendiente, resumenPrincipal.moneda) }}
       </div>
       <span class="hero-subtext">
-        {{ conteoTodas }} {{ conteoTodas === 1 ? 'factura emitida' : 'facturas emitidas' }}
+        {{ conteoTodas }} {{ (conteoTodas === 1 ? 'crm.finanzas.unaEmitida' : 'crm.finanzas.nEmitidas') | t }}
       </span>
     </div>
 
     <div class="hero-divider"></div>
 
     <div class="hero-col hero-col-cobrado">
-      <span class="hero-label">COBRADO EN PERÍODO</span>
+      <span class="hero-label">{{ 'crm.finanzas.heroCobrado' | t }}</span>
       <div class="hero-amount-secondary">
         {{ formatearMonto(resumenPrincipal.cobrado, resumenPrincipal.moneda) }}
       </div>
       <span class="hero-subtext">
-        {{ resumenPrincipal.conteoPagadas }} {{ resumenPrincipal.conteoPagadas === 1 ? 'pagada' : 'pagadas' }}
+        {{ resumenPrincipal.conteoPagadas }} {{ (resumenPrincipal.conteoPagadas === 1 ? 'crm.finanzas.unaPagada' : 'crm.finanzas.nPagadas') | t }}
       </span>
     </div>
 
     <div class="hero-divider"></div>
 
     <div class="hero-col hero-col-moneda">
-      <span class="hero-label">MONEDA</span>
+      <span class="hero-label">{{ 'crm.finanzas.heroMoneda' | t }}</span>
       <div class="hero-amount-moneda">
         {{ obtenerTextoMonedaHeader() }}
       </div>
@@ -141,11 +141,11 @@
 
   <!-- Multi-Currency Banner if applicable -->
   <div *ngIf="tieneMultiplesMonedas" class="multi-currency-banner">
-    <span class="multi-currency-title">Otras monedas registradas en este período:</span>
+    <span class="multi-currency-title">{{ 'crm.finanzas.otrasMonedas' | t }}</span>
     <div class="multi-currency-items">
       <ng-container *ngFor="let m of resumenMonedas">
         <span *ngIf="m.moneda !== resumenPrincipal.moneda" class="currency-tag">
-          <b>{{ m.moneda }}:</b> Pendiente {{ formatearMonto(m.pendiente, m.moneda) }} | Cobrado {{ formatearMonto(m.cobrado, m.moneda) }}
+          <b>{{ m.moneda }}:</b> {{ 'crm.finanzas.etiquetaPendiente' | t }} {{ formatearMonto(m.pendiente, m.moneda) }} | {{ 'crm.finanzas.etiquetaCobrado' | t }} {{ formatearMonto(m.cobrado, m.moneda) }}
         </span>
       </ng-container>
     </div>
@@ -161,11 +161,11 @@
       <input
         type="text"
         [(ngModel)]="busqueda"
-        placeholder="Buscar por número, cliente o concepto..."
+        [placeholder]="'crm.finanzas.buscarPlaceholder' | t"
         class="search-input"
-        aria-label="Buscar facturas"
+        [attr.aria-label]="'crm.finanzas.buscarAria' | t"
       />
-      <button *ngIf="busqueda" type="button" class="btn-clear-search" (click)="busqueda = ''" aria-label="Limpiar búsqueda">
+      <button *ngIf="busqueda" type="button" class="btn-clear-search" (click)="busqueda = ''" [attr.aria-label]="'crm.finanzas.limpiarBusquedaAria' | t">
         ×
       </button>
     </div>
@@ -177,21 +177,21 @@
           class="pill-btn"
           [class.active]="filtroEstado === 'TODAS'"
           (click)="filtroEstado = 'TODAS'">
-          Todas <span class="pill-count">{{ conteoTodas }}</span>
+          {{ 'crm.finanzas.tabTodas' | t }} <span class="pill-count">{{ conteoTodas }}</span>
         </button>
         <button
           type="button"
           class="pill-btn"
           [class.active]="filtroEstado === 'PENDIENTES'"
           (click)="filtroEstado = 'PENDIENTES'">
-          Pendientes <span class="pill-count">{{ conteoPendientes }}</span>
+          {{ 'crm.finanzas.tabPendientes' | t }} <span class="pill-count">{{ conteoPendientes }}</span>
         </button>
         <button
           type="button"
           class="pill-btn"
           [class.active]="filtroEstado === 'PAGADAS'"
           (click)="filtroEstado = 'PAGADAS'">
-          Pagadas <span class="pill-count">{{ conteoPagadas }}</span>
+          {{ 'crm.finanzas.tabPagadas' | t }} <span class="pill-count">{{ conteoPagadas }}</span>
         </button>
       </div>
 
@@ -203,7 +203,7 @@
           <polyline points="7 10 12 15 17 10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        <span>Exportar</span>
+        <span>{{ 'crm.finanzas.exportar' | t }}</span>
       </button>
     </div>
   </section>
@@ -211,7 +211,7 @@
   <!-- Loading State -->
   <div *ngIf="cargando && facturas.length === 0" class="finanzas-loading-card">
     <div class="loading-spinner"></div>
-    <p>Cargando facturas y cobros...</p>
+    <p>{{ 'crm.finanzas.cargando' | t }}</p>
   </div>
 
   <!-- Invoices Table Section -->
@@ -227,12 +227,12 @@
           <polyline points="10 9 9 9 8 9"/>
         </svg>
       </div>
-      <h3>No se encontraron facturas</h3>
+      <h3>{{ 'crm.finanzas.vacioTitulo' | t }}</h3>
       <p *ngIf="busqueda || filtroEstado !== 'TODAS' || periodoSeleccionado !== 'TODOS'">
-        No hay facturas que coincidan con los filtros aplicados.
+        {{ 'crm.finanzas.vacioFiltrado' | t }}
       </p>
       <p *ngIf="!busqueda && filtroEstado === 'TODAS' && periodoSeleccionado === 'TODOS'">
-        Empieza registrando tu primera factura para gestionar cobros y cuentas por cobrar.
+        {{ 'crm.finanzas.vacioGeneral' | t }}
       </p>
       <div class="empty-actions">
         <button
@@ -240,14 +240,14 @@
           type="button"
           class="btn-secondary"
           (click)="busqueda = ''; filtroEstado = 'TODAS'; periodoSeleccionado = 'TODOS'">
-          Restablecer filtros
+          {{ 'crm.finanzas.restablecerFiltros' | t }}
         </button>
         <button
           *ngIf="puedeGestionarFacturas"
           type="button"
           class="btn-nueva-factura-inline"
           (click)="abrirModalNuevaFactura()">
-          + Nueva factura
+          {{ 'crm.finanzas.btnNuevaInline' | t }}
         </button>
       </div>
     </div>
@@ -257,12 +257,12 @@
       <table class="facturas-table">
         <thead>
           <tr>
-            <th class="th-factura">FACTURA</th>
-            <th class="th-concepto">CONCEPTO Y CLIENTE</th>
-            <th class="th-vencimiento">VENCIMIENTO</th>
-            <th class="th-monto">MONTO</th>
-            <th class="th-estado">ESTADO</th>
-            <th class="th-accion">ACCIÓN</th>
+            <th class="th-factura">{{ 'crm.finanzas.colFactura' | t }}</th>
+            <th class="th-concepto">{{ 'crm.finanzas.colConcepto' | t }}</th>
+            <th class="th-vencimiento">{{ 'crm.finanzas.colVencimiento' | t }}</th>
+            <th class="th-monto">{{ 'crm.finanzas.colMonto' | t }}</th>
+            <th class="th-estado">{{ 'crm.finanzas.colEstado' | t }}</th>
+            <th class="th-accion">{{ 'crm.finanzas.colAccion' | t }}</th>
           </tr>
         </thead>
         <tbody>
@@ -283,7 +283,7 @@
                 <span *ngIf="inv.proyecto" class="inv-proyecto-tag">· {{ inv.proyecto.nombre }}</span>
               </div>
               <div class="inv-cliente-subline">
-                <span class="inv-cliente-nombre">{{ inv.cliente?.nombre || 'Cliente sin nombre' }}</span>
+                <span class="inv-cliente-nombre">{{ inv.cliente?.nombre || ('crm.finanzas.clienteSinNombre' | t) }}</span>
                 <span *ngIf="inv.cliente?.empresa" class="inv-cliente-empresa">· {{ inv.cliente?.empresa }}</span>
               </div>
             </td>
@@ -299,7 +299,7 @@
               <span
                 *ngIf="inv.montoPendiente !== undefined && inv.montoPendiente < +inv.monto && inv.estado !== 'PAGADA'"
                 class="inv-saldo-sub">
-                Saldo: {{ formatearMonto(inv.montoPendiente, inv.moneda) }}
+                {{ 'crm.finanzas.saldoPrefijo' | t }} {{ formatearMonto(inv.montoPendiente, inv.moneda) }}
               </span>
             </td>
 
@@ -313,10 +313,10 @@
                   'badge-vencida': inv.estado === 'VENCIDA',
                   'badge-cancelada': inv.estado === 'CANCELADA'
                 }">
-                {{ inv.estado === 'PAGADA' ? 'Pagada' : (inv.estado === 'VENCIDA' ? 'Vencida' : (inv.estado === 'CANCELADA' ? 'Cancelada' : (inv.estado === 'BORRADOR' ? 'Borrador' : 'Pendiente'))) }}
+                {{ etiquetaEstadoFactura(inv.estado) }}
               </span>
               <span class="inv-portal-estado">
-                {{ inv.estado === 'BORRADOR' ? 'Borrador privado' : inv.visibleEnPortal ? 'Compartida en portal' : 'No compartida' }}
+                {{ (inv.estado === 'BORRADOR' ? 'crm.finanzas.portalBorrador' : inv.visibleEnPortal ? 'crm.finanzas.portalCompartida' : 'crm.finanzas.portalNoCompartida') | t }}
               </span>
             </td>
 
@@ -328,7 +328,7 @@
                     <svg class="icon-check-pagado" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
-                    <span>Pagado</span>
+                    <span>{{ 'crm.finanzas.pagado' | t }}</span>
                   </div>
                 </ng-container>
 
@@ -337,8 +337,8 @@
                   type="button"
                   class="btn-registrar-pago"
                   (click)="abrirModalRegistrarPago(inv, $event)"
-                  title="Registrar abono o pago contable en Equinox">
-                  Registrar pago
+                  [title]="'crm.finanzas.registrarPagoTitulo' | t">
+                  {{ 'crm.finanzas.registrarPago' | t }}
                 </button>
 
                 <button
@@ -348,13 +348,13 @@
                   (click)="cambiarVisibilidadFactura(inv, $event)"
                   [disabled]="!!visibilidadFacturaEnCursoId">
                   {{
-                    visibilidadFacturaEnCursoId === inv.id
-                      ? 'Guardando…'
+                    (visibilidadFacturaEnCursoId === inv.id
+                      ? 'crm.finanzas.guardando'
                       : inv.estado === 'BORRADOR'
-                        ? 'Emitir y compartir'
+                        ? 'crm.finanzas.emitirYCompartir'
                         : inv.visibleEnPortal
-                          ? 'Dejar de compartir'
-                          : 'Compartir con cliente'
+                          ? 'crm.finanzas.dejarDeCompartir'
+                          : 'crm.finanzas.compartirConCliente') | t
                   }}
                 </button>
               </div>
@@ -366,7 +366,7 @@
 
     <!-- Table Footer -->
     <div class="invoices-footer">
-      <span>Mostrando {{ facturasFiltradas.length }} de {{ conteoTodas }} facturas</span>
+      <span>{{ 'crm.finanzas.footerMostrando' | t:{ visibles: facturasFiltradas.length, total: conteoTodas } }}</span>
     </div>
   </section>
 
@@ -384,10 +384,10 @@
       (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-header-titles">
-          <h2 id="modal-nueva-factura-title" class="modal-title">Nueva factura</h2>
-          <p class="modal-subtitle">Crea un registro de factura para seguimiento y cobro contable.</p>
+          <h2 id="modal-nueva-factura-title" class="modal-title">{{ 'crm.finanzas.modalNuevaTitulo' | t }}</h2>
+          <p class="modal-subtitle">{{ 'crm.finanzas.modalNuevaSubtitulo' | t }}</p>
         </div>
-        <button type="button" class="btn-close-modal" (click)="cerrarModalNuevaFactura()" aria-label="Cerrar">
+        <button type="button" class="btn-close-modal" (click)="cerrarModalNuevaFactura()" [attr.aria-label]="'crm.finanzas.cerrar' | t">
           ×
         </button>
       </div>
@@ -400,20 +400,20 @@
         <div class="form-grid-2">
           <!-- Número de Factura (opcional: secuencia automática en backend) -->
           <div class="form-group">
-            <label class="form-label" for="fac-numero">Número de factura (opcional)</label>
+            <label class="form-label" for="fac-numero">{{ 'crm.finanzas.labelNumero' | t }}</label>
             <input
               id="fac-numero"
               type="text"
               class="form-input"
               [(ngModel)]="formFactura.numero"
               name="numero"
-              placeholder="Automático (Secuencia) o INV-..."
+              [placeholder]="'crm.finanzas.placeholderNumero' | t"
             />
           </div>
 
           <!-- Cliente -->
           <div class="form-group">
-            <label class="form-label" for="fac-cliente">Cliente *</label>
+            <label class="form-label" for="fac-cliente">{{ 'crm.finanzas.labelCliente' | t }}</label>
             <select
               id="fac-cliente"
               class="form-select"
@@ -421,7 +421,7 @@
               (ngModelChange)="onClienteChange($event)"
               name="clienteId"
               required>
-              <option value="" disabled>Selecciona un cliente</option>
+              <option value="" disabled>{{ 'crm.finanzas.seleccionaCliente' | t }}</option>
               <option *ngFor="let c of clientes" [value]="c.id">
                 {{ c.nombre }} {{ c.empresa ? '(' + c.empresa + ')' : '' }}
               </option>
@@ -431,13 +431,13 @@
 
         <!-- Proyecto (opcional si cliente seleccionado) -->
         <div *ngIf="proyectosCliente.length > 0" class="form-group">
-          <label class="form-label" for="fac-proyecto">Proyecto asociado (opcional)</label>
+          <label class="form-label" for="fac-proyecto">{{ 'crm.finanzas.labelProyecto' | t }}</label>
           <select
             id="fac-proyecto"
             class="form-select"
             [(ngModel)]="formFactura.proyectoId"
             name="proyectoId">
-            <option value="">Sin proyecto asociado (general)</option>
+            <option value="">{{ 'crm.finanzas.sinProyectoAsociado' | t }}</option>
             <option *ngFor="let p of proyectosCliente" [value]="p.id">
               {{ p.nombre }}
             </option>
@@ -446,14 +446,14 @@
 
         <!-- Concepto -->
         <div class="form-group">
-          <label class="form-label" for="fac-concepto">Concepto o descripción *</label>
+          <label class="form-label" for="fac-concepto">{{ 'crm.finanzas.labelConcepto' | t }}</label>
           <input
             id="fac-concepto"
             type="text"
             class="form-input"
             [(ngModel)]="formFactura.concepto"
             name="concepto"
-            placeholder="ej. Anticipo 50% · Diseño y desarrollo web"
+            [placeholder]="'crm.finanzas.placeholderConcepto' | t"
             required
           />
         </div>
@@ -461,7 +461,7 @@
         <div class="form-grid-2">
           <!-- Monto -->
           <div class="form-group">
-            <label class="form-label" for="fac-monto">Monto *</label>
+            <label class="form-label" for="fac-monto">{{ 'crm.finanzas.labelMonto' | t }}</label>
             <div class="input-with-prefix">
               <span class="input-prefix">{{ obtenerSimboloMoneda(formFactura.moneda) }}</span>
               <input
@@ -480,15 +480,15 @@
 
           <!-- Moneda -->
           <div class="form-group">
-            <label class="form-label" for="fac-moneda">Moneda</label>
+            <label class="form-label" for="fac-moneda">{{ 'crm.finanzas.labelMoneda' | t }}</label>
             <select
               id="fac-moneda"
               class="form-select"
               [(ngModel)]="formFactura.moneda"
               name="moneda">
-              <option value="PAB">PAB (Balboas - Panamá)</option>
-              <option value="USD">USD (Dólares estadounidenses)</option>
-              <option value="EUR">EUR (Euros)</option>
+              <option value="PAB">{{ 'crm.finanzas.monedaPab' | t }}</option>
+              <option value="USD">{{ 'crm.finanzas.monedaUsd' | t }}</option>
+              <option value="EUR">{{ 'crm.finanzas.monedaEur' | t }}</option>
             </select>
           </div>
         </div>
@@ -496,7 +496,7 @@
         <div class="form-grid-2">
           <!-- Fecha Emisión -->
           <div class="form-group">
-            <label class="form-label" for="fac-emision">Fecha de emisión</label>
+            <label class="form-label" for="fac-emision">{{ 'crm.finanzas.labelEmision' | t }}</label>
             <input
               id="fac-emision"
               type="date"
@@ -509,7 +509,7 @@
           <!-- Fecha Vencimiento -->
           <div class="form-group">
             <div class="label-with-presets">
-              <label class="form-label" for="fac-vencimiento">Fecha de vencimiento</label>
+              <label class="form-label" for="fac-vencimiento">{{ 'crm.finanzas.labelVencimiento' | t }}</label>
               <div class="presets-row">
                 <button type="button" class="preset-btn" (click)="establecerVencimientoDias(15)">+15d</button>
                 <button type="button" class="preset-btn" (click)="establecerVencimientoDias(30)">+30d</button>
@@ -527,14 +527,14 @@
 
         <div class="form-grid-2">
           <div class="form-group">
-            <label class="form-label" for="fac-estado">Estado inicial</label>
+            <label class="form-label" for="fac-estado">{{ 'crm.finanzas.labelEstadoInicial' | t }}</label>
             <select
               id="fac-estado"
               class="form-select"
               [(ngModel)]="formFactura.estado"
               name="estado">
-              <option value="ENVIADA">Emitida (Pendiente)</option>
-              <option value="BORRADOR">Borrador privado</option>
+              <option value="ENVIADA">{{ 'crm.finanzas.optEnviada' | t }}</option>
+              <option value="BORRADOR">{{ 'crm.finanzas.optBorrador' | t }}</option>
             </select>
           </div>
 
@@ -546,33 +546,33 @@
                 name="visibleEnPortal"
                 [disabled]="formFactura.estado === 'BORRADOR'"
               />
-              <span>Visible en el portal del cliente</span>
+              <span>{{ 'crm.finanzas.visiblePortal' | t }}</span>
             </label>
           </div>
         </div>
 
         <!-- Notas internas -->
         <div class="form-group">
-          <label class="form-label" for="fac-notas">Notas o condiciones (opcional)</label>
+          <label class="form-label" for="fac-notas">{{ 'crm.finanzas.labelNotas' | t }}</label>
           <textarea
             id="fac-notas"
             rows="2"
             class="form-textarea"
             [(ngModel)]="formFactura.notas"
             name="notas"
-            placeholder="Información adicional, cuenta bancaria para transferencia, hitos vinculados...">
+            [placeholder]="'crm.finanzas.placeholderNotas' | t">
           </textarea>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn-cancelar" (click)="cerrarModalNuevaFactura()" [disabled]="guardandoFactura">
-            Cancelar
+            {{ 'crm.finanzas.cancelar' | t }}
           </button>
           <button
             type="submit"
             class="btn-confirmar-crear"
             [disabled]="guardandoFactura">
-            {{ guardandoFactura ? 'Creando...' : 'Crear factura' }}
+            {{ (guardandoFactura ? 'crm.finanzas.creando' : 'crm.finanzas.crearFactura') | t }}
           </button>
         </div>
       </form>
@@ -593,28 +593,28 @@
       (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-header-titles">
-          <h2 id="modal-pago-title" class="modal-title">Registrar cobro contable</h2>
-          <p class="modal-subtitle">Factura {{ facturaSeleccionadaPago.numero }}</p>
+          <h2 id="modal-pago-title" class="modal-title">{{ 'crm.finanzas.modalPagoTitulo' | t }}</h2>
+          <p class="modal-subtitle">{{ 'crm.finanzas.modalPagoSubtitulo' | t:{ numero: facturaSeleccionadaPago.numero } }}</p>
         </div>
-        <button type="button" class="btn-close-modal" (click)="cerrarModalRegistrarPago()" aria-label="Cerrar">
+        <button type="button" class="btn-close-modal" (click)="cerrarModalRegistrarPago()" [attr.aria-label]="'crm.finanzas.cerrar' | t">
           ×
         </button>
       </div>
 
       <div class="pago-invoice-summary">
         <div class="summary-item">
-          <span class="summary-label">Concepto</span>
+          <span class="summary-label">{{ 'crm.finanzas.resumenConcepto' | t }}</span>
           <span class="summary-value">{{ facturaSeleccionadaPago.concepto }}</span>
         </div>
         <div class="summary-item">
-          <span class="summary-label">Cliente</span>
+          <span class="summary-label">{{ 'crm.finanzas.resumenCliente' | t }}</span>
           <span class="summary-value">
             {{ facturaSeleccionadaPago.cliente?.nombre }}
             {{ facturaSeleccionadaPago.cliente?.empresa ? '· ' + facturaSeleccionadaPago.cliente?.empresa : '' }}
           </span>
         </div>
         <div class="summary-item-monto">
-          <span class="summary-label">Saldo pendiente</span>
+          <span class="summary-label">{{ 'crm.finanzas.resumenSaldo' | t }}</span>
           <span class="summary-monto">
             {{ formatearMonto(obtenerSaldoPendiente(facturaSeleccionadaPago), facturaSeleccionadaPago.moneda) }}
           </span>
@@ -626,7 +626,7 @@
           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
         </svg>
         <p>
-          <strong>Registro contable interno:</strong> Registra abonos parciales o liquidación total en tu panel financiero de Equinox. No realiza transferencias ni cargos bancarios.
+          <strong>{{ 'crm.finanzas.avisoContableTitulo' | t }}</strong> {{ 'crm.finanzas.avisoContableTexto' | t }}
         </p>
       </div>
 
@@ -637,7 +637,7 @@
 
         <div class="form-grid-2">
           <div class="form-group">
-            <label class="form-label" for="pagoMonto">Monto a abonar *</label>
+            <label class="form-label" for="pagoMonto">{{ 'crm.finanzas.labelMontoAbonar' | t }}</label>
             <input
               id="pagoMonto"
               type="number"
@@ -653,7 +653,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="pagoMoneda">Moneda</label>
+            <label class="form-label" for="pagoMoneda">{{ 'crm.finanzas.labelMoneda' | t }}</label>
             <input
               id="pagoMoneda"
               type="text"
@@ -666,7 +666,7 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="pagoMetodo">Método de pago *</label>
+          <label class="form-label" for="pagoMetodo">{{ 'crm.finanzas.labelMetodoPago' | t }}</label>
           <select
             id="pagoMetodo"
             class="form-select"
@@ -674,49 +674,49 @@
             name="metodoPago"
             [disabled]="guardandoPago"
             required>
-            <option value="TRANSFERENCIA">Transferencia / ACH</option>
-            <option value="EFECTIVO">Efectivo</option>
-            <option value="TARJETA">Tarjeta de crédito / débito</option>
-            <option value="CHEQUE">Cheque</option>
-            <option value="OTRO">Otro</option>
+            <option value="TRANSFERENCIA">{{ 'crm.finanzas.metodoTransferencia' | t }}</option>
+            <option value="EFECTIVO">{{ 'crm.finanzas.metodoEfectivo' | t }}</option>
+            <option value="TARJETA">{{ 'crm.finanzas.metodoTarjeta' | t }}</option>
+            <option value="CHEQUE">{{ 'crm.finanzas.metodoCheque' | t }}</option>
+            <option value="OTRO">{{ 'crm.finanzas.metodoOtro' | t }}</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="pago-ref">Referencia o comprobante bancario (opcional)</label>
+          <label class="form-label" for="pago-ref">{{ 'crm.finanzas.labelReferencia' | t }}</label>
           <input
             id="pago-ref"
             type="text"
             class="form-input"
             [(ngModel)]="formPago.referencia"
             name="referencia"
-            placeholder="ej. ACH-884920 / Yappy / Cheque"
+            [placeholder]="'crm.finanzas.placeholderReferencia' | t"
             [disabled]="guardandoPago"
           />
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="pago-notas">Notas adicionales de cobro</label>
+          <label class="form-label" for="pago-notas">{{ 'crm.finanzas.labelNotasCobro' | t }}</label>
           <input
             id="pago-notas"
             type="text"
             class="form-input"
             [(ngModel)]="formPago.notas"
             name="notas"
-            placeholder="ej. Cobro verificado en estado de cuenta"
+            [placeholder]="'crm.finanzas.placeholderNotasCobro' | t"
             [disabled]="guardandoPago"
           />
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn-cancelar" (click)="cerrarModalRegistrarPago()" [disabled]="guardandoPago">
-            Cancelar
+            {{ 'crm.finanzas.cancelar' | t }}
           </button>
           <button
             type="submit"
             class="btn-confirmar-pago"
             [disabled]="guardandoPago">
-            {{ guardandoPago ? 'Registrando...' : 'Confirmar pago' }}
+            {{ (guardandoPago ? 'crm.finanzas.registrando' : 'crm.finanzas.confirmarPago') | t }}
           </button>
         </div>
       </form>
@@ -747,12 +747,12 @@
                 'badge-vencida': facturaDetalle.estado === 'VENCIDA',
                 'badge-cancelada': facturaDetalle.estado === 'CANCELADA'
               }">
-              {{ facturaDetalle.estado }}
+              {{ etiquetaEstadoFactura(facturaDetalle.estado) }}
             </span>
           </div>
           <p class="modal-subtitle">{{ facturaDetalle.concepto }}</p>
         </div>
-        <button type="button" class="btn-close-modal" (click)="cerrarDetalleFactura()" aria-label="Cerrar">
+        <button type="button" class="btn-close-modal" (click)="cerrarDetalleFactura()" [attr.aria-label]="'crm.finanzas.cerrar' | t">
           ×
         </button>
       </div>
@@ -760,57 +760,57 @@
       <div class="detalle-body">
         <div class="detalle-monto-card">
           <div>
-            <span class="monto-card-label">Monto total</span>
+            <span class="monto-card-label">{{ 'crm.finanzas.detalleMontoTotal' | t }}</span>
             <span class="monto-card-val">{{ formatearMonto(facturaDetalle.monto, facturaDetalle.moneda) }}</span>
           </div>
           <div *ngIf="facturaDetalle.estado !== 'PAGADA' && facturaDetalle.montoPendiente !== undefined" class="monto-card-saldo">
-            <span class="monto-card-label">Saldo pendiente</span>
+            <span class="monto-card-label">{{ 'crm.finanzas.detalleSaldoPendiente' | t }}</span>
             <span class="monto-card-saldo-val">{{ formatearMonto(facturaDetalle.montoPendiente, facturaDetalle.moneda) }}</span>
           </div>
         </div>
 
         <div class="detalle-info-grid">
           <div class="info-block">
-            <span class="info-label">Cliente</span>
+            <span class="info-label">{{ 'crm.finanzas.detalleCliente' | t }}</span>
             <span class="info-val">{{ facturaDetalle.cliente?.nombre || '—' }}</span>
             <span *ngIf="facturaDetalle.cliente?.empresa" class="info-subval">{{ facturaDetalle.cliente?.empresa }}</span>
           </div>
 
           <div class="info-block">
-            <span class="info-label">Proyecto</span>
-            <span class="info-val">{{ facturaDetalle.proyecto?.nombre || 'Sin proyecto vinculado' }}</span>
+            <span class="info-label">{{ 'crm.finanzas.detalleProyecto' | t }}</span>
+            <span class="info-val">{{ facturaDetalle.proyecto?.nombre || ('crm.finanzas.sinProyectoVinculado' | t) }}</span>
           </div>
 
           <div class="info-block">
-            <span class="info-label">Fecha de emisión</span>
+            <span class="info-label">{{ 'crm.finanzas.detalleFechaEmision' | t }}</span>
             <span class="info-val">{{ formatearFechaCorta(facturaDetalle.fechaEmision) }}</span>
           </div>
 
           <div class="info-block">
-            <span class="info-label">Fecha de vencimiento</span>
+            <span class="info-label">{{ 'crm.finanzas.detalleFechaVencimiento' | t }}</span>
             <span class="info-val">{{ formatearFechaCorta(facturaDetalle.fechaVencimiento) }}</span>
           </div>
 
           <div *ngIf="facturaDetalle.pagadaEn" class="info-block">
-            <span class="info-label">Fecha de pago</span>
+            <span class="info-label">{{ 'crm.finanzas.detalleFechaPago' | t }}</span>
             <span class="info-val text-green">{{ formatearFechaCorta(facturaDetalle.pagadaEn) }}</span>
           </div>
 
           <div *ngIf="facturaDetalle.notas" class="info-block full-width">
-            <span class="info-label">Notas</span>
+            <span class="info-label">{{ 'crm.finanzas.detalleNotas' | t }}</span>
             <p class="info-notas">{{ facturaDetalle.notas }}</p>
           </div>
         </div>
 
         <!-- Pagos registrados -->
         <div *ngIf="facturaDetalle.pagos?.length" class="detalle-seccion">
-          <h3 class="detalle-seccion-titulo">Pagos registrados</h3>
+          <h3 class="detalle-seccion-titulo">{{ 'crm.finanzas.pagosRegistrados' | t }}</h3>
           <div class="detalle-lista">
             <div *ngFor="let pago of facturaDetalle.pagos" class="detalle-lista-item">
               <div>
                 <strong>{{ formatearMonto(pago.monto, pago.moneda) }}</strong>
-                <span class="detalle-lista-meta"> · {{ pago.metodo || 'Pago' }}</span>
-                <span *ngIf="pago.referencia" class="detalle-lista-meta"> · Ref. {{ pago.referencia }}</span>
+                <span class="detalle-lista-meta"> · {{ etiquetaMetodoPago(pago.metodo) }}</span>
+                <span *ngIf="pago.referencia" class="detalle-lista-meta"> · {{ 'crm.finanzas.refPrefijo' | t }} {{ pago.referencia }}</span>
               </div>
               <span class="detalle-lista-fecha">{{ formatearFechaCorta(pago.creadoEn) }}</span>
             </div>
@@ -819,11 +819,11 @@
 
         <!-- Historial de estados -->
         <div *ngIf="facturaDetalle.historial?.length" class="detalle-seccion">
-          <h3 class="detalle-seccion-titulo">Historial de cambios</h3>
+          <h3 class="detalle-seccion-titulo">{{ 'crm.finanzas.historialCambios' | t }}</h3>
           <div class="detalle-lista">
             <div *ngFor="let h of facturaDetalle.historial" class="detalle-lista-item">
               <div>
-                <strong>{{ h.estadoAnterior ? h.estadoAnterior + ' → ' : '' }}{{ h.estadoNuevo }}</strong>
+                <strong>{{ h.estadoAnterior ? etiquetaEstadoFactura(h.estadoAnterior) + ' → ' : '' }}{{ etiquetaEstadoFactura(h.estadoNuevo) }}</strong>
                 <span *ngIf="h.usuario" class="detalle-lista-meta"> · {{ h.usuario.nombre }}</span>
                 <span *ngIf="h.motivo" class="detalle-lista-meta"> · {{ h.motivo }}</span>
               </div>
@@ -839,7 +839,7 @@
           type="button"
           class="btn-eliminar-factura"
           (click)="eliminarFactura(facturaDetalle)">
-          Eliminar
+          {{ 'crm.finanzas.eliminar' | t }}
         </button>
 
         <div class="detalle-footer-right">
@@ -848,10 +848,10 @@
             type="button"
             class="btn-registrar-pago"
             (click)="abrirModalRegistrarPago(facturaDetalle)">
-            Registrar pago
+            {{ 'crm.finanzas.registrarPago' | t }}
           </button>
           <button type="button" class="btn-secondary" (click)="cerrarDetalleFactura()">
-            Cerrar
+            {{ 'crm.finanzas.cerrar' | t }}
           </button>
         </div>
       </div>

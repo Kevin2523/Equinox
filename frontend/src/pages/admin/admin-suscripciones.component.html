@@ -3,26 +3,24 @@
 
   <header class="admin-page-header">
     <div>
-      <h1 id="susc-titulo" class="admin-page-title">Suscripciones manuales</h1>
-      <p class="admin-page-subtitle">
-        Asignación y seguimiento administrativo de planes por organización.
-      </p>
+      <h1 id="susc-titulo" class="admin-page-title">{{ 'admin.suscripciones.titulo' | t }}</h1>
+      <p class="admin-page-subtitle">{{ 'admin.suscripciones.subtitulo' | t }}</p>
     </div>
     <div class="admin-header-actions" *ngIf="subtab === 'PLANES'">
-      <button type="button" class="btn-primary" (click)="abrirNuevoPlan()">Nuevo plan manual</button>
+      <button type="button" class="btn-primary" (click)="abrirNuevoPlan()">{{ 'admin.suscripciones.nuevoPlan' | t }}</button>
     </div>
   </header>
 
   <!-- Aviso obligatorio de modalidad manual -->
   <div class="admin-notice-banner" role="note">
     <div>
-      <strong>Modalidad: gestión manual, no se procesan pagos.</strong>
-      El estado comercial de la suscripción (incluida la suspensión de seguimiento) es informativo: no existen cargos automáticos ni bloqueo de acceso operativo. Para suspender el acceso de un estudio usa la sección Organizaciones.
+      <strong>{{ 'admin.suscripciones.avisoTitulo' | t }}</strong>
+      {{ 'admin.suscripciones.avisoDesc' | t }}
     </div>
   </div>
 
   <!-- Subtabs -->
-  <div class="admin-subtabs" role="tablist" aria-label="Secciones de suscripciones">
+  <div class="admin-subtabs" role="tablist" [attr.aria-label]="'admin.suscripciones.subtabsAria' | t">
     <button
       type="button"
       role="tab"
@@ -30,7 +28,7 @@
       class="admin-subtab"
       [class.active]="subtab === 'SUSCRIPCIONES'"
       (click)="cambiarSubtab('SUSCRIPCIONES')">
-      Suscripciones por organización
+      {{ 'admin.suscripciones.tabSuscripciones' | t }}
     </button>
     <button
       type="button"
@@ -39,7 +37,7 @@
       class="admin-subtab"
       [class.active]="subtab === 'PLANES'"
       (click)="cambiarSubtab('PLANES')">
-      Catálogo de planes
+      {{ 'admin.suscripciones.tabPlanes' | t }}
     </button>
   </div>
 
@@ -48,7 +46,7 @@
     <div class="admin-toolbar" style="justify-content: space-between;">
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
         <span class="admin-badge" [ngClass]="claseEstado(est)" *ngFor="let est of estados">
-          {{ etiquetasEstado[est] }}: {{ resumenEstados[est] ?? 0 }}
+          {{ clavesEstado[est] | t }}: {{ formatearNumero(resumenEstados[est] ?? 0) }}
         </span>
       </div>
     </div>
@@ -59,28 +57,28 @@
         name="busquedaSusc"
         class="admin-search-input"
         [(ngModel)]="busquedaSusc"
-        placeholder="Buscar por organización, slug o correo..."
-        aria-label="Buscar suscripciones por organización" />
+        [placeholder]="'admin.suscripciones.buscarPlaceholder' | t"
+        [attr.aria-label]="'admin.suscripciones.buscarAria' | t" />
 
-      <select name="filtroEstado" class="admin-select" [(ngModel)]="filtroEstado" (change)="cargarSuscripciones(1)" aria-label="Filtrar por estado">
-        <option value="">Todos los estados</option>
-        <option *ngFor="let e of estados" [value]="e">{{ etiquetasEstado[e] }}</option>
+      <select name="filtroEstado" class="admin-select" [(ngModel)]="filtroEstado" (change)="cargarSuscripciones(1)" [attr.aria-label]="'admin.suscripciones.filtrarEstadoAria' | t">
+        <option value="">{{ 'admin.suscripciones.todosEstados' | t }}</option>
+        <option *ngFor="let e of estados" [value]="e">{{ clavesEstado[e] | t }}</option>
       </select>
 
-      <select name="filtroPlanId" class="admin-select" [(ngModel)]="filtroPlanId" (change)="cargarSuscripciones(1)" aria-label="Filtrar por plan">
-        <option value="">Todos los planes</option>
+      <select name="filtroPlanId" class="admin-select" [(ngModel)]="filtroPlanId" (change)="cargarSuscripciones(1)" [attr.aria-label]="'admin.suscripciones.filtrarPlanAria' | t">
+        <option value="">{{ 'admin.suscripciones.todosPlanes' | t }}</option>
         <option *ngFor="let p of planesActivos" [value]="p.id">{{ p.nombre }}</option>
       </select>
 
-      <button type="submit" class="admin-btn-sm primary">Buscar</button>
+      <button type="submit" class="admin-btn-sm primary">{{ 'admin.comun.buscar' | t }}</button>
       <button type="button" class="admin-btn-sm" (click)="limpiarFiltrosSusc()" *ngIf="busquedaSusc || filtroEstado || filtroPlanId">
-        Limpiar
+        {{ 'admin.comun.limpiar' | t }}
       </button>
     </form>
 
     <div *ngIf="errorSusc" class="admin-error-banner" role="alert">
       <span>{{ errorSusc }}</span>
-      <button type="button" class="admin-btn-sm" (click)="cargarSuscripciones()">Reintentar</button>
+      <button type="button" class="admin-btn-sm" (click)="cargarSuscripciones()">{{ 'admin.comun.reintentar' | t }}</button>
     </div>
 
     <div *ngIf="cargandoSusc" class="admin-card" aria-busy="true">
@@ -89,9 +87,9 @@
     </div>
 
     <div *ngIf="!cargandoSusc && suscripciones.length === 0 && !errorSusc" class="admin-state-box">
-      <h3>Sin resultados de suscripciones</h3>
-      <p>No hay organizaciones que coincidan con los filtros seleccionados.</p>
-      <button type="button" class="btn-secondary" (click)="limpiarFiltrosSusc()">Restablecer filtros</button>
+      <h3>{{ 'admin.suscripciones.vacioTitulo' | t }}</h3>
+      <p>{{ 'admin.suscripciones.vacioDesc' | t }}</p>
+      <button type="button" class="btn-secondary" (click)="limpiarFiltrosSusc()">{{ 'admin.comun.restablecerFiltros' | t }}</button>
     </div>
 
     <ng-container *ngIf="!cargandoSusc && suscripciones.length > 0">
@@ -99,33 +97,33 @@
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Organización</th>
-              <th>Estado</th>
-              <th>Plan</th>
-              <th>Vigencia manual</th>
-              <th>Referencia</th>
-              <th>Acciones</th>
+              <th>{{ 'admin.suscripciones.colOrganizacion' | t }}</th>
+              <th>{{ 'admin.suscripciones.colEstado' | t }}</th>
+              <th>{{ 'admin.suscripciones.colPlan' | t }}</th>
+              <th>{{ 'admin.suscripciones.colVigencia' | t }}</th>
+              <th>{{ 'admin.suscripciones.colReferencia' | t }}</th>
+              <th>{{ 'admin.comun.acciones' | t }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of suscripciones">
               <td>
                 <span class="admin-cell-primary">{{ item.organizacion.nombre }}</span>
-                <span class="admin-cell-secondary">/{{ item.organizacion.slug }} · {{ etiquetasTipo[item.organizacion.tipoFreelance] }}</span>
+                <span class="admin-cell-secondary">/{{ item.organizacion.slug }} · {{ clavesTipo[item.organizacion.tipoFreelance] | t }}</span>
               </td>
               <td>
                 <span class="admin-badge" [ngClass]="claseEstado(item.suscripcion.estado)">
-                  {{ etiquetasEstado[item.suscripcion.estado] }}
+                  {{ clavesEstado[item.suscripcion.estado] | t }}
                 </span>
-                <span class="admin-cell-secondary">Manual, sin cobro procesado</span>
+                <span class="admin-cell-secondary">{{ 'admin.suscripciones.manualSinCobro' | t }}</span>
               </td>
               <td>
-                <span class="admin-cell-primary">{{ item.suscripcion.plan?.nombre || 'Sin plan asignado' }}</span>
+                <span class="admin-cell-primary">{{ item.suscripcion.plan?.nombre || ('admin.suscripciones.sinPlan' | t) }}</span>
                 <span class="admin-cell-secondary" *ngIf="item.suscripcion.plan">{{ item.suscripcion.plan.codigo }}</span>
               </td>
               <td>
-                <span class="admin-cell-primary">Inicio: {{ formatearFecha(item.suscripcion.fechaInicio, false) }}</span>
-                <span class="admin-cell-secondary">Fin: {{ item.suscripcion.fechaFin ? formatearFecha(item.suscripcion.fechaFin, false) : 'Indefinida' }}</span>
+                <span class="admin-cell-primary">{{ 'admin.suscripciones.inicioPrefijo' | t }} {{ formatearFecha(item.suscripcion.fechaInicio, false) }}</span>
+                <span class="admin-cell-secondary">{{ 'admin.suscripciones.finPrefijo' | t }} {{ item.suscripcion.fechaFin ? formatearFecha(item.suscripcion.fechaFin, false) : ('admin.suscripciones.indefinida' | t) }}</span>
               </td>
               <td>{{ item.suscripcion.referenciaManual || '—' }}</td>
               <td>
@@ -135,38 +133,38 @@
                     class="admin-btn-sm primary"
                     *ngIf="item.suscripcion.estado === 'SIN_SUSCRIPCION' || item.suscripcion.estado === 'CANCELADA'"
                     (click)="abrirAsignar(item)">
-                    Asignar
+                    {{ 'admin.suscripciones.asignar' | t }}
                   </button>
                   <button
                     type="button"
                     class="admin-btn-sm"
                     *ngIf="item.suscripcion.estado !== 'SIN_SUSCRIPCION' && item.suscripcion.estado !== 'CANCELADA'"
                     (click)="abrirEditarSuscripcion(item)">
-                    Gestionar
+                    {{ 'admin.suscripciones.gestionar' | t }}
                   </button>
                   <button
                     type="button"
                     class="admin-btn-sm"
                     *ngIf="item.suscripcion.estado === 'ACTIVA' || item.suscripcion.estado === 'PRUEBA'"
                     (click)="pedirConfirmacionSusc('SUSPENDER', item)">
-                    Suspender
+                    {{ 'admin.suscripciones.suspender' | t }}
                   </button>
                   <button
                     type="button"
                     class="admin-btn-sm primary"
                     *ngIf="item.suscripcion.estado === 'SUSPENDIDA'"
                     (click)="pedirConfirmacionSusc('REACTIVAR', item)">
-                    Reactivar
+                    {{ 'admin.suscripciones.reactivar' | t }}
                   </button>
                   <button
                     type="button"
                     class="admin-btn-sm danger"
                     *ngIf="item.suscripcion.estado !== 'SIN_SUSCRIPCION' && item.suscripcion.estado !== 'CANCELADA'"
                     (click)="pedirConfirmacionSusc('CANCELAR', item)">
-                    Cancelar
+                    {{ 'admin.comun.cancelar' | t }}
                   </button>
                   <button type="button" class="admin-btn-sm" (click)="verHistorial(item)">
-                    Historial
+                    {{ 'admin.suscripciones.historial' | t }}
                   </button>
                 </div>
               </td>
@@ -180,26 +178,26 @@
           <div class="admin-mobile-card-head">
             <div>
               <span class="admin-cell-primary">{{ item.organizacion.nombre }}</span>
-              <span class="admin-cell-secondary">/{{ item.organizacion.slug }} · {{ etiquetasTipo[item.organizacion.tipoFreelance] }}</span>
+              <span class="admin-cell-secondary">/{{ item.organizacion.slug }} · {{ clavesTipo[item.organizacion.tipoFreelance] | t }}</span>
             </div>
             <span class="admin-badge" [ngClass]="claseEstado(item.suscripcion.estado)">
-              {{ etiquetasEstado[item.suscripcion.estado] }}
+              {{ clavesEstado[item.suscripcion.estado] | t }}
             </span>
           </div>
 
           <div class="admin-mobile-card-grid">
             <div class="admin-mobile-card-field">
-              <small>Plan</small>
-              <span class="admin-cell-primary">{{ item.suscripcion.plan?.nombre || 'Sin plan asignado' }}</span>
+              <small>{{ 'admin.suscripciones.colPlan' | t }}</small>
+              <span class="admin-cell-primary">{{ item.suscripcion.plan?.nombre || ('admin.suscripciones.sinPlan' | t) }}</span>
               <span class="admin-cell-secondary" *ngIf="item.suscripcion.plan">{{ item.suscripcion.plan.codigo }}</span>
             </div>
             <div class="admin-mobile-card-field">
-              <small>Vigencia manual</small>
-              <span class="admin-cell-primary">Inicio: {{ formatearFecha(item.suscripcion.fechaInicio, false) }}</span>
-              <span class="admin-cell-secondary">Fin: {{ item.suscripcion.fechaFin ? formatearFecha(item.suscripcion.fechaFin, false) : 'Indefinida' }}</span>
+              <small>{{ 'admin.suscripciones.colVigencia' | t }}</small>
+              <span class="admin-cell-primary">{{ 'admin.suscripciones.inicioPrefijo' | t }} {{ formatearFecha(item.suscripcion.fechaInicio, false) }}</span>
+              <span class="admin-cell-secondary">{{ 'admin.suscripciones.finPrefijo' | t }} {{ item.suscripcion.fechaFin ? formatearFecha(item.suscripcion.fechaFin, false) : ('admin.suscripciones.indefinida' | t) }}</span>
             </div>
             <div class="admin-mobile-card-field">
-              <small>Referencia</small>
+              <small>{{ 'admin.suscripciones.colReferencia' | t }}</small>
               <span class="admin-cell-secondary">{{ item.suscripcion.referenciaManual || '—' }}</span>
             </div>
           </div>
@@ -210,51 +208,51 @@
               class="admin-btn-sm primary"
               *ngIf="item.suscripcion.estado === 'SIN_SUSCRIPCION' || item.suscripcion.estado === 'CANCELADA'"
               (click)="abrirAsignar(item)">
-              Asignar
+              {{ 'admin.suscripciones.asignar' | t }}
             </button>
             <button
               type="button"
               class="admin-btn-sm"
               *ngIf="item.suscripcion.estado !== 'SIN_SUSCRIPCION' && item.suscripcion.estado !== 'CANCELADA'"
               (click)="abrirEditarSuscripcion(item)">
-              Gestionar
+              {{ 'admin.suscripciones.gestionar' | t }}
             </button>
             <button
               type="button"
               class="admin-btn-sm"
               *ngIf="item.suscripcion.estado === 'ACTIVA' || item.suscripcion.estado === 'PRUEBA'"
               (click)="pedirConfirmacionSusc('SUSPENDER', item)">
-              Suspender
+              {{ 'admin.suscripciones.suspender' | t }}
             </button>
             <button
               type="button"
               class="admin-btn-sm primary"
               *ngIf="item.suscripcion.estado === 'SUSPENDIDA'"
               (click)="pedirConfirmacionSusc('REACTIVAR', item)">
-              Reactivar
+              {{ 'admin.suscripciones.reactivar' | t }}
             </button>
             <button
               type="button"
               class="admin-btn-sm danger"
               *ngIf="item.suscripcion.estado !== 'SIN_SUSCRIPCION' && item.suscripcion.estado !== 'CANCELADA'"
               (click)="pedirConfirmacionSusc('CANCELAR', item)">
-              Cancelar
+              {{ 'admin.comun.cancelar' | t }}
             </button>
             <button type="button" class="admin-btn-sm" (click)="verHistorial(item)">
-              Historial
+              {{ 'admin.suscripciones.historial' | t }}
             </button>
           </div>
         </article>
       </div>
 
       <div class="admin-pagination" style="margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-md);">
-        <span>Página {{ pagSuscripciones.pagina }} de {{ pagSuscripciones.totalPaginas || 1 }} · {{ pagSuscripciones.total }} organizaciones</span>
+        <span>{{ 'admin.suscripciones.paginacionOrgs' | t:{ pagina: formatearNumero(pagSuscripciones.pagina), totalPaginas: formatearNumero(pagSuscripciones.totalPaginas || 1), total: formatearNumero(pagSuscripciones.total) } }}</span>
         <div class="admin-pagination-controls">
           <button type="button" class="admin-btn-sm" (click)="cargarSuscripciones(pagSuscripciones.pagina - 1)" [disabled]="pagSuscripciones.pagina <= 1">
-            Anterior
+            {{ 'admin.comun.anterior' | t }}
           </button>
           <button type="button" class="admin-btn-sm" (click)="cargarSuscripciones(pagSuscripciones.pagina + 1)" [disabled]="pagSuscripciones.pagina >= pagSuscripciones.totalPaginas">
-            Siguiente
+            {{ 'admin.comun.siguiente' | t }}
           </button>
         </div>
       </div>
@@ -269,27 +267,27 @@
         name="busquedaPlanes"
         class="admin-search-input"
         [(ngModel)]="busquedaPlanes"
-        placeholder="Buscar plan por código, nombre o descripción..."
-        aria-label="Buscar planes" />
+        [placeholder]="'admin.suscripciones.buscarPlanesPlaceholder' | t"
+        [attr.aria-label]="'admin.suscripciones.buscarPlanesAria' | t" />
 
-      <select name="filtroPlanActivo" class="admin-select" [(ngModel)]="filtroPlanActivo" (change)="cargarPlanes(1)" aria-label="Filtrar planes por estado">
-        <option value="">Todos</option>
-        <option value="true">Activos</option>
-        <option value="false">Inactivos</option>
+      <select name="filtroPlanActivo" class="admin-select" [(ngModel)]="filtroPlanActivo" (change)="cargarPlanes(1)" [attr.aria-label]="'admin.suscripciones.filtrarPlanesAria' | t">
+        <option value="">{{ 'admin.suscripciones.todos' | t }}</option>
+        <option value="true">{{ 'admin.suscripciones.activos' | t }}</option>
+        <option value="false">{{ 'admin.suscripciones.inactivos' | t }}</option>
       </select>
 
-      <button type="submit" class="admin-btn-sm primary">Buscar</button>
+      <button type="submit" class="admin-btn-sm primary">{{ 'admin.comun.buscar' | t }}</button>
     </form>
 
     <div *ngIf="errorPlanes" class="admin-error-banner" role="alert">
       <span>{{ errorPlanes }}</span>
-      <button type="button" class="admin-btn-sm" (click)="cargarPlanes()">Reintentar</button>
+      <button type="button" class="admin-btn-sm" (click)="cargarPlanes()">{{ 'admin.comun.reintentar' | t }}</button>
     </div>
 
     <div *ngIf="!cargandoPlanes && planes.length === 0 && !errorPlanes" class="admin-state-box">
-      <h3>No hay planes manuales registrados</h3>
-      <p>Crea el primer plan manual para asignarlo a las organizaciones.</p>
-      <button type="button" class="btn-primary" (click)="abrirNuevoPlan()">Nuevo plan manual</button>
+      <h3>{{ 'admin.suscripciones.sinPlanesTitulo' | t }}</h3>
+      <p>{{ 'admin.suscripciones.sinPlanesDesc' | t }}</p>
+      <button type="button" class="btn-primary" (click)="abrirNuevoPlan()">{{ 'admin.suscripciones.nuevoPlan' | t }}</button>
     </div>
 
     <ng-container *ngIf="!cargandoPlanes && planes.length > 0">
@@ -297,32 +295,32 @@
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Código / Nombre</th>
-              <th>Tipo</th>
-              <th>Duración sugerida</th>
-              <th>Estado</th>
-              <th>Acciones</th>
+              <th>{{ 'admin.suscripciones.colCodigoNombre' | t }}</th>
+              <th>{{ 'admin.suscripciones.colTipo' | t }}</th>
+              <th>{{ 'admin.suscripciones.colDuracion' | t }}</th>
+              <th>{{ 'admin.suscripciones.colEstado' | t }}</th>
+              <th>{{ 'admin.comun.acciones' | t }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let plan of planes">
               <td>
                 <span class="admin-cell-primary">{{ plan.nombre }} ({{ plan.codigo }})</span>
-                <span class="admin-cell-secondary">{{ plan.descripcion || 'Sin descripción' }} · {{ plan.etiquetaCobro }}</span>
+                <span class="admin-cell-secondary">{{ plan.descripcion || ('admin.suscripciones.sinDescripcion' | t) }} · {{ plan.etiquetaCobro }}</span>
               </td>
               <td>
                 <span class="admin-badge" [ngClass]="plan.esPlanPrueba ? 'admin-badge-blue' : 'admin-badge-neutral'">
-                  {{ plan.esPlanPrueba ? 'Prueba manual' : 'Plan estándar' }}
+                  {{ (plan.esPlanPrueba ? 'admin.suscripciones.pruebaManual' : 'admin.suscripciones.planEstandar') | t }}
                 </span>
               </td>
-              <td>{{ plan.duracionSugeridaDias ? plan.duracionSugeridaDias + ' días' : 'Indefinida' }}</td>
+              <td>{{ plan.duracionSugeridaDias ? ('admin.suscripciones.diasCount' | t:{ dias: formatearNumero(plan.duracionSugeridaDias) }) : ('admin.suscripciones.indefinida' | t) }}</td>
               <td>
                 <span class="admin-badge" [ngClass]="plan.activo ? 'admin-badge-green' : 'admin-badge-coral'">
-                  {{ plan.activo ? 'Activo' : 'Inactivo' }}
+                  {{ (plan.activo ? 'admin.suscripciones.planActivo' : 'admin.suscripciones.planInactivo') | t }}
                 </span>
               </td>
               <td>
-                <button type="button" class="admin-btn-sm" (click)="abrirEditarPlan(plan)">Editar</button>
+                <button type="button" class="admin-btn-sm" (click)="abrirEditarPlan(plan)">{{ 'admin.suscripciones.editar' | t }}</button>
               </td>
             </tr>
           </tbody>
@@ -334,40 +332,40 @@
           <div class="admin-mobile-card-head">
             <div>
               <span class="admin-cell-primary">{{ plan.nombre }} ({{ plan.codigo }})</span>
-              <span class="admin-cell-secondary">{{ plan.descripcion || 'Sin descripción' }}</span>
+              <span class="admin-cell-secondary">{{ plan.descripcion || ('admin.suscripciones.sinDescripcion' | t) }}</span>
             </div>
             <span class="admin-badge" [ngClass]="plan.activo ? 'admin-badge-green' : 'admin-badge-coral'">
-              {{ plan.activo ? 'Activo' : 'Inactivo' }}
+              {{ (plan.activo ? 'admin.suscripciones.planActivo' : 'admin.suscripciones.planInactivo') | t }}
             </span>
           </div>
 
           <div class="admin-mobile-card-grid">
             <div class="admin-mobile-card-field">
-              <small>Tipo</small>
+              <small>{{ 'admin.suscripciones.colTipo' | t }}</small>
               <span class="admin-badge" [ngClass]="plan.esPlanPrueba ? 'admin-badge-blue' : 'admin-badge-neutral'">
-                {{ plan.esPlanPrueba ? 'Prueba manual' : 'Plan estándar' }}
+                {{ (plan.esPlanPrueba ? 'admin.suscripciones.pruebaManual' : 'admin.suscripciones.planEstandar') | t }}
               </span>
             </div>
             <div class="admin-mobile-card-field">
-              <small>Duración sugerida</small>
-              <span class="admin-cell-secondary">{{ plan.duracionSugeridaDias ? plan.duracionSugeridaDias + ' días' : 'Indefinida' }}</span>
+              <small>{{ 'admin.suscripciones.colDuracion' | t }}</small>
+              <span class="admin-cell-secondary">{{ plan.duracionSugeridaDias ? ('admin.suscripciones.diasCount' | t:{ dias: formatearNumero(plan.duracionSugeridaDias) }) : ('admin.suscripciones.indefinida' | t) }}</span>
             </div>
           </div>
 
           <div class="admin-mobile-card-actions">
-            <button type="button" class="admin-btn-sm" (click)="abrirEditarPlan(plan)">Editar</button>
+            <button type="button" class="admin-btn-sm" (click)="abrirEditarPlan(plan)">{{ 'admin.suscripciones.editar' | t }}</button>
           </div>
         </article>
       </div>
 
       <div class="admin-pagination" style="margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-md);">
-        <span>Página {{ pagPlanes.pagina }} de {{ pagPlanes.totalPaginas || 1 }} · {{ pagPlanes.total }} planes</span>
+        <span>{{ 'admin.suscripciones.paginacionPlanes' | t:{ pagina: formatearNumero(pagPlanes.pagina), totalPaginas: formatearNumero(pagPlanes.totalPaginas || 1), total: formatearNumero(pagPlanes.total) } }}</span>
         <div class="admin-pagination-controls">
           <button type="button" class="admin-btn-sm" (click)="cargarPlanes(pagPlanes.pagina - 1)" [disabled]="pagPlanes.pagina <= 1">
-            Anterior
+            {{ 'admin.comun.anterior' | t }}
           </button>
           <button type="button" class="admin-btn-sm" (click)="cargarPlanes(pagPlanes.pagina + 1)" [disabled]="pagPlanes.pagina >= pagPlanes.totalPaginas">
-            Siguiente
+            {{ 'admin.comun.siguiente' | t }}
           </button>
         </div>
       </div>
@@ -380,11 +378,11 @@
       <div class="admin-modal-header">
         <div>
           <h2 id="modal-susc-titulo" class="admin-modal-title">
-            {{ m.modo === 'ASIGNAR' ? 'Asignar suscripción manual' : 'Gestionar suscripción manual' }}
+            {{ (m.modo === 'ASIGNAR' ? 'admin.suscripciones.modalAsignarTitulo' : 'admin.suscripciones.modalGestionarTitulo') | t }}
           </h2>
-          <span class="admin-cell-secondary">{{ m.item.organizacion.nombre }} · Gestión manual, no se procesan pagos</span>
+          <span class="admin-cell-secondary">{{ m.item.organizacion.nombre }} · {{ 'admin.suscripciones.modalSubtituloManual' | t }}</span>
         </div>
-        <button type="button" class="admin-modal-close" (click)="modalSuscripcion = null" aria-label="Cerrar">✕</button>
+        <button type="button" class="admin-modal-close" (click)="modalSuscripcion = null" [attr.aria-label]="'admin.comun.cerrar' | t">✕</button>
       </div>
 
       <form (ngSubmit)="guardarModalSuscripcion()">
@@ -392,49 +390,49 @@
 
         <div class="admin-grid-2">
           <div class="form-group">
-            <label for="susc-plan">Plan manual</label>
+            <label for="susc-plan">{{ 'admin.suscripciones.planManualLabel' | t }}</label>
             <select id="susc-plan" name="planId" class="form-control" [(ngModel)]="m.planId" required>
-              <option value="">Selecciona un plan</option>
+              <option value="">{{ 'admin.suscripciones.seleccionaPlan' | t }}</option>
               <option *ngFor="let p of planesActivos" [value]="p.id">{{ p.nombre }} ({{ p.codigo }})</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="susc-estado">Estado</label>
+            <label for="susc-estado">{{ 'admin.suscripciones.colEstado' | t }}</label>
             <select id="susc-estado" name="estado" class="form-control" [(ngModel)]="m.estado">
-              <option value="PRUEBA">Prueba</option>
-              <option value="ACTIVA">Activa</option>
-              <option value="SUSPENDIDA" *ngIf="m.modo === 'EDITAR'">Suspendida</option>
+              <option value="PRUEBA">{{ 'admin.suscripciones.estadoPrueba' | t }}</option>
+              <option value="ACTIVA">{{ 'admin.comun.estadoSuscripcion.ACTIVA' | t }}</option>
+              <option value="SUSPENDIDA" *ngIf="m.modo === 'EDITAR'">{{ 'admin.comun.estadoSuscripcion.SUSPENDIDA' | t }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="susc-inicio">Fecha de inicio</label>
+            <label for="susc-inicio">{{ 'admin.suscripciones.fechaInicioLabel' | t }}</label>
             <input id="susc-inicio" name="fechaInicio" type="date" class="form-control" [(ngModel)]="m.fechaInicio" />
           </div>
           <div class="form-group">
-            <label for="susc-fin">Fecha de fin (vacío = indefinida)</label>
+            <label for="susc-fin">{{ 'admin.suscripciones.fechaFinLabel' | t }}</label>
             <input id="susc-fin" name="fechaFin" type="date" class="form-control" [(ngModel)]="m.fechaFin" />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="susc-ref">Referencia manual</label>
-          <input id="susc-ref" name="referenciaManual" class="form-control" [(ngModel)]="m.referenciaManual" placeholder="Ej. Acuerdo piloto #12" />
+          <label for="susc-ref">{{ 'admin.suscripciones.colReferencia' | t }}</label>
+          <input id="susc-ref" name="referenciaManual" class="form-control" [(ngModel)]="m.referenciaManual" [placeholder]="'admin.suscripciones.referenciaPlaceholder' | t" />
         </div>
 
         <div class="form-group">
-          <label for="susc-motivo">Motivo (auditoría)</label>
-          <input id="susc-motivo" name="motivo" class="form-control" [(ngModel)]="m.motivo" placeholder="Ej. Alta manual inicial" />
+          <label for="susc-motivo">{{ 'admin.suscripciones.motivoLabel' | t }}</label>
+          <input id="susc-motivo" name="motivo" class="form-control" [(ngModel)]="m.motivo" [placeholder]="'admin.suscripciones.motivoPlaceholder' | t" />
         </div>
 
         <div class="form-group">
-          <label for="susc-notas">Notas internas</label>
+          <label for="susc-notas">{{ 'admin.suscripciones.notasInternasLabel' | t }}</label>
           <textarea id="susc-notas" name="notasInternas" class="form-control" [(ngModel)]="m.notasInternas"></textarea>
         </div>
 
         <div class="admin-modal-footer">
-          <button type="button" class="btn-secondary" (click)="modalSuscripcion = null" [disabled]="guardandoSusc">Cancelar</button>
+          <button type="button" class="btn-secondary" (click)="modalSuscripcion = null" [disabled]="guardandoSusc">{{ 'admin.comun.cancelar' | t }}</button>
           <button type="submit" class="btn-primary" [disabled]="guardandoSusc">
-            {{ guardandoSusc ? 'Guardando...' : 'Guardar suscripción' }}
+            {{ (guardandoSusc ? 'admin.comun.guardando' : 'admin.suscripciones.guardarSuscripcion') | t }}
           </button>
         </div>
       </form>
@@ -446,26 +444,26 @@
     <div class="admin-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-susc-titulo" (click)="$event.stopPropagation()">
       <div class="admin-modal-header">
         <h2 id="confirm-susc-titulo" class="admin-modal-title">{{ c.titulo }}</h2>
-        <button type="button" class="admin-modal-close" (click)="confirmacionSusc = null" aria-label="Cerrar">✕</button>
+        <button type="button" class="admin-modal-close" (click)="confirmacionSusc = null" [attr.aria-label]="'admin.comun.cerrar' | t">✕</button>
       </div>
       <p style="font-size: 13px; color: var(--ink-secondary); margin: 0 0 16px;">{{ c.descripcion }}</p>
 
       <div *ngIf="errorConfirm" class="admin-error-banner" role="alert">{{ errorConfirm }}</div>
 
       <div class="form-group">
-        <label for="confirm-susc-motivo">Motivo (auditoría)</label>
-        <input id="confirm-susc-motivo" name="motivo" class="form-control" [(ngModel)]="c.motivo" placeholder="Motivo del cambio de estado" />
+        <label for="confirm-susc-motivo">{{ 'admin.suscripciones.motivoLabel' | t }}</label>
+        <input id="confirm-susc-motivo" name="motivo" class="form-control" [(ngModel)]="c.motivo" [placeholder]="'admin.suscripciones.motivoCambioPlaceholder' | t" />
       </div>
 
       <div class="form-group">
-        <label for="confirm-susc-notas">Notas</label>
+        <label for="confirm-susc-notas">{{ 'admin.suscripciones.notasLabel' | t }}</label>
         <textarea id="confirm-susc-notas" name="notas" class="form-control" [(ngModel)]="c.notas"></textarea>
       </div>
 
       <div class="admin-modal-footer">
-        <button type="button" class="btn-secondary" (click)="confirmacionSusc = null" [disabled]="ejecutandoConfirm">Volver</button>
+        <button type="button" class="btn-secondary" (click)="confirmacionSusc = null" [disabled]="ejecutandoConfirm">{{ 'admin.comun.volver' | t }}</button>
         <button type="button" class="btn-primary" (click)="ejecutarConfirmacionSusc()" [disabled]="ejecutandoConfirm">
-          {{ ejecutandoConfirm ? 'Aplicando...' : 'Confirmar' }}
+          {{ (ejecutandoConfirm ? 'admin.comun.aplicando' : 'admin.comun.confirmar') | t }}
         </button>
       </div>
     </div>
@@ -476,10 +474,10 @@
     <div class="admin-modal admin-modal-lg" role="dialog" aria-modal="true" aria-labelledby="hist-susc-titulo" (click)="$event.stopPropagation()">
       <div class="admin-modal-header">
         <div>
-          <h2 id="hist-susc-titulo" class="admin-modal-title">Historial de suscripción — {{ hi.organizacion.nombre }}</h2>
-          <span class="admin-cell-secondary">Gestión manual, no se procesan pagos</span>
+          <h2 id="hist-susc-titulo" class="admin-modal-title">{{ 'admin.suscripciones.historialTitulo' | t:{ nombre: hi.organizacion.nombre } }}</h2>
+          <span class="admin-cell-secondary">{{ 'admin.suscripciones.modalSubtituloManual' | t }}</span>
         </div>
-        <button type="button" class="admin-modal-close" (click)="historialItem = null" aria-label="Cerrar">✕</button>
+        <button type="button" class="admin-modal-close" (click)="historialItem = null" [attr.aria-label]="'admin.comun.cerrar' | t">✕</button>
       </div>
 
       <div *ngIf="errorHistorial" class="admin-error-banner" role="alert">{{ errorHistorial }}</div>
@@ -488,35 +486,35 @@
       </div>
 
       <div *ngIf="!cargandoHistorial && historial.length === 0 && !errorHistorial" class="admin-state-box">
-        <h3>Sin movimientos registrados</h3>
-        <p>Esta organización aún no tiene cambios de suscripción manual en su historial.</p>
+        <h3>{{ 'admin.suscripciones.historialVacioTitulo' | t }}</h3>
+        <p>{{ 'admin.suscripciones.historialVacioDesc' | t }}</p>
       </div>
 
       <div *ngIf="!cargandoHistorial && historial.length > 0" class="admin-table-wrap">
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Acción</th>
-              <th>Transición</th>
-              <th>Motivo</th>
-              <th>Realizado por</th>
+              <th>{{ 'admin.comun.fecha' | t }}</th>
+              <th>{{ 'admin.comun.accion' | t }}</th>
+              <th>{{ 'admin.suscripciones.colTransicion' | t }}</th>
+              <th>{{ 'admin.suscripciones.colMotivo' | t }}</th>
+              <th>{{ 'admin.suscripciones.colRealizadoPor' | t }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let h of historial">
-              <td data-label="Fecha">{{ formatearFecha(h.creadoEn) }}</td>
-              <td data-label="Acción"><span class="admin-badge admin-badge-blue">{{ h.accion }}</span></td>
-              <td data-label="Transición">{{ h.estadoAnterior }} -> {{ h.estadoNuevo }}</td>
-              <td data-label="Motivo">{{ h.motivo || '—' }}</td>
-              <td data-label="Realizado por">{{ h.realizadoPorCorreo || h.realizadoPor?.correo || 'Sistema' }}</td>
+              <td [attr.data-label]="'admin.comun.fecha' | t">{{ formatearFecha(h.creadoEn) }}</td>
+              <td [attr.data-label]="'admin.comun.accion' | t"><span class="admin-badge admin-badge-blue">{{ h.accion }}</span></td>
+              <td [attr.data-label]="'admin.suscripciones.colTransicion' | t">{{ h.estadoAnterior }} -> {{ h.estadoNuevo }}</td>
+              <td [attr.data-label]="'admin.suscripciones.colMotivo' | t">{{ h.motivo || '—' }}</td>
+              <td [attr.data-label]="'admin.suscripciones.colRealizadoPor' | t">{{ h.realizadoPorCorreo || h.realizadoPor?.correo || ('admin.comun.sistema' | t) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="admin-modal-footer">
-        <button type="button" class="btn-secondary" (click)="historialItem = null">Cerrar</button>
+        <button type="button" class="btn-secondary" (click)="historialItem = null">{{ 'admin.comun.cerrar' | t }}</button>
       </div>
     </div>
   </div>
@@ -527,11 +525,11 @@
       <div class="admin-modal-header">
         <div>
           <h2 id="modal-plan-titulo" class="admin-modal-title">
-            {{ mp.modo === 'CREAR' ? 'Nuevo plan manual' : 'Editar plan manual' }}
+            {{ (mp.modo === 'CREAR' ? 'admin.suscripciones.nuevoPlan' : 'admin.suscripciones.editarPlan') | t }}
           </h2>
-          <span class="admin-cell-secondary">Gestión manual, no se procesan pagos</span>
+          <span class="admin-cell-secondary">{{ 'admin.suscripciones.modalSubtituloManual' | t }}</span>
         </div>
-        <button type="button" class="admin-modal-close" (click)="modalPlan = null" aria-label="Cerrar">✕</button>
+        <button type="button" class="admin-modal-close" (click)="modalPlan = null" [attr.aria-label]="'admin.comun.cerrar' | t">✕</button>
       </div>
 
       <form (ngSubmit)="guardarPlan()">
@@ -539,46 +537,46 @@
 
         <div class="admin-grid-2">
           <div class="form-group">
-            <label for="plan-codigo">Código</label>
+            <label for="plan-codigo">{{ 'admin.suscripciones.planCodigoLabel' | t }}</label>
             <input id="plan-codigo" name="codigo" class="form-control" [(ngModel)]="mp.codigo" required placeholder="BASE_MANUAL" />
           </div>
           <div class="form-group">
-            <label for="plan-nombre">Nombre</label>
-            <input id="plan-nombre" name="nombre" class="form-control" [(ngModel)]="mp.nombre" required placeholder="Plan Base" />
+            <label for="plan-nombre">{{ 'admin.suscripciones.planNombreLabel' | t }}</label>
+            <input id="plan-nombre" name="nombre" class="form-control" [(ngModel)]="mp.nombre" required [placeholder]="'admin.suscripciones.planNombrePlaceholder' | t" />
           </div>
           <div class="form-group">
-            <label for="plan-dias">Duración sugerida (días, opcional)</label>
+            <label for="plan-dias">{{ 'admin.suscripciones.planDiasLabel' | t }}</label>
             <input id="plan-dias" name="duracionSugeridaDias" type="number" min="1" class="form-control" [(ngModel)]="mp.duracionSugeridaDias" />
           </div>
           <div class="form-group">
-            <label for="plan-orden">Orden</label>
+            <label for="plan-orden">{{ 'admin.suscripciones.planOrdenLabel' | t }}</label>
             <input id="plan-orden" name="orden" type="number" min="0" class="form-control" [(ngModel)]="mp.orden" />
           </div>
           <div class="form-group">
-            <label for="plan-prueba">Tipo</label>
+            <label for="plan-prueba">{{ 'admin.suscripciones.colTipo' | t }}</label>
             <select id="plan-prueba" name="esPlanPrueba" class="form-control" [(ngModel)]="mp.esPlanPrueba">
-              <option [ngValue]="false">Plan estándar</option>
-              <option [ngValue]="true">Plan de prueba</option>
+              <option [ngValue]="false">{{ 'admin.suscripciones.planEstandar' | t }}</option>
+              <option [ngValue]="true">{{ 'admin.suscripciones.planPruebaOpt' | t }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="plan-activo">Estado</label>
+            <label for="plan-activo">{{ 'admin.suscripciones.colEstado' | t }}</label>
             <select id="plan-activo" name="activo" class="form-control" [(ngModel)]="mp.activo">
-              <option [ngValue]="true">Activo</option>
-              <option [ngValue]="false">Inactivo</option>
+              <option [ngValue]="true">{{ 'admin.suscripciones.planActivo' | t }}</option>
+              <option [ngValue]="false">{{ 'admin.suscripciones.planInactivo' | t }}</option>
             </select>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="plan-desc">Descripción</label>
+          <label for="plan-desc">{{ 'admin.suscripciones.planDescLabel' | t }}</label>
           <textarea id="plan-desc" name="descripcion" class="form-control" [(ngModel)]="mp.descripcion"></textarea>
         </div>
 
         <div class="admin-modal-footer">
-          <button type="button" class="btn-secondary" (click)="modalPlan = null" [disabled]="guardandoPlan">Cancelar</button>
+          <button type="button" class="btn-secondary" (click)="modalPlan = null" [disabled]="guardandoPlan">{{ 'admin.comun.cancelar' | t }}</button>
           <button type="submit" class="btn-primary" [disabled]="guardandoPlan">
-            {{ guardandoPlan ? 'Guardando...' : 'Guardar plan' }}
+            {{ (guardandoPlan ? 'admin.comun.guardando' : 'admin.suscripciones.guardarPlan') | t }}
           </button>
         </div>
       </form>

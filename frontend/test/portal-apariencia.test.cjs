@@ -9,6 +9,10 @@ const FRONTEND_SRC = path.resolve(__dirname, '../src');
 
 function loadTs(relPath, customMocks = {}) {
   const fullPath = path.resolve(FRONTEND_SRC, relPath);
+  if (fullPath.endsWith('.json')) {
+    const parsed = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    return { __esModule: true, default: parsed, ...parsed };
+  }
   const source = fs.readFileSync(fullPath, 'utf8');
   const transpiled = ts.transpileModule(source, {
     compilerOptions: {
@@ -30,9 +34,19 @@ function loadTs(relPath, customMocks = {}) {
         Component: noop,
         Directive: noop,
         Injectable: noop,
+        Pipe: noop,
         Input: noop,
+        Optional: noop,
         ViewChild: noop,
         HostListener: noop,
+        signal: (val) => {
+          let v = val;
+          const fn = () => v;
+          fn.set = (next) => { v = next; };
+          fn.asReadonly = () => fn;
+          return fn;
+        },
+        computed: (fn) => fn,
         inject: (token) => {
           if (token && token.__mockInstance) return token.__mockInstance;
           return {};
@@ -43,6 +57,9 @@ function loadTs(relPath, customMocks = {}) {
     if (spec === '@angular/forms') return { FormsModule: {} };
     if (spec.startsWith('.')) {
       const resolved = path.resolve(dir, spec);
+      if (resolved.endsWith('.json') && fs.existsSync(resolved)) {
+        return loadTs(path.relative(FRONTEND_SRC, resolved), customMocks);
+      }
       const tsFile = resolved.endsWith('.ts') ? resolved : `${resolved}.ts`;
       if (fs.existsSync(tsFile)) {
         return loadTs(path.relative(FRONTEND_SRC, tsFile), customMocks);
@@ -58,7 +75,7 @@ function loadTs(relPath, customMocks = {}) {
     console,
     setTimeout,
     clearTimeout,
-    window: undefined,
+    window: { location: { hostname: 'localhost', origin: 'http://localhost:4200' } },
   });
 
   return moduleObj.exports;

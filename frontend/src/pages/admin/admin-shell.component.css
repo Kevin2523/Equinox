@@ -106,7 +106,56 @@
 .admin-nav-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.admin-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.admin-lang-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.admin-lang-select {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-lang-select option {
+  background: var(--navy);
+  color: #ffffff;
+}
+
+.admin-lang-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.admin-lang-error {
+  background: var(--coral-soft);
+  color: #9e2a1f;
+  border-bottom: 1px solid rgba(255, 112, 95, 0.35);
+  padding: 8px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
 }
 
 .admin-user-chip {
@@ -249,6 +298,9 @@
     display: inline-flex;
     align-items: center;
   }
+  .admin-lang-select {
+    min-height: 44px;
+  }
   .admin-mobile-link {
     min-height: 44px;
     display: flex;
@@ -266,6 +318,11 @@
   .admin-avatar,
   .admin-pill {
     display: none;
+  }
+  .admin-lang-select {
+    max-width: 108px;
+    padding: 0 6px;
+    font-size: 11px;
   }
   .admin-logout-btn {
     padding: 0 10px;

@@ -7,6 +7,8 @@ import { Subscription, firstValueFrom } from 'rxjs';
 import { UiStateService } from '../state/ui-state.service';
 import { AuthService } from '../auth/auth.service';
 import { DialogFocusDirective } from '../shared/dialog-focus.directive';
+import { TPipe } from '../shared/t.pipe';
+import { I18nService } from '../state/i18n.service';
 import { obtenerBaseApi } from '../auth/api.config';
 import { ClientesProyectosApiService, ProyectoApi } from '../services/clientes-proyectos-api.service';
 import {
@@ -25,7 +27,7 @@ export type PestanaTareas = 'PENDIENTES' | 'COMPLETADAS';
 @Component({
   selector: 'app-tareas',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogFocusDirective],
+  imports: [CommonModule, FormsModule, DialogFocusDirective, TPipe],
   templateUrl: './tareas.component.html',
   styleUrl: './tareas.component.css'
 })
@@ -91,8 +93,20 @@ export class TareasComponent implements OnInit, OnDestroy {
     private trabajo: TrabajoApiService,
     private auth: AuthService,
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private i18n?: I18nService
   ) {}
+
+  private t(key: string, params?: Record<string, string | number>, fallback = key): string {
+    if (this.i18n) {
+      return this.i18n.t(key, params);
+    }
+    if (!params) return fallback;
+    return fallback.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) => {
+      const value = params[name];
+      return value !== undefined && value !== null ? String(value) : match;
+    });
+  }
 
   ngOnInit(): void {
     this.cambios = this.trabajo.cambios$.subscribe(() => {
@@ -245,7 +259,7 @@ export class TareasComponent implements OnInit, OnDestroy {
       }
     } catch {
       if (solicitud === this.solicitud && token === this.auth.token) {
-        this.error = 'No se pudieron cargar las tareas de la organización. Intenta nuevamente.';
+        this.error = this.t('crm.tareas.errorCargar', undefined, 'No se pudieron cargar las tareas de la organización. Intenta nuevamente.');
       }
     } finally {
       if (solicitud === this.solicitud && token === this.auth.token) {
@@ -310,7 +324,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     } catch {
       // Revertir ante error
       tarea.estado = estadoOriginal;
-      this.errorAccion = 'No se pudo actualizar el estado de la tarea.';
+      this.errorAccion = this.t('crm.tareas.errorAlternar', undefined, 'No se pudo actualizar el estado de la tarea.');
     }
   }
 
@@ -352,12 +366,12 @@ export class TareasComponent implements OnInit, OnDestroy {
   async guardarNuevaTarea(): Promise<void> {
     if (this.guardando) return;
     if (!this.formCrear.proyectoId) {
-      this.errorModal = 'Selecciona un proyecto para la tarea.';
+      this.errorModal = this.t('crm.tareas.errorSeleccionaProyectoCrear', undefined, 'Selecciona un proyecto para la tarea.');
       return;
     }
     const titulo = this.formCrear.titulo.trim();
     if (titulo.length < 2) {
-      this.errorModal = 'El título debe tener al menos dos caracteres.';
+      this.errorModal = this.t('crm.tareas.errorTituloCorto', undefined, 'El título debe tener al menos dos caracteres.');
       return;
     }
 
@@ -374,7 +388,7 @@ export class TareasComponent implements OnInit, OnDestroy {
       this.cerrarModalCrear();
       await this.cargar();
     } catch (err: any) {
-      this.errorModal = err?.error?.error || 'No se pudo crear la tarea. Verifica los datos.';
+      this.errorModal = err?.error?.error || this.t('crm.tareas.errorCrear', undefined, 'No se pudo crear la tarea. Verifica los datos.');
     } finally {
       this.guardando = false;
     }
@@ -406,7 +420,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     if (this.guardando || !this.tareaEditando) return;
     const titulo = this.formEditar.titulo.trim();
     if (titulo.length < 2) {
-      this.errorModal = 'El título debe tener al menos dos caracteres.';
+      this.errorModal = this.t('crm.tareas.errorTituloCorto', undefined, 'El título debe tener al menos dos caracteres.');
       return;
     }
 
@@ -424,7 +438,7 @@ export class TareasComponent implements OnInit, OnDestroy {
       this.cerrarModalEditar();
       await this.cargar();
     } catch (err: any) {
-      this.errorModal = err?.error?.error || 'No se pudo guardar la tarea.';
+      this.errorModal = err?.error?.error || this.t('crm.tareas.errorGuardar', undefined, 'No se pudo guardar la tarea.');
     } finally {
       this.guardando = false;
     }
@@ -453,7 +467,7 @@ export class TareasComponent implements OnInit, OnDestroy {
       this.cerrarModalEliminar();
       await this.cargar();
     } catch {
-      this.errorAccion = 'No se pudo eliminar la tarea.';
+      this.errorAccion = this.t('crm.tareas.errorEliminar', undefined, 'No se pudo eliminar la tarea.');
     } finally {
       this.guardando = false;
     }
@@ -491,12 +505,12 @@ export class TareasComponent implements OnInit, OnDestroy {
   async guardarTareaRapida(): Promise<void> {
     if (this.guardando) return;
     if (!this.formRapido.proyectoId) {
-      this.errorRapido = 'Selecciona un proyecto.';
+      this.errorRapido = this.t('crm.tareas.errorSeleccionaProyectoRapido', undefined, 'Selecciona un proyecto.');
       return;
     }
     const titulo = this.formRapido.titulo.trim();
     if (titulo.length < 2) {
-      this.errorRapido = 'El título debe tener al menos dos caracteres.';
+      this.errorRapido = this.t('crm.tareas.errorTituloCorto', undefined, 'El título debe tener al menos dos caracteres.');
       return;
     }
 
@@ -513,7 +527,7 @@ export class TareasComponent implements OnInit, OnDestroy {
       this.cerrarCreacionRapida();
       await this.cargar();
     } catch (err: any) {
-      this.errorRapido = err?.error?.error || 'No se pudo crear la tarea.';
+      this.errorRapido = err?.error?.error || this.t('crm.tareas.errorCrearRapido', undefined, 'No se pudo crear la tarea.');
     } finally {
       this.guardando = false;
     }
@@ -538,18 +552,23 @@ export class TareasComponent implements OnInit, OnDestroy {
     const ymd = this.extraerYMD(fecha);
     if (!ymd) return '';
     const hoy = this.hoyYMD();
-    if (ymd === hoy) return 'Hoy';
+    if (ymd === hoy) return this.t('crm.tareas.hoy', undefined, 'Hoy');
 
     const mananaDate = new Date();
     mananaDate.setDate(mananaDate.getDate() + 1);
     const mananaYMD = `${mananaDate.getFullYear()}-${String(mananaDate.getMonth() + 1).padStart(2, '0')}-${String(mananaDate.getDate()).padStart(2, '0')}`;
-    if (ymd === mananaYMD) return 'Mañana';
+    if (ymd === mananaYMD) return this.t('crm.tareas.manana', undefined, 'Mañana');
 
     const [y, m, d] = ymd.split('-').map(Number);
+    const anioActual = new Date().getFullYear();
+    if (this.i18n) {
+      const dateObj = new Date(Date.UTC(y, m - 1, d));
+      return this.i18n.formatearFecha(dateObj, y !== anioActual
+        ? { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }
+        : { day: 'numeric', month: 'short', timeZone: 'UTC' });
+    }
     const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     const mes = meses[m - 1] || '';
-
-    const anioActual = new Date().getFullYear();
     return y !== anioActual ? `${d} ${mes} ${y}` : `${d} ${mes}`;
   }
 

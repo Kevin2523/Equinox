@@ -4,6 +4,7 @@ export interface OpcionTipografiaPortal {
   id: TipografiaPortal;
   label: string;
   descripcion: string;
+  descripcionKey: string;
   stack: string;
 }
 
@@ -12,18 +13,21 @@ export const TIPOGRAFIAS_PORTAL: OpcionTipografiaPortal[] = [
     id: 'Inter',
     label: 'Inter',
     descripcion: 'Limpia y técnica',
+    descripcionKey: 'publico.branding.tipografia.inter',
     stack: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   {
     id: 'DM Sans',
     label: 'DM Sans',
     descripcion: 'Editorial y moderna',
+    descripcionKey: 'publico.branding.tipografia.dmSans',
     stack: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   {
     id: 'Manrope',
     label: 'Manrope',
     descripcion: 'Geométrica y expresiva',
+    descripcionKey: 'publico.branding.tipografia.manrope',
     stack: "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
 ];
@@ -130,7 +134,8 @@ export interface EvaluacionContrastePaleta {
 
 export function evaluarContrastePaleta(
   primario: string,
-  secundario: string
+  secundario: string,
+  traducir?: (key: string) => string
 ): EvaluacionContrastePaleta {
   const prim = normalizarHex(primario) ?? COLOR_PRIMARIO_DEFECTO;
   const sec = normalizarHex(secundario) ?? COLOR_SECUNDARIO_DEFECTO;
@@ -149,12 +154,16 @@ export function evaluarContrastePaleta(
   const advertencias: string[] = [];
   if (contrastePrimarioSobreBlanco < 3) {
     advertencias.push(
-      'El color primario es muy claro frente a tarjetas blancas; los indicadores y botones ajustarán su contraste automáticamente.'
+      traducir
+        ? traducir('publico.branding.contrastePrimario')
+        : 'El color primario es muy claro frente a tarjetas blancas; los indicadores y botones ajustarán su contraste automáticamente.'
     );
   }
   if (contrasteSecundarioTexto < 4.5) {
     advertencias.push(
-      'El color secundario tiene contraste ajustado; se seleccionó el tono de texto con mayor legibilidad.'
+      traducir
+        ? traducir('publico.branding.contrasteSecundario')
+        : 'El color secundario tiene contraste ajustado; se seleccionó el tono de texto con mayor legibilidad.'
     );
   }
 

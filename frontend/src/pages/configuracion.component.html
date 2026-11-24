@@ -3,8 +3,8 @@
     <!-- CABECERA -->
     <header class="config-header">
       <div class="config-header-copy">
-        <h1>Marca y estudio</h1>
-        <p>Personaliza la identidad visual de tu portal del cliente.</p>
+        <h1>{{ 'crm.configuracion.titulo' | t }}</h1>
+        <p>{{ 'crm.configuracion.subtitulo' | t }}</p>
       </div>
       <div class="config-header-actions">
         <button
@@ -13,7 +13,7 @@
           [disabled]="!esPropietario || guardando || cargandoOrg || !hayCambiosSinGuardar || !formularioValido"
           (click)="guardarCambios()"
         >
-          {{ guardando ? 'Guardando…' : 'Guardar cambios' }}
+          {{ (guardando ? 'crm.configuracion.guardandoBtn' : 'crm.configuracion.guardarCambios') | t }}
         </button>
       </div>
     </header>
@@ -25,13 +25,13 @@
       role="status"
     >
       <span class="readonly-dot" aria-hidden="true"></span>
-      <span>Solo el propietario del estudio puede modificar los datos y la apariencia del portal.</span>
+      <span>{{ 'crm.configuracion.soloLecturaBanner' | t }}</span>
     </div>
 
     <!-- LAYOUT DE 3 COLUMNAS -->
     <div class="config-grid">
       <!-- NAVEGACIÓN LATERAL -->
-      <nav class="config-sidebar" aria-label="Secciones de configuración">
+      <nav class="config-sidebar" [attr.aria-label]="'crm.configuracion.sidebarAria' | t">
         <button
           type="button"
           class="sidebar-item"
@@ -40,8 +40,8 @@
           (click)="seleccionarSeccion('estudio')"
         >
           <span class="sidebar-item-copy">
-            <strong>Datos del estudio</strong>
-            <small>Datos fiscales y de contacto</small>
+            <strong>{{ 'crm.configuracion.tabs.estudio' | t }}</strong>
+            <small>{{ 'crm.configuracion.tabs.estudioDesc' | t }}</small>
           </span>
           <span class="sidebar-chevron" aria-hidden="true">›</span>
         </button>
@@ -54,7 +54,7 @@
           (click)="seleccionarSeccion('portal')"
         >
           <span class="sidebar-item-copy">
-            <strong>Portal del cliente</strong>
+            <strong>{{ 'crm.configuracion.tabs.portal' | t }}</strong>
           </span>
           <span class="sidebar-chevron" aria-hidden="true">›</span>
         </button>
@@ -67,7 +67,21 @@
           (click)="seleccionarSeccion('acceso')"
         >
           <span class="sidebar-item-copy">
-            <strong>Acceso y finanzas</strong>
+            <strong>{{ 'crm.configuracion.tabs.acceso' | t }}</strong>
+          </span>
+          <span class="sidebar-chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-item"
+          [class.active]="seccionActiva === 'preferencias'"
+          [attr.aria-current]="seccionActiva === 'preferencias' ? 'page' : null"
+          (click)="seleccionarSeccion('preferencias')"
+        >
+          <span class="sidebar-item-copy">
+            <strong>{{ 'configuracion.tabs.preferencias' | t }}</strong>
+            <small>{{ 'configuracion.tabs.preferenciasDesc' | t }}</small>
           </span>
           <span class="sidebar-chevron" aria-hidden="true">›</span>
         </button>
@@ -88,8 +102,8 @@
                 </svg>
               </div>
               <div class="studio-summary-text">
-                <strong>{{ form.nombre || 'Tu estudio' }}</strong>
-                <span>Freelancer: {{ nombreFreelancer }}</span>
+                <strong>{{ form.nombre || ('crm.configuracion.tuEstudio' | t) }}</strong>
+                <span>{{ 'crm.configuracion.freelancerLabel' | t:{ nombre: nombreFreelancer } }}</span>
               </div>
             </div>
             <button
@@ -97,18 +111,18 @@
               class="btn-edit-studio-link"
               (click)="irAEditarDatosEstudio()"
             >
-              Editar datos <span aria-hidden="true">↗</span>
+              {{ 'crm.configuracion.editarDatos' | t }} <span aria-hidden="true">↗</span>
             </button>
           </div>
-          <h2 class="section-heading">Apariencia del portal</h2>
+          <h2 class="section-heading">{{ 'crm.configuracion.aparienciaTitulo' | t }}</h2>
 
           <div class="color-fields-row">
             <div class="field-block">
-              <label for="colorPrimarioTexto">Color primario de marca</label>
+              <label for="colorPrimarioTexto">{{ 'crm.configuracion.colorPrimario' | t }}</label>
               <div class="color-input-box" [class.field-invalid]="!colorPrimarioValido">
                 <input
                   type="color"
-                  aria-label="Selector visual de color primario"
+                  [attr.aria-label]="'crm.configuracion.colorPrimarioPickerAria' | t"
                   [ngModel]="colorPrimarioPreview"
                   [disabled]="!esPropietario || cargandoOrg"
                   (ngModelChange)="alCambiarColorPicker('primario', $event)"
@@ -124,16 +138,16 @@
                 />
               </div>
               <small class="field-error" *ngIf="!colorPrimarioValido" role="alert">
-                Usa un color hexadecimal válido (#RRGGBB).
+                {{ 'crm.configuracion.colorHexInvalido' | t }}
               </small>
             </div>
 
             <div class="field-block">
-              <label for="colorSecundarioTexto">Color secundario</label>
+              <label for="colorSecundarioTexto">{{ 'crm.configuracion.colorSecundario' | t }}</label>
               <div class="color-input-box" [class.field-invalid]="!colorSecundarioValido">
                 <input
                   type="color"
-                  aria-label="Selector visual de color secundario"
+                  [attr.aria-label]="'crm.configuracion.colorSecundarioPickerAria' | t"
                   [ngModel]="colorSecundarioPreview"
                   [disabled]="!esPropietario || cargandoOrg"
                   (ngModelChange)="alCambiarColorPicker('secundario', $event)"
@@ -149,7 +163,7 @@
                 />
               </div>
               <small class="field-error" *ngIf="!colorSecundarioValido" role="alert">
-                Usa un color hexadecimal válido (#RRGGBB).
+                {{ 'crm.configuracion.colorHexInvalido' | t }}
               </small>
             </div>
           </div>
@@ -160,13 +174,13 @@
             *ngIf="contrastePaleta.advertencias.length > 0"
             role="status"
           >
-            <span class="contrast-badge">Contraste</span>
+            <span class="contrast-badge">{{ 'crm.configuracion.contraste' | t }}</span>
             <p>{{ contrastePaleta.advertencias[0] }}</p>
           </div>
 
           <div class="field-block">
             <div class="label-with-counter">
-              <label for="mensajeBienvenidaTextarea">Mensaje de bienvenida para clientes</label>
+              <label for="mensajeBienvenidaTextarea">{{ 'crm.configuracion.mensajeBienvenida' | t }}</label>
               <span class="char-counter">{{ form.portalMensajeBienvenida.length }}/400</span>
             </div>
             <textarea
@@ -185,7 +199,7 @@
 
           <!-- Facturas visibles (acceso rápido sincronizado) -->
           <div class="invoices-toggle-section">
-            <h3 class="subsection-heading">Facturas visibles</h3>
+            <h3 class="subsection-heading">{{ 'crm.configuracion.facturasVisibles' | t }}</h3>
             <div class="invoices-toggle-row">
               <div class="invoices-toggle-left">
                 <button
@@ -195,14 +209,14 @@
                   class="switch-control"
                   [class.switch-on]="portalMostrarFinanzas"
                   [attr.aria-checked]="portalMostrarFinanzas"
-                  aria-label="Mostrar facturas en el portal del cliente"
+                  [attr.aria-label]="'crm.configuracion.facturasSwitchAria' | t"
                   [disabled]="!esPropietario || guardandoFinanzas || cargandoOrg"
                   (click)="cambiarPortalMostrarFinanzas(!portalMostrarFinanzas)"
                 >
                   <span class="switch-thumb"></span>
                 </button>
                 <span class="invoices-toggle-desc">
-                  Solo los titulares verán las facturas al activar esta opción.
+                  {{ 'crm.configuracion.facturasSwitchDesc' | t }}
                 </span>
               </div>
               <span
@@ -210,7 +224,7 @@
                 [class.status-pill-on]="portalMostrarFinanzas"
                 [class.status-pill-off]="!portalMostrarFinanzas"
               >
-                {{ portalMostrarFinanzas ? 'Visible' : 'Oculto' }}
+                {{ (portalMostrarFinanzas ? 'crm.configuracion.visible' : 'crm.configuracion.oculto') | t }}
               </span>
             </div>
             <small class="inline-status-text" *ngIf="guardandoFinanzas">
@@ -227,13 +241,13 @@
 
         <!-- SECCIÓN: DATOS DEL ESTUDIO -->
         <ng-container *ngIf="seccionActiva === 'estudio'">
-          <h2 class="section-heading">Datos del estudio</h2>
+          <h2 class="section-heading">{{ 'crm.configuracion.datosEstudioTitulo' | t }}</h2>
           <p class="section-subcopy">
-            Información fiscal y de contacto de tu organización. Se guarda al pulsar «Guardar cambios».
+            {{ 'crm.configuracion.datosEstudioSubtitulo' | t }}
           </p>
 
           <div class="field-block">
-            <label for="inputNombreEstudio">Nombre del estudio</label>
+            <label for="inputNombreEstudio">{{ 'crm.configuracion.nombreEstudio' | t }}</label>
             <input
               #inputNombreEstudio
               id="inputNombreEstudio"
@@ -245,13 +259,13 @@
               (ngModelChange)="marcarEditado()"
             />
             <small class="field-error" *ngIf="!nombreValido" role="alert">
-              El nombre del estudio debe tener al menos 2 caracteres.
+              {{ 'crm.configuracion.nombreEstudioError' | t }}
             </small>
           </div>
 
           <div class="two-col-row">
             <div class="field-block">
-              <label for="inputCorreoContacto">Correo de contacto</label>
+              <label for="inputCorreoContacto">{{ 'crm.configuracion.correoContacto' | t }}</label>
               <input
                 id="inputCorreoContacto"
                 type="email"
@@ -263,12 +277,12 @@
                 (ngModelChange)="marcarEditado()"
               />
               <small class="field-error" *ngIf="!correoValido" role="alert">
-                Ingresa un correo electrónico válido.
+                {{ 'crm.configuracion.correoError' | t }}
               </small>
             </div>
 
             <div class="field-block">
-              <label for="inputTelefono">Teléfono (WhatsApp)</label>
+              <label for="inputTelefono">{{ 'crm.configuracion.telefono' | t }}</label>
               <input
                 id="inputTelefono"
                 type="text"
@@ -284,7 +298,7 @@
 
           <div class="two-col-row">
             <div class="field-block">
-              <label for="inputRuc">RUC / Cédula fiscal</label>
+              <label for="inputRuc">{{ 'crm.configuracion.ruc' | t }}</label>
               <input
                 id="inputRuc"
                 type="text"
@@ -297,7 +311,7 @@
             </div>
 
             <div class="field-block">
-              <label for="selectMoneda">Moneda principal</label>
+              <label for="selectMoneda">{{ 'crm.configuracion.monedaPrincipal' | t }}</label>
               <select
                 id="selectMoneda"
                 class="control-input"
@@ -313,7 +327,7 @@
           </div>
 
           <div class="field-block">
-            <label for="inputDireccion">Dirección fiscal o comercial</label>
+            <label for="inputDireccion">{{ 'crm.configuracion.direccion' | t }}</label>
             <input
               id="inputDireccion"
               type="text"
@@ -328,13 +342,13 @@
 
         <!-- SECCIÓN: ACCESO Y FINANZAS -->
         <ng-container *ngIf="seccionActiva === 'acceso'">
-          <h2 class="section-heading">Acceso y finanzas</h2>
+          <h2 class="section-heading">{{ 'crm.configuracion.accesoTitulo' | t }}</h2>
           <p class="section-subcopy">
-            Define tu especialidad de trabajo y qué información financiera pueden consultar tus clientes titulares.
+            {{ 'crm.configuracion.accesoSubtitulo' | t }}
           </p>
 
           <div class="field-block">
-            <label for="tipoFreelanceSelect">Modalidad de freelance / Especialidad</label>
+            <label for="tipoFreelanceSelect">{{ 'crm.configuracion.modalidadLabel' | t }}</label>
             <select
               id="tipoFreelanceSelect"
               class="control-input"
@@ -342,19 +356,19 @@
               [disabled]="!esPropietario || guardandoTipo || cargandoOrg"
               (ngModelChange)="cambiarTipoFreelance($event)"
             >
-              <option value="GENERAL">General / Multidisciplinario</option>
-              <option value="DESARROLLO_SOFTWARE">Desarrollo de Software</option>
-              <option value="FOTOGRAFIA">Fotografía</option>
-              <option value="DISENO_GRAFICO">Diseño Gráfico</option>
+              <option value="GENERAL">{{ 'crm.configuracion.modalidadGeneral' | t }}</option>
+              <option value="DESARROLLO_SOFTWARE">{{ 'crm.configuracion.modalidadSoftware' | t }}</option>
+              <option value="FOTOGRAFIA">{{ 'crm.configuracion.modalidadFotografia' | t }}</option>
+              <option value="DISENO_GRAFICO">{{ 'crm.configuracion.modalidadDiseno' | t }}</option>
             </select>
             <small class="field-hint" *ngIf="esPropietario && !guardandoTipo">
-              Puedes cambiar de modalidad en cualquier momento sin perder ningún dato ni historial.
+              {{ 'crm.configuracion.modalidadAyuda' | t }}
             </small>
             <small class="field-hint" *ngIf="!esPropietario">
-              Solo el propietario del estudio tiene permisos para cambiar la modalidad.
+              {{ 'crm.configuracion.modalidadSoloProp' | t }}
             </small>
             <small class="inline-status-text" *ngIf="guardandoTipo">
-              Guardando cambios de modalidad…
+              {{ 'crm.configuracion.modalidadGuardando' | t }}
             </small>
             <small class="inline-status-success" *ngIf="mensajeExitoTipo" role="status">
               {{ mensajeExitoTipo }}
@@ -375,10 +389,10 @@
                     [disabled]="!esPropietario || guardandoFinanzas || cargandoOrg"
                     (ngModelChange)="cambiarPortalMostrarFinanzas($event)"
                   />
-                  Mostrar facturas en el portal del cliente
+                  {{ 'crm.configuracion.mostrarFacturasPortal' | t }}
                 </label>
                 <p>
-                  Permite que los contactos titulares de cada cliente consulten sus facturas emitidas, pendientes y pagadas. Los colaboradores del cliente no tendrán acceso a estos datos financieros.
+                  {{ 'crm.configuracion.mostrarFacturasDesc' | t }}
                 </p>
               </div>
               <span
@@ -386,16 +400,16 @@
                 [class.status-pill-on]="portalMostrarFinanzas"
                 [class.status-pill-off]="!portalMostrarFinanzas"
               >
-                {{ portalMostrarFinanzas ? 'Visible en portal' : 'Oculto' }}
+                {{ (portalMostrarFinanzas ? 'crm.configuracion.visibleEnPortal' : 'crm.configuracion.oculto') | t }}
               </span>
             </div>
 
             <div class="finanzas-card-feedback">
               <small class="field-hint" *ngIf="!esPropietario">
-                Solo el propietario del estudio tiene permisos para modificar la visualización de facturas.
+                {{ 'crm.configuracion.facturasSoloProp' | t }}
               </small>
               <small class="inline-status-text" *ngIf="guardandoFinanzas">
-                Guardando preferencia de facturas en el portal…
+                {{ 'crm.configuracion.facturasGuardando' | t }}
               </small>
               <small class="inline-status-success" *ngIf="mensajeExitoFinanzas" role="status">
                 {{ mensajeExitoFinanzas }}
@@ -407,41 +421,76 @@
           </div>
         </ng-container>
 
+        <!-- SECCIÓN: PREFERENCIAS DE CUENTA (IDIOMA INDIVIDUAL PARA CUALQUIER CUENTA) -->
+        <ng-container *ngIf="seccionActiva === 'preferencias'">
+          <h2 class="section-heading">{{ 'configuracion.idioma.titulo' | t }}</h2>
+          <p class="section-subcopy">
+            {{ 'configuracion.idioma.subtitulo' | t }}
+          </p>
+
+          <div class="field-block">
+            <label for="selectIdiomaPersonal">{{ 'configuracion.idioma.etiqueta' | t }}</label>
+            <select
+              id="selectIdiomaPersonal"
+              class="control-input"
+              [(ngModel)]="idiomaSeleccionado"
+              [disabled]="guardandoIdioma"
+              (ngModelChange)="cambiarIdiomaPersonal($event)"
+            >
+              <option *ngFor="let item of i18n.idiomasDisponibles" [value]="item.codigo">
+                {{ item.nombreNativo }} ({{ item.etiquetaCorta }})
+              </option>
+            </select>
+            <small class="field-hint" *ngIf="!guardandoIdioma">
+              {{ 'configuracion.idioma.ayudaIndividual' | t }}
+            </small>
+            <small class="inline-status-text" *ngIf="guardandoIdioma">
+              {{ 'configuracion.idioma.guardando' | t }}
+            </small>
+            <small class="inline-status-success" *ngIf="mensajeExitoIdioma" role="status">
+              {{ mensajeExitoIdioma }}
+            </small>
+            <small class="field-error" *ngIf="errorIdioma" role="alert">
+              {{ errorIdioma }}
+            </small>
+          </div>
+        </ng-container>
+
         <!-- ESTADO DE CAMBIOS (SIN GUARDAR / GUARDANDO / GUARDADO / ERROR) -->
         <div
           class="save-status-footer"
-          *ngIf="seccionActiva !== 'acceso'"
+          *ngIf="seccionActiva !== 'acceso' && seccionActiva !== 'preferencias'"
           [attr.role]="estadoGuardado === 'error' ? 'alert' : 'status'"
           aria-live="polite"
         >
           <span class="status-indicator status-unsaved" *ngIf="estadoGuardado === 'sin_guardar'">
             <i class="status-dot" aria-hidden="true"></i>
-            Cambios sin guardar
+            {{ 'crm.configuracion.estadoSinGuardar' | t }}
           </span>
           <span class="status-indicator status-saving" *ngIf="estadoGuardado === 'guardando'">
             <i class="status-dot" aria-hidden="true"></i>
-            Guardando cambios…
+            {{ 'crm.configuracion.estadoGuardadoGuardando' | t }}
           </span>
           <span class="status-indicator status-saved" *ngIf="estadoGuardado === 'guardado'">
             <i class="status-dot" aria-hidden="true"></i>
-            Cambios guardados en el portal
+            {{ 'crm.configuracion.estadoGuardadoExito' | t }}
           </span>
           <span class="status-indicator status-error" *ngIf="estadoGuardado === 'error'">
             <i class="status-dot" aria-hidden="true"></i>
             {{ errorGuardado }}
           </span>
         </div>
-        <p class="cfg-preview-note">Los cambios se reflejan al instante. Pulsa «Guardar» para aplicarlos a tus clientes.</p>
+        <p class="cfg-preview-note">{{ 'crm.configuracion.previewNota' | t }}</p>
       </div>
 
       <!-- COLUMNA DERECHA: VISTA PREVIA EN VIVO -->
-      <aside class="config-preview-pane" aria-label="Vista previa en vivo del portal del cliente">
+      <aside class="config-preview-pane" [attr.aria-label]="'crm.configuracion.previewPaneAria' | t">
         <div class="preview-toolbar">
           <div>
-            <h2>Vista previa en vivo</h2>
-            <small class="preview-disclaimer">Representación fiel del portal del cliente actual</small>
+            <h2>{{ 'crm.configuracion.previewTitulo' | t }}</h2>
+            <small class="preview-disclaimer">{{ 'crm.configuracion.previewDisclaimer' | t }}</small>
           </div>
-          <div class="device-toggle" role="group" aria-label="Tamaño de vista previa">
+          <div class="device-toggle" role="group" [attr.aria-label]="'crm.configuracion.previewTamanoAria' | t">
             <button
               type="button"
               class="device-btn"
@@ -453,7 +502,7 @@
                 <rect x="2" y="3" width="20" height="14" rx="2" />
                 <path d="M8 21h8M12 17v4" />
               </svg>
-              Desktop
+              {{ 'crm.configuracion.desktop' | t }}
             </button>
             <button
               type="button"
@@ -466,7 +515,7 @@
                 <rect x="6" y="2" width="12" height="20" rx="2" />
                 <path d="M12 18h.01" />
               </svg>
-              Móvil
+              {{ 'crm.configuracion.movil' | t }}
             </button>
           </div>
         </div>
@@ -489,9 +538,9 @@
           <span class="info-circle" aria-hidden="true">i</span>
           <span>
             {{
-              portalMostrarFinanzas
-                ? 'Facturas visibles en el portal solo para contactos titulares.'
-                : 'Facturas ocultas en el portal.'
+              (portalMostrarFinanzas
+                ? 'crm.configuracion.previewFacturasVisibles'
+                : 'crm.configuracion.previewFacturasOcultas') | t
             }}
           </span>
         </div>

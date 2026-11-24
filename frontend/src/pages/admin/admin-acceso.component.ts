@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import QRCode from 'qrcode';
 import { AuthService } from '../../auth/auth.service';
 import { RespuestaInicioConfiguracionMfa } from '../../auth/auth.model';
 import { API_ORIGIN } from '../../auth/api.config';
+import { IdiomaSoportado } from '../../i18n/i18n.types';
+import { TPipe } from '../../shared/t.pipe';
+import { I18nService } from '../../state/i18n.service';
 
 type PasoAccesoAdmin =
   | 'CREDENCIALES'
@@ -17,11 +20,12 @@ type PasoAccesoAdmin =
 @Component({
   selector: 'app-admin-acceso',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TPipe],
   templateUrl: './admin-acceso.component.html',
   styleUrls: ['./admin-acceso.component.css']
 })
 export class AdminAccesoComponent implements OnInit, OnDestroy {
+  readonly i18n = inject(I18nService);
   readonly apiDisponible = !!API_ORIGIN;
   paso: PasoAccesoAdmin = 'CREDENCIALES';
 
@@ -72,6 +76,10 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
     this.limpiarDatosSensibles();
   }
 
+  cambiarIdiomaLocal(idioma: IdiomaSoportado): void {
+    this.i18n.establecerIdiomaLocal(idioma);
+  }
+
   async enviarCredenciales(): Promise<void> {
     if (this.cargando || !this.correo.trim() || !this.contrasena) return;
     this.cargando = true;
@@ -98,9 +106,9 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
         return;
       }
 
-      this.error = 'La respuesta del servidor no incluyó el desafío MFA requerido.';
+      this.error = this.i18n.t('admin.acceso.errorSinDesafioMfa');
     } catch (err: any) {
-      this.error = this.formatearError(err, 'No se pudo iniciar el acceso de administrador.');
+      this.error = this.formatearError(err, this.i18n.t('admin.acceso.errorIniciarAdmin'));
     } finally {
       this.cargando = false;
     }
@@ -118,7 +126,7 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
     if (this.cargando) return;
     const codigoLimpio = this.codigoTotp.replace(/\D/g, '').trim();
     if (!/^\d{6}$/.test(codigoLimpio)) {
-      this.error = 'Ingresa un código TOTP válido de 6 dígitos.';
+      this.error = this.i18n.t('admin.acceso.errorTotpInvalido');
       setTimeout(() => this.mfaSetupCodeInput?.nativeElement?.focus(), 0);
       return;
     }
@@ -136,7 +144,7 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
         await this.router.navigateByUrl('/admin/resumen');
       }
     } catch (err: any) {
-      this.error = this.formatearError(err, 'No se pudo confirmar el código TOTP.');
+      this.error = this.formatearError(err, this.i18n.t('admin.acceso.errorConfirmarTotp'));
       setTimeout(() => this.mfaSetupCodeInput?.nativeElement?.focus(), 0);
     } finally {
       this.cargando = false;
@@ -151,11 +159,11 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
       : { codigoTotp: codigoTotpLimpio };
 
     if (this.usarCodigoRecuperacion && !payload.codigoRecuperacion) {
-      this.error = 'Ingresa el código de recuperación para continuar.';
+      this.error = this.i18n.t('admin.acceso.errorCodigoRecRequerido');
       return;
     }
     if (!this.usarCodigoRecuperacion && !/^\d{6}$/.test(codigoTotpLimpio)) {
-      this.error = 'Ingresa un código TOTP válido de 6 dígitos.';
+      this.error = this.i18n.t('admin.acceso.errorTotpInvalido');
       setTimeout(() => this.mfaVerifyCodeInput?.nativeElement?.focus(), 0);
       return;
     }
@@ -167,7 +175,7 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
       this.limpiarDatosSensibles();
       await this.router.navigateByUrl('/admin/resumen');
     } catch (err: any) {
-      this.error = this.formatearError(err, 'Código de verificación inválido.');
+      this.error = this.formatearError(err, this.i18n.t('admin.acceso.errorCodigoInvalido'));
     } finally {
       this.cargando = false;
     }
@@ -180,9 +188,9 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
     this.mensajeExito = '';
     try {
       const res = await this.auth.solicitarRecuperacionMfa(this.correoRecuperacion.trim());
-      this.mensajeExito = res.mensaje || 'Si la cuenta es elegible, recibirás instrucciones para restablecer tu MFA.';
+      this.mensajeExito = res.mensaje || this.i18n.t('admin.acceso.exitoSolicitarRec');
     } catch (err: any) {
-      this.error = this.formatearError(err, 'No se pudo solicitar la recuperación MFA.');
+      this.error = this.formatearError(err, this.i18n.t('admin.acceso.errorSolicitarRec'));
     } finally {
       this.cargando = false;
     }
@@ -197,10 +205,10 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
       const res = await this.auth.restablecerMfa(this.tokenRecuperacion.trim(), this.nuevaContrasena);
       this.nuevaContrasena = '';
       this.tokenRecuperacion = '';
-      this.mensajeExito = res.mensaje || 'MFA restablecido. Inicia sesión para configurar tu nuevo autenticador.';
+      this.mensajeExito = res.mensaje || this.i18n.t('admin.acceso.exitoRestablecerMfa');
       this.paso = 'CREDENCIALES';
     } catch (err: any) {
-      this.error = this.formatearError(err, 'No se pudo restablecer el MFA.');
+      this.error = this.formatearError(err, this.i18n.t('admin.acceso.errorRestablecerMfa'));
     } finally {
       this.cargando = false;
     }
@@ -211,10 +219,10 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
     await this.router.navigateByUrl('/admin/resumen');
   }
 
-  copiarTexto(texto: string, mensaje = 'Copiado al portapapeles.'): void {
+  copiarTexto(texto: string, claveMensaje = 'admin.acceso.copiadoDefecto'): void {
     if (navigator?.clipboard && texto) {
       void navigator.clipboard.writeText(texto);
-      this.mensajeExito = mensaje;
+      this.mensajeExito = this.i18n.t(claveMensaje);
     }
   }
 
@@ -243,7 +251,7 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
         }
       });
     } catch {
-      this.errorQr = 'No se pudo generar el código QR en este navegador. Usa la clave manual como alternativa.';
+      this.errorQr = this.i18n.t('admin.acceso.errorGenerarQr');
     } finally {
       this.generandoQr = false;
     }
@@ -273,14 +281,14 @@ export class AdminAccesoComponent implements OnInit, OnDestroy {
     if (err?.status === 429) {
       const retry = err?.headers?.get?.('Retry-After');
       return retry
-        ? `Demasiados intentos. Intenta nuevamente en ${retry} segundos.`
-        : 'Demasiados intentos. Espera un momento antes de reintentar.';
+        ? this.i18n.t('admin.acceso.errorRateLimitSegundos', { segundos: retry })
+        : this.i18n.t('admin.acceso.errorRateLimit');
     }
     if (err?.status === 401) {
-      return err?.error?.error || 'Credenciales o código de verificación inválidos.';
+      return err?.error?.error || this.i18n.t('admin.acceso.errorCredenciales401');
     }
     if (err?.status === 403) {
-      return err?.error?.error || 'Esta cuenta no tiene permisos de ADMIN_GLOBAL.';
+      return err?.error?.error || this.i18n.t('admin.acceso.errorPermisos403');
     }
     return err?.error?.error || respaldo;
   }

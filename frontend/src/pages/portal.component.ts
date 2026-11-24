@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, Optional } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription, distinctUntilChanged } from 'rxjs';
 import { UiStateService } from '../state/ui-state.service';
@@ -8,11 +8,13 @@ import { TrabajoApiService, HitoApi, ComentarioApi } from '../services/trabajo-a
 import { ArchivosApiService, ArchivoApi } from '../services/archivos-api.service';
 import { FacturasApiService } from '../services/facturas-api.service';
 import { Factura } from '../models/equinox.model';
+import { TPipe } from '../shared/t.pipe';
+import { I18nService } from '../state/i18n.service';
 
 @Component({
   selector: 'app-portal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TPipe],
   templateUrl: './portal.component.html',
   styleUrl: './portal.component.css'
 })
@@ -36,8 +38,13 @@ export class PortalComponent implements OnInit, OnDestroy {
     public trabajo: TrabajoApiService,
     public archivosApi: ArchivosApiService,
     private cdr: ChangeDetectorRef,
-    public facturasApi?: FacturasApiService
+    public facturasApi?: FacturasApiService,
+    @Optional() public i18n?: I18nService
   ) {}
+
+  private t(key: string, fallback: string): string {
+    return this.i18n?.t(key) ?? fallback;
+  }
 
   ngOnInit(): void {
     if (typeof window !== 'undefined') {
@@ -141,7 +148,7 @@ export class PortalComponent implements OnInit, OnDestroy {
       if (this.destruido || solicitud !== this.solicitudDetalle || this.proyectoActual?.id !== proyectoId) {
         return;
       }
-      this.errorDetalle = 'No se pudieron cargar todos los elementos del proyecto.';
+      this.errorDetalle = this.t('portal.vistaPrevia.errorDetalle', 'No se pudieron cargar todos los elementos del proyecto.');
     } finally {
       if (!this.destruido && solicitud === this.solicitudDetalle) {
         this.cargandoDetalle = false;
@@ -156,7 +163,7 @@ export class PortalComponent implements OnInit, OnDestroy {
     try {
       await this.archivosApi.guardarDescarga(this.proyectoActual.id, archivo, false);
     } catch {
-      this.errorDescarga = 'No se pudo descargar el archivo.';
+      this.errorDescarga = this.t('portal.vistaPrevia.errorDescarga', 'No se pudo descargar el archivo.');
     } finally {
       this.descargandoArchivoId = null;
     }

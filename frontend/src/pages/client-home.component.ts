@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, Optional } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../auth/auth.service';
 import {
@@ -15,7 +15,9 @@ import {
 import { PortalApiService } from '../services/portal-api.service';
 import { PortalHeroComponent } from '../shared/portal-hero.component';
 import { DialogFocusDirective } from '../shared/dialog-focus.directive';
+import { TPipe } from '../shared/t.pipe';
 import { ArchivosApiService } from '../services/archivos-api.service';
+import { I18nService } from '../state/i18n.service';
 import {
   evaluarContrastePaleta,
   normalizarHex,
@@ -23,7 +25,7 @@ import {
 } from '../utils/branding.util';
 
 @Component({
-  selector: 'app-client-home', standalone: true, imports: [CommonModule, FormsModule, PortalHeroComponent, DialogFocusDirective],
+  selector: 'app-client-home', standalone: true, imports: [CommonModule, FormsModule, PortalHeroComponent, DialogFocusDirective, TPipe],
   templateUrl: './client-home.component.html', styleUrls: ['./client-home.component.css', '../shared/portal-editorial.css']
 })
 export class ClientHomeComponent implements OnInit, OnDestroy {
@@ -85,7 +87,23 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
   private solicitudFotoOriginal = 0;
   private listenerTeclado = (evento: KeyboardEvent) => this.manejarTeclado(evento);
 
-  constructor(private api: PortalApiService, public auth: AuthService, private archivosApi: ArchivosApiService) {}
+  constructor(
+    private api: PortalApiService,
+    public auth: AuthService,
+    private archivosApi: ArchivosApiService,
+    @Optional() public i18n?: I18nService
+  ) {}
+
+  private t(key: string, fallback: string, params?: Record<string, string | number>): string {
+    if (this.i18n) {
+      return this.i18n.t(key, params);
+    }
+    if (!params) return fallback;
+    return fallback.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) => {
+      const valor = params[name];
+      return valor !== undefined && valor !== null ? String(valor) : match;
+    });
+  }
 
   get esFotografia(): boolean {
     return this.identidad?.estudio?.tipoFreelance?.toUpperCase() === 'FOTOGRAFIA';
@@ -104,7 +122,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
   }
 
   get nombreCliente(): string {
-    return this.identidad?.cliente?.nombre?.trim() || this.auth.sesion?.usuario?.nombre?.trim() || 'Cliente';
+    return this.identidad?.cliente?.nombre?.trim() || this.auth.sesion?.usuario?.nombre?.trim() || this.t('portal.comun.cliente', 'Cliente');
   }
 
   get nombreEstudio(): string {
@@ -134,9 +152,17 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
     }
     const estudio = this.nombreEstudio;
     if (this.esFotografia) {
-      return `Aquí encontrarás las sesiones y documentos que ${estudio} comparta contigo.`;
+      return this.t(
+        'portal.home.mensajeFotografia',
+        `Aquí encontrarás las sesiones y documentos que ${estudio} comparta contigo.`,
+        { estudio }
+      );
     }
-    return `Aquí encontrarás los proyectos, documentos y facturas que ${estudio} comparta contigo.`;
+    return this.t(
+      'portal.home.mensajeGeneral',
+      `Aquí encontrarás los proyectos, documentos y facturas que ${estudio} comparta contigo.`,
+      { estudio }
+    );
   }
 
   ngOnInit(): void {
@@ -171,7 +197,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
       this.identidad = await this.api.identidad();
       this.logoFallido = false;
     } catch {
-      this.errorIdentidad = 'No se pudo cargar la identidad del portal.';
+      this.errorIdentidad = this.t('portal.home.errorIdentidad', 'No se pudo cargar la identidad del portal.');
     } finally {
       this.cargandoIdentidad = false;
     }
@@ -207,7 +233,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
         if (this.proyectos.length) await this.seleccionarProyecto(this.proyectos[0].id);
       }
     } catch {
-      if (solicitud === this.solicitudProyectos) this.errorProyectos = 'No se pudieron cargar tus proyectos.';
+      if (solicitud === this.solicitudProyectos) this.errorProyectos = this.t('portal.home.errorProyectos', 'No se pudieron cargar tus proyectos.');
     } finally {
       if (solicitud === this.solicitudProyectos) this.cargandoProyectos = false;
     }
@@ -233,7 +259,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
       this.archivos = archivos;
       this.comentarios = comentarios;
     } catch {
-      if (solicitud === this.solicitudDetalle) this.errorDetalle = 'No se pudo cargar el detalle. Comprueba la conexión e inténtalo de nuevo.';
+      if (solicitud === this.solicitudDetalle) this.errorDetalle = this.t('portal.home.errorDetalle', 'No se pudo cargar el detalle. Comprueba la conexión e inténtalo de nuevo.');
     } finally {
       if (solicitud === this.solicitudDetalle) this.cargandoDetalle = false;
     }
@@ -264,7 +290,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
         this.esColaboradorSinAcceso = true;
         this.facturas = [];
       } else {
-        this.errorFacturas = 'No se pudieron cargar las facturas autorizadas.';
+        this.errorFacturas = this.t('portal.home.errorFacturas', 'No se pudieron cargar las facturas autorizadas.');
       }
     } finally {
       if (solicitud === this.solicitudFacturas) this.cargandoFacturas = false;
@@ -275,7 +301,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
     const contenido = this.comentario.trim();
     this.errorComentario = '';
     if (!contenido || contenido.length > 2000) {
-      this.errorComentario = 'Escribe un comentario de entre 1 y 2000 caracteres.';
+      this.errorComentario = this.t('portal.home.errorComentarioLongitud', 'Escribe un comentario de entre 1 y 2000 caracteres.');
       return;
     }
     if (!this.proyectoId || this.enviandoComentario) return;
@@ -289,8 +315,8 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
       }
     } catch (error: any) {
       this.errorComentario = error?.status === 422
-        ? 'El comentario no cumple el formato permitido.'
-        : 'No se pudo enviar el comentario. Puedes reintentarlo.';
+        ? this.t('portal.home.errorComentarioFormato', 'El comentario no cumple el formato permitido.')
+        : this.t('portal.home.errorComentarioEnvio', 'No se pudo enviar el comentario. Puedes reintentarlo.');
     } finally {
       this.enviandoComentario = false;
     }
@@ -301,7 +327,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
     const proyectoId = this.proyectoId;
     this.descargandoId = archivo.id; this.errorDescarga = '';
     try { await this.archivosApi.guardarDescarga(proyectoId, archivo, true); }
-    catch { if (this.proyectoId === proyectoId) this.errorDescarga = 'No se pudo descargar el archivo. Reintenta.'; }
+    catch { if (this.proyectoId === proyectoId) this.errorDescarga = this.t('portal.home.errorDescarga', 'No se pudo descargar el archivo. Reintenta.'); }
     finally { this.descargandoId = null; }
   }
 
@@ -311,13 +337,18 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
   }
 
   estadoHito(estado: HitoPortal['estado']): string {
-    return { PENDIENTE: 'Pendiente', EN_PROGRESO: 'En progreso', COMPLETADO: 'Completado', VENCIDO: 'Vencido' }[estado];
+    return {
+      PENDIENTE: this.t('portal.hito.pendiente', 'Pendiente'),
+      EN_PROGRESO: this.t('portal.hito.enProgreso', 'En progreso'),
+      COMPLETADO: this.t('portal.hito.completado', 'Completado'),
+      VENCIDO: this.t('portal.hito.vencido', 'Vencido')
+    }[estado];
   }
 
   autorComentario(comentario: ComentarioPortal): string {
-    if (comentario.autor === 'CLIENTE') return 'Tú';
+    if (comentario.autor === 'CLIENTE') return this.t('portal.home.autorTu', 'Tú');
     const nombre = [comentario.usuario?.nombre, comentario.usuario?.apellido].filter(Boolean).join(' ');
-    return nombre || this.identidad?.estudio.nombre || 'Equipo';
+    return nombre || this.identidad?.estudio.nombre || this.t('portal.home.autorEquipo', 'Equipo');
   }
 
   tamanoArchivo(bytes: number): string {
@@ -363,7 +394,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
       }
     } catch {
       if (solicitud === this.solicitudSesiones) {
-        this.errorSesiones = 'No se pudieron cargar tus sesiones fotográficas.';
+        this.errorSesiones = this.t('portal.home.errorSesiones', 'No se pudieron cargar tus sesiones fotográficas.');
       }
     } finally {
       if (solicitud === this.solicitudSesiones) {
@@ -416,7 +447,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
       void this.cargarMiniaturas(sesionId, this.fotos, solicitud);
     } catch {
       if (solicitud === this.solicitudFotos) {
-        this.errorFotos = 'No se pudieron cargar las fotos de esta sesión. Comprueba la conexión e inténtalo de nuevo.';
+        this.errorFotos = this.t('portal.home.errorFotos', 'No se pudieron cargar las fotos de esta sesión. Comprueba la conexión e inténtalo de nuevo.');
       }
     } finally {
       if (solicitud === this.solicitudFotos) {
@@ -524,7 +555,7 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
       this.fotoOriginalUrl = URL.createObjectURL(blob);
     } catch {
       if (solicitud === this.solicitudFotoOriginal) {
-        this.errorFotoOriginal = 'No se pudo cargar la imagen en tamaño completo.';
+        this.errorFotoOriginal = this.t('portal.home.errorFotoOriginal', 'No se pudo cargar la imagen en tamaño completo.');
       }
     } finally {
       if (solicitud === this.solicitudFotoOriginal) {
@@ -587,8 +618,8 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
   // --- HELPERS DE TEXTO Y FORMATO ---
 
   nombreSesion(sesion: SesionFotograficaPortal | null): string {
-    if (!sesion) return 'Sesión fotográfica';
-    return sesion.nombre || sesion.titulo || 'Sesión fotográfica';
+    if (!sesion) return this.t('portal.home.sesionDefecto', 'Sesión fotográfica');
+    return sesion.nombre || sesion.titulo || this.t('portal.home.sesionDefecto', 'Sesión fotográfica');
   }
 
   fechaSesion(sesion: SesionFotograficaPortal | null): string | null {
@@ -597,11 +628,11 @@ export class ClientHomeComponent implements OnInit, OnDestroy {
   }
 
   nombreFoto(foto: FotoPortal | null, indice?: number): string {
-    if (!foto) return 'Fotografía';
+    if (!foto) return this.t('portal.home.fotoDefecto', 'Fotografía');
     if (foto.nombreOriginal) return foto.nombreOriginal;
     if (foto.nombre) return foto.nombre;
     if (foto.titulo) return foto.titulo;
-    const num = indice !== undefined ? indice + 1 : 1;
-    return `Fotografía ${num}`;
+    const numero = indice !== undefined ? indice + 1 : 1;
+    return this.t('portal.home.fotoNumerada', `Fotografía ${numero}`, { numero });
   }
 }

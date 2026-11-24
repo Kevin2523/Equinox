@@ -8,11 +8,13 @@ import {
   OnChanges,
   OnDestroy,
   OnInit,
+  Optional,
   SimpleChanges,
   ViewChild
 } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { DialogFocusDirective } from '../shared/dialog-focus.directive';
+import { TPipe } from '../shared/t.pipe';
 import { ClienteApi } from '../services/clientes-proyectos-api.service';
 import {
   EstadoSesion,
@@ -21,11 +23,12 @@ import {
   PaginaFotosApi,
   SesionFotograficaApi
 } from '../services/fotografia-api.service';
+import { I18nService } from '../state/i18n.service';
 
 @Component({
   selector: 'app-sesiones-fotograficas',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogFocusDirective],
+  imports: [CommonModule, FormsModule, DialogFocusDirective, TPipe],
   templateUrl: './sesiones-fotograficas.component.html',
   styleUrl: './sesiones-fotograficas.component.css'
 })
@@ -106,8 +109,20 @@ export class SesionesFotograficasComponent implements OnInit, OnChanges, OnDestr
 
   constructor(
     public fotografiaApi: FotografiaApiService,
-    private readonly cdr: ChangeDetectorRef
+    private readonly cdr: ChangeDetectorRef,
+    @Optional() public i18n?: I18nService
   ) {}
+
+  private t(key: string, fallback: string, params?: Record<string, string | number>): string {
+    if (this.i18n) {
+      return this.i18n.t(key, params);
+    }
+    if (!params) return fallback;
+    return fallback.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, name) => {
+      const valor = params[name];
+      return valor !== undefined && valor !== null ? String(valor) : match;
+    });
+  }
 
   ngOnInit(): void {
     if (this.cliente) {
@@ -181,7 +196,7 @@ export class SesionesFotograficasComponent implements OnInit, OnChanges, OnDestr
       }
     } catch {
       if (version === this.versionPeticionSesiones) {
-        this.errorSesiones = 'No se pudieron cargar las sesiones fotográficas.';
+        this.errorSesiones = this.t('portal.sesiones.errorCargar', 'No se pudieron cargar las sesiones fotográficas.');
       }
     } finally {
       if (version === this.versionPeticionSesiones) {
@@ -259,8 +274,8 @@ export class SesionesFotograficasComponent implements OnInit, OnChanges, OnDestr
     } catch (err: any) {
       this.errorGuardarSesion =
         err?.status === 422
-          ? 'Por favor revisa los datos de la sesión.'
-          : 'No se pudo guardar la sesión fotográfica.';
+          ? this.t('portal.sesiones.errorValidacion', 'Por favor revisa los datos de la sesión.')
+          : this.t('portal.sesiones.errorGuardar', 'No se pudo guardar la sesión fotográfica.');
     } finally {
       this.guardandoSesion = false;
       this.cdr.markForCheck();
@@ -327,7 +342,7 @@ export class SesionesFotograficasComponent implements OnInit, OnChanges, OnDestr
     } catch {
       // Reintentar o mantener estado
       this.cerrarConfirmacionPublicar();
-      this.errorSesiones = 'No se pudo actualizar el estado de publicación de la sesión.';
+      this.errorSesiones = this.t('portal.sesiones.errorPublicacion', 'No se pudo actualizar el estado de publicación de la sesión.');
     } finally {
       this.cdr.markForCheck();
     }
@@ -372,7 +387,7 @@ export class SesionesFotograficasComponent implements OnInit, OnChanges, OnDestr
       }
       this.cerrarConfirmacionEliminarSesion();
     } catch {
-      this.confirmacionEliminarSesion.error = 'No se pudo eliminar la sesión. Inténtalo de nuevo.';
+      this.confirmacionEliminarSesion.error = this.t('portal.sesiones.errorEliminarSesion', 'No se pudo eliminar la sesión. Inténtalo de nuevo.');
       this.confirmacionEliminarSesion.procesando = false;
       this.cdr.markForCheck();
     }
@@ -417,7 +432,7 @@ export class SesionesFotograficasComponent implements OnInit, OnChanges, OnDestr
       void this.cargarMiniaturasVisibles();
     } catch {
       if (version === this.versionPeticionFotos) {
-        this.errorFotos = 'No se pudieron cargar las fotos de la sesión.';
+        this.errorFotos = this.t('portal.sesiones.errorCargarFotos', 'No se pudieron cargar las fotos de la sesión.');
       }
     } finally {
       if (version === this.versionPeticionFotos) {
@@ -522,7 +537,15 @@ export class SesionesFotograficasComponent implements OnInit, OnChanges, OnDestr
     }
 
     if (this.archivosRechazados.length > 0) {
-      this.errorSubida = `${this.archivosRechazados.length} foto(s) no se pudieron subir: ${this.archivosRechazados.slice(0, 3).join(', ')}${this.archivosRechazados.length > 3 ? '...' : ''}`;
+      const lista = `${this.archivosRechazados.slice(0, 3).join(', ')}${this.archivosRechazados.length > 3 ? '...' : ''}`;
+      this.errorSubida = this.t(
+        'portal.sesiones.errorSubidaLote',
+        `${this.archivosRechazados.length} foto(s) no se pudieron subir: ${lista}`,
+        {
+          count: this.archivosRechazados.length,
+          lista
+        }
+      );
     }
 
     this.subiendoFotos = false;
@@ -638,7 +661,7 @@ export class SesionesFotograficasComponent implements OnInit, OnChanges, OnDestr
       }
       this.cerrarConfirmacionEliminarFoto();
     } catch {
-      this.confirmacionEliminarFoto.error = 'No se pudo eliminar la fotografía.';
+      this.confirmacionEliminarFoto.error = this.t('portal.sesiones.errorEliminarFoto', 'No se pudo eliminar la fotografía.');
       this.confirmacionEliminarFoto.procesando = false;
       this.cdr.markForCheck();
     }
@@ -708,9 +731,12 @@ export class SesionesFotograficasComponent implements OnInit, OnChanges, OnDestr
   }
 
   formatearFecha(fechaIso?: string | null): string {
-    if (!fechaIso) return 'Sin fecha';
+    if (!fechaIso) return this.t('portal.sesiones.sinFecha', 'Sin fecha');
     const fecha = new Date(fechaIso);
-    if (isNaN(fecha.getTime())) return 'Sin fecha';
+    if (isNaN(fecha.getTime())) return this.t('portal.sesiones.sinFecha', 'Sin fecha');
+    if (this.i18n) {
+      return this.i18n.formatearFecha(fecha) || this.t('portal.sesiones.sinFecha', 'Sin fecha');
+    }
     const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     return `${fecha.getDate()} ${meses[fecha.getMonth()]} ${fecha.getFullYear()}`;
   }

@@ -14,6 +14,8 @@ import {
   UsuarioSesion
 } from './auth.model';
 import { OrganizacionService } from './organizacion.service';
+import { I18nService } from '../state/i18n.service';
+import { IdiomaSoportado } from '../i18n/i18n.types';
 
 interface SesionActual { usuario: UsuarioSesion; contexto: SesionContexto }
 const TOKEN_KEY = 'equinox_sesion_token';
@@ -24,6 +26,7 @@ export class AuthService {
   readonly sesion$ = this.sesionSubject.asObservable();
   private restauracion?: Promise<boolean>;
   private orgService = inject(OrganizacionService);
+  private i18n = inject(I18nService);
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -53,6 +56,7 @@ export class AuthService {
         return false;
       }
       this.sesionSubject.next({ usuario: respuesta.usuario, contexto: respuesta.sesion });
+      this.i18n.sincronizarDesdeUsuario(respuesta.usuario.idioma);
       if (respuesta.sesion.tipoAcceso === 'ORGANIZACION') {
         try {
           await this.orgService.cargarOrganizacion();
@@ -140,7 +144,7 @@ export class AuthService {
     );
   }
 
-  async registrar(datos: { correo: string; contrasena: string; nombre: string; apellido?: string; nombreEstudio: string; slug: string; tipoFreelance?: TipoFreelance }): Promise<void> {
+  async registrar(datos: { correo: string; contrasena: string; nombre: string; apellido?: string; nombreEstudio: string; slug: string; tipoFreelance?: TipoFreelance; idioma?: IdiomaSoportado }): Promise<void> {
     const respuesta = await firstValueFrom(this.http.post<RespuestaRegistro>(`${obtenerBaseApi()}/autenticacion/registro`, datos));
     await this.aceptarToken(respuesta.token);
     if (this.sesion?.contexto.tipoAcceso === 'ORGANIZACION') {
@@ -199,9 +203,19 @@ export class AuthService {
     }
   }
 
+  actualizarIdiomaLocal(idioma: IdiomaSoportado): void {
+    const actual = this.sesionSubject.value;
+    if (!actual) return;
+    this.sesionSubject.next({
+      ...actual,
+      usuario: { ...actual.usuario, idioma },
+    });
+  }
+
   private limpiar(): void {
     sessionStorage.removeItem(TOKEN_KEY);
     this.sesionSubject.next(null);
     this.orgService.limpiar();
+    this.i18n.alCerrarSesion();
   }
 }

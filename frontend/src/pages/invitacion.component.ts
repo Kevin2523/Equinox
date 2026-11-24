@@ -1,18 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ConsultaInvitacionPublica, DatosAceptarInvitacion } from '../models/invitacion.model';
 import { InvitacionesApiService } from '../services/invitaciones-api.service';
+import { I18nService } from '../state/i18n.service';
+import { TPipe } from '../shared/t.pipe';
 
 @Component({
   selector: 'app-invitacion',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TPipe],
   templateUrl: './invitacion.component.html',
   styleUrl: './invitacion.component.css'
 })
 export class InvitacionComponent implements OnInit {
+  public readonly i18n = inject(I18nService);
   token = '';
   invitacion: ConsultaInvitacionPublica | null = null;
   cargando = false;
@@ -20,12 +23,17 @@ export class InvitacionComponent implements OnInit {
   enviada = false;
   aceptada = false;
   puedeReintentarConsulta = false;
+  esInvitacionYaAceptada = false;
   mostrarContrasena = false;
-  error = '';
+  private errorKey = '';
   mensajeExito = '';
   datos = { nombre: '', apellido: '', contrasena: '' };
 
   constructor(private route: ActivatedRoute, private api: InvitacionesApiService) {}
+
+  get error(): string {
+    return this.errorKey ? this.i18n.t(this.errorKey) : '';
+  }
 
   ngOnInit(): void {
     this.token = this.route.snapshot.paramMap.get('token') || '';
@@ -41,19 +49,23 @@ export class InvitacionComponent implements OnInit {
   }
 
   get rolLegible(): string {
-    return this.invitacion?.rol === 'TITULAR' ? 'Titular' : 'Colaborador';
+    return this.i18n.t(
+      this.invitacion?.rol === 'TITULAR' ? 'publico.invitacion.rolTitular' : 'publico.invitacion.rolColaborador'
+    );
   }
 
   async cargar(): Promise<void> {
     if (!this.token || this.cargando) return;
     this.cargando = true;
-    this.error = '';
+    this.errorKey = '';
+    this.esInvitacionYaAceptada = false;
     this.invitacion = null;
     this.puedeReintentarConsulta = false;
     try {
       this.invitacion = await this.api.consultarPublica(this.token);
     } catch (error: any) {
-      this.error = this.mensajeErrorConsulta(error);
+      this.esInvitacionYaAceptada = error?.status === 409;
+      this.errorKey = this.claveErrorConsulta(error);
       this.puedeReintentarConsulta =
         error?.name === 'TimeoutError' || error?.status === 0 || error?.status === 429 || error?.status >= 500;
     } finally {
@@ -72,7 +84,7 @@ export class InvitacionComponent implements OnInit {
           contrasena: this.datos.contrasena
         };
     this.enviando = true;
-    this.error = '';
+    this.errorKey = '';
     try {
       const respuesta = await this.api.aceptar(this.token, datos);
       this.aceptada = true;
@@ -80,35 +92,35 @@ export class InvitacionComponent implements OnInit {
       this.datos.contrasena = '';
       this.token = '';
     } catch (error: any) {
-      this.error = this.mensajeErrorAceptar(error);
+      this.errorKey = this.claveErrorAceptar(error);
     } finally {
       this.enviando = false;
     }
   }
 
-  private mensajeErrorConsulta(error: any): string {
-    if (error?.status === 404) return 'Este enlace de invitación no es válido.';
+  private claveErrorConsulta(error: any): string {
+    if (error?.status === 404) return 'publico.invitacion.errConsulta404';
     if (error?.status === 410) {
       const descripcion = String(error?.error?.error || '').toLocaleLowerCase();
-      return descripcion.includes('revoc') ? 'Esta invitación fue revocada.' : 'Esta invitación venció.';
+      return descripcion.includes('revoc') ? 'publico.invitacion.errConsultaRevocada' : 'publico.invitacion.errConsultaVencida';
     }
-    if (error?.status === 409) return 'Esta invitación ya fue aceptada. Puedes iniciar sesión.';
-    if (error?.status === 429) return 'Se alcanzó el límite temporal de consultas. Espera e inténtalo de nuevo.';
-    return 'No se pudo consultar la invitación. Comprueba tu conexión e inténtalo de nuevo.';
+    if (error?.status === 409) return 'publico.invitacion.errConsulta409';
+    if (error?.status === 429) return 'publico.invitacion.errConsulta429';
+    return 'publico.invitacion.errConsultaGenerico';
   }
 
-  private mensajeErrorAceptar(error: any): string {
-    if (error?.status === 401) return 'La contraseña actual no es correcta.';
-    if (error?.status === 404) return 'Este enlace de invitación no es válido.';
+  private claveErrorAceptar(error: any): string {
+    if (error?.status === 401) return 'publico.invitacion.errAceptar401';
+    if (error?.status === 404) return 'publico.invitacion.errAceptar404';
     if (error?.status === 410) {
       const descripcion = String(error?.error?.error || '').toLocaleLowerCase();
       return descripcion.includes('revoc')
-        ? 'Esta invitación fue revocada y ya no se puede aceptar.'
-        : 'Esta invitación venció y ya no se puede aceptar.';
+        ? 'publico.invitacion.errAceptarRevocada'
+        : 'publico.invitacion.errAceptarVencida';
     }
-    if (error?.status === 409) return 'La invitación ya se usó o cambió de estado. Vuelve a consultar el enlace.';
-    if (error?.status === 422) return 'Revisa los campos: el nombre debe tener al menos 2 caracteres y la contraseña al menos 8.';
-    if (error?.status === 429) return 'Se alcanzó el límite temporal de intentos. Espera un momento e inténtalo de nuevo.';
-    return 'No se pudo aceptar la invitación. Comprueba tu conexión e inténtalo de nuevo.';
+    if (error?.status === 409) return 'publico.invitacion.errAceptar409';
+    if (error?.status === 422) return 'publico.invitacion.errAceptar422';
+    if (error?.status === 429) return 'publico.invitacion.errAceptar429';
+    return 'publico.invitacion.errAceptarGenerico';
   }
 }

@@ -19,12 +19,12 @@
         <span class="preview-brand-mark"><i></i></span>
         <strong>equinox</strong>
       </div>
-      <span class="preview-shell-title" *ngIf="modo === 'desktop'">Portal del cliente</span>
+      <span class="preview-shell-title" *ngIf="modo === 'desktop'">{{ 'portal.shell.titulo' | t }}</span>
       <div class="preview-shell-user">
         <span class="preview-client-avatar">{{ inicialCliente }}</span>
-        <span class="preview-client-name">{{ clienteNombre || 'Cliente' }}</span>
+        <span class="preview-client-name">{{ clienteNombre || ('portal.comun.cliente' | t) }}</span>
         <span class="preview-client-divider"></span>
-        <span class="preview-logout-label">Cerrar sesión</span>
+        <span class="preview-logout-label">{{ 'portal.shell.cerrarSesion' | t }}</span>
       </div>
     </header>
 
@@ -52,7 +52,7 @@
 
       <!-- SALUDO Y MENSAJE CONTEXTUAL -->
       <section class="editorial-greeting">
-        <h2 class="greeting-heading">{{ clienteNombre ? 'Hola, ' + clienteNombre + '.' : 'Hola.' }}</h2>
+        <h2 class="greeting-heading">{{ clienteNombre ? ('portal.home.saludo' | t:{ nombre: clienteNombre }) : ('portal.preview.hola' | t) }}</h2>
         <p class="greeting-subtext">{{ mensajeContextual }}</p>
       </section>
 
@@ -61,26 +61,26 @@
         <!-- COLUMNA 1: SESIONES O PROYECTOS -->
         <section class="editorial-column">
           <div class="editorial-col-header">
-            <h3 class="editorial-col-title">{{ esFotografia ? 'TUS SESIONES' : 'TUS PROYECTOS' }}</h3>
+            <h3 class="editorial-col-title">{{ (esFotografia ? 'portal.home.sesionesTitulo' : 'portal.home.proyectosTitulo') | t }}</h3>
             <span class="editorial-counter-badge">{{ totalElementosColumnaPrincipal }}</span>
           </div>
           <hr class="editorial-divider" />
 
-          <p class="preview-loading-text" *ngIf="cargando">Cargando datos reales…</p>
+          <p class="preview-loading-text" *ngIf="cargando">{{ 'portal.preview.cargandoDatos' | t }}</p>
 
           <!-- MODALIDAD FOTOGRAFÍA -->
           <ng-container *ngIf="!cargando && esFotografia">
             <article class="session-detail-view" *ngIf="vistaPrevia?.sesion as sesion; else sinSesionesPreview">
               <header class="session-view-header">
                 <div>
-                  <span class="session-view-eyebrow">SESIÓN FOTOGRÁFICA</span>
+                  <span class="session-view-eyebrow">{{ 'portal.home.sesionEyebrow' | t }}</span>
                   <h4 class="session-view-title">{{ sesion.nombre }}</h4>
                   <p class="session-view-desc" *ngIf="sesion.descripcion">{{ sesion.descripcion }}</p>
                 </div>
                 <div class="session-view-meta">
                   <span class="session-date-pill" *ngIf="sesion.fecha">{{ sesion.fecha | date:'mediumDate' }}</span>
                   <span class="session-count-pill">
-                    {{ sesion.totalFotos }} {{ sesion.totalFotos === 1 ? 'foto' : 'fotos' }}
+                    {{ sesion.totalFotos }} {{ (sesion.totalFotos === 1 ? 'portal.home.fotoSingular' : 'portal.home.fotoPlural') | t }}
                   </span>
                 </div>
               </header>
@@ -88,10 +88,10 @@
               <p class="session-location-tag" *ngIf="sesion.lugar">📍 {{ sesion.lugar }}</p>
 
               <p class="empty-inline-state" *ngIf="sesion.totalFotos === 0">
-                Esta sesión fotográfica todavía no tiene fotos disponibles.
+                {{ 'portal.home.sesionSinFotos' | t }}
               </p>
               <div class="preview-photo-summary" *ngIf="sesion.totalFotos > 0">
-                <span>Galería lista con {{ sesion.totalFotos }} {{ sesion.totalFotos === 1 ? 'fotografía' : 'fotografías' }}.</span>
+                <span>{{ (sesion.totalFotos === 1 ? 'portal.preview.galeriaListaSingular' : 'portal.preview.galeriaListaPlural') | t:{ count: sesion.totalFotos } }}</span>
               </div>
             </article>
 
@@ -109,9 +109,9 @@
                     </g>
                   </svg>
                 </div>
-                <h4 class="empty-state-title">Aún no hay sesiones compartidas</h4>
+                <h4 class="empty-state-title">{{ 'portal.home.sinSesionesTitulo' | t }}</h4>
                 <p class="empty-state-desc">
-                  Cuando {{ nombreEstudioVisible }} publique una sesión para ti, aparecerá aquí.
+                  {{ 'portal.home.sinSesionesDesc' | t:{ estudio: nombreEstudioVisible } }}
                 </p>
               </div>
             </ng-template>
@@ -122,7 +122,7 @@
             <article class="project-detail-view" *ngIf="vistaPrevia?.proyecto as proyecto; else sinProyectosPreview">
               <header class="project-view-header">
                 <div>
-                  <span class="project-view-eyebrow">PROYECTO</span>
+                  <span class="project-view-eyebrow">{{ 'portal.home.proyectoEyebrow' | t }}</span>
                   <h4 class="project-view-title">{{ proyecto.nombre }}</h4>
                   <p class="project-view-desc" *ngIf="proyecto.descripcion">{{ proyecto.descripcion }}</p>
                 </div>
@@ -130,40 +130,40 @@
               </header>
 
               <div class="project-meta-dates" *ngIf="proyecto.fechaInicio || proyecto.fechaEntrega">
-                <span *ngIf="proyecto.fechaInicio">Inicio: {{ proyecto.fechaInicio | date:'mediumDate' }}</span>
-                <span *ngIf="proyecto.fechaEntrega"> · Entrega: {{ proyecto.fechaEntrega | date:'mediumDate' }}</span>
+                <span *ngIf="proyecto.fechaInicio">{{ 'portal.home.fechaInicio' | t }} {{ proyecto.fechaInicio | date:'mediumDate' }}</span>
+                <span *ngIf="proyecto.fechaEntrega"> · {{ 'portal.home.fechaEntrega' | t }} {{ proyecto.fechaEntrega | date:'mediumDate' }}</span>
               </div>
 
               <div class="project-section-block">
                 <div class="project-subheading">
-                  <h5>Hitos compartidos</h5>
-                  <span *ngIf="porcentajeHitos !== null">{{ porcentajeHitos }}% completado</span>
+                  <h5>{{ 'portal.home.hitosTitulo' | t }}</h5>
+                  <span *ngIf="porcentajeHitos !== null">{{ 'portal.home.avanceCompletado' | t:{ porcentaje: porcentajeHitos } }}</span>
                 </div>
                 <div class="progress-bar-track" *ngIf="porcentajeHitos !== null">
                   <div class="progress-bar-fill" [style.width.%]="porcentajeHitos"></div>
                 </div>
                 <p class="empty-inline-state" *ngIf="proyecto.totalHitos === 0">
-                  No hay hitos visibles para este proyecto.
+                  {{ 'portal.home.sinHitos' | t }}
                 </p>
               </div>
 
               <div class="project-section-block">
-                <h5>Archivos y entregables</h5>
+                <h5>{{ 'portal.home.archivosTitulo' | t }}</h5>
                 <p class="empty-inline-state" *ngIf="!proyecto.totalArchivos">
-                  No hay archivos disponibles para este proyecto.
+                  {{ 'portal.home.sinArchivos' | t }}
                 </p>
                 <p class="empty-inline-state" *ngIf="proyecto.totalArchivos">
-                  {{ proyecto.totalArchivos }} {{ proyecto.totalArchivos === 1 ? 'archivo compartido' : 'archivos compartidos' }}.
+                  {{ (proyecto.totalArchivos === 1 ? 'portal.preview.archivoCompartidoSingular' : 'portal.preview.archivoCompartidoPlural') | t:{ count: proyecto.totalArchivos } }}
                 </p>
               </div>
 
               <div class="project-section-block">
-                <h5>Conversación del proyecto</h5>
+                <h5>{{ 'portal.home.conversacionTitulo' | t }}</h5>
                 <p class="empty-inline-state" *ngIf="!proyecto.totalComentarios">
-                  Todavía no hay mensajes en este proyecto.
+                  {{ 'portal.home.sinMensajes' | t }}
                 </p>
                 <p class="empty-inline-state" *ngIf="proyecto.totalComentarios">
-                  {{ proyecto.totalComentarios }} {{ proyecto.totalComentarios === 1 ? 'mensaje en la conversación' : 'mensajes en la conversación' }}.
+                  {{ (proyecto.totalComentarios === 1 ? 'portal.preview.mensajeConversacionSingular' : 'portal.preview.mensajeConversacionPlural') | t:{ count: proyecto.totalComentarios } }}
                 </p>
               </div>
             </article>
@@ -177,9 +177,9 @@
                     <line x1="24" y1="52" x2="64" y2="52" stroke="#78716c" />
                   </svg>
                 </div>
-                <h4 class="empty-state-title">Aún no hay proyectos compartidos</h4>
+                <h4 class="empty-state-title">{{ 'portal.home.sinProyectosTitulo' | t }}</h4>
                 <p class="empty-state-desc">
-                  Cuando {{ nombreEstudioVisible }} publique un proyecto para ti, aparecerá aquí.
+                  {{ 'portal.home.sinProyectosDesc' | t:{ estudio: nombreEstudioVisible } }}
                 </p>
               </div>
             </ng-template>
@@ -189,7 +189,7 @@
         <!-- COLUMNA 2: FACTURAS -->
         <section class="editorial-column">
           <div class="editorial-col-header">
-            <h3 class="editorial-col-title">FACTURAS</h3>
+            <h3 class="editorial-col-title">{{ 'portal.home.facturasTitulo' | t }}</h3>
             <span class="editorial-counter-badge">{{ facturasVisibles.length }}</span>
           </div>
           <hr class="editorial-divider" />
@@ -204,9 +204,9 @@
                 <line x1="18" y1="74" x2="60" y2="16" stroke="#d95247" stroke-width="2.5" />
               </svg>
             </div>
-            <h4 class="empty-state-title">Facturación no compartida</h4>
+            <h4 class="empty-state-title">{{ 'portal.home.finanzasDesactivadasTitulo' | t }}</h4>
             <p class="empty-state-desc">
-              El estudio no ha habilitado la visualización de facturas en este portal.
+              {{ 'portal.home.finanzasDesactivadasDesc' | t }}
             </p>
           </div>
 
@@ -220,9 +220,9 @@
                 <line x1="26" y1="60" x2="42" y2="60" stroke="#78716c" />
               </svg>
             </div>
-            <h4 class="empty-state-title">Sin facturas compartidas</h4>
+            <h4 class="empty-state-title">{{ 'portal.home.sinFacturasTitulo' | t }}</h4>
             <p class="empty-state-desc">
-              Las facturas disponibles se mostrarán en este espacio.
+              {{ 'portal.home.sinFacturasDesc' | t }}
             </p>
           </div>
 
@@ -235,8 +235,8 @@
                   <span class="invoice-concept">{{ factura.concepto }}</span>
                 </div>
                 <div class="invoice-dates-row">
-                  <span>Emitida {{ factura.fechaEmision | date:'mediumDate' }}</span>
-                  <span *ngIf="factura.fechaVencimiento"> · Vence {{ factura.fechaVencimiento | date:'mediumDate' }}</span>
+                  <span>{{ 'portal.home.facturaEmitida' | t }} {{ factura.fechaEmision | date:'mediumDate' }}</span>
+                  <span *ngIf="factura.fechaVencimiento"> · {{ 'portal.home.facturaVence' | t }} {{ factura.fechaVencimiento | date:'mediumDate' }}</span>
                 </div>
               </div>
               <div class="invoice-status-col">
@@ -251,7 +251,7 @@
       </div>
 
       <footer class="portal-footer">
-        <p>Portal gestionado con <strong class="footer-brand-name">Equinox</strong></p>
+        <p>{{ 'portal.home.footerGestionado' | t }} <strong class="footer-brand-name">Equinox</strong></p>
       </footer>
     </div>
   </div>

@@ -1,29 +1,32 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { TipoFreelance } from '../auth/auth.model';
 import { API_ORIGIN } from '../auth/api.config';
+import { I18nService } from '../state/i18n.service';
+import { TPipe } from '../shared/t.pipe';
 
-const ETIQUETAS_CAMPO: Record<string, string> = {
-  correo: 'correo electrónico',
-  contrasena: 'contraseña (mínimo 8 caracteres)',
-  nombre: 'nombre',
-  apellido: 'apellido',
-  nombreEstudio: 'nombre del estudio',
-  slug: 'identificador del estudio (minúsculas, números y guiones)',
-  tipoFreelance: 'especialidad'
+const CLAVES_CAMPO: Record<string, string> = {
+  correo: 'publico.registro.campoCorreo',
+  contrasena: 'publico.registro.campoContrasena',
+  nombre: 'publico.registro.campoNombre',
+  apellido: 'publico.registro.campoApellido',
+  nombreEstudio: 'publico.registro.campoEstudio',
+  slug: 'publico.registro.campoSlug',
+  tipoFreelance: 'publico.registro.campoEspecialidad'
 };
 
 @Component({
   selector: 'app-registro',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TPipe],
   templateUrl: './registro.component.html',
   styleUrls: ['./registro.component.css']
 })
 export class RegistroComponent {
+  public readonly i18n = inject(I18nService);
   readonly apiDisponible = !!API_ORIGIN;
   datos = {
     correo: '',
@@ -38,10 +41,16 @@ export class RegistroComponent {
   mostrarContrasena = false;
   cargando = false;
   enviado = false;
-  error = '';
+  private errorState: { key?: string; params?: Record<string, string | number>; raw?: string } | null = null;
   slugManual = false;
 
   constructor(private auth: AuthService, private router: Router) {}
+
+  get error(): string {
+    if (!this.errorState) return '';
+    if (this.errorState.raw) return this.errorState.raw;
+    return this.errorState.key ? this.i18n.t(this.errorState.key, this.errorState.params) : '';
+  }
 
   alternarMostrarContrasena(): void {
     this.mostrarContrasena = !this.mostrarContrasena;
@@ -74,16 +83,16 @@ export class RegistroComponent {
       .replace(/^-+|-+$/g, '');
   }
 
-  resolverMensajeError(error: any): string {
+  private resolverEstadoError(error: any): { key?: string; params?: Record<string, string | number>; raw?: string } {
     if (!API_ORIGIN) {
-      return 'La API de este entorno no está configurada. Contacta al administrador de Equinox.';
+      return { key: 'publico.comun.apiNoConfiguradaDetalle' };
     }
 
     const status = error?.status;
     const mensajeApi = typeof error?.error?.error === 'string' ? error.error.error.trim() : '';
 
     if (status === 409) {
-      return mensajeApi || 'El correo o identificador del estudio ya está en uso.';
+      return mensajeApi ? { raw: mensajeApi } : { key: 'publico.registro.errorConflicto' };
     }
 
     if (status === 422) {
@@ -93,35 +102,41 @@ export class RegistroComponent {
           detalles
             .map((d: any) => (Array.isArray(d?.path) && d.path.length ? String(d.path[0]) : ''))
             .filter(Boolean)
-            .map((campo: string) => ETIQUETAS_CAMPO[campo] || campo)
+            .map((campo: string) => (CLAVES_CAMPO[campo] ? this.i18n.t(CLAVES_CAMPO[campo]) : campo))
         )
       );
       if (campos.length > 0) {
-        return `Datos inválidos: revisa ${campos.join(', ')}.`;
+        return { key: 'publico.registro.errorDatosInvalidosCampos', params: { campos: campos.join(', ') } };
       }
       if (mensajeApi && mensajeApi !== 'Datos inválidos') {
-        return mensajeApi;
+        return { raw: mensajeApi };
       }
-      return 'Datos inválidos: revisa los campos obligatorios y su formato.';
+      return { key: 'publico.registro.errorDatosInvalidos' };
     }
 
     if (typeof status === 'number' && status >= 500) {
-      return 'Error interno del servidor al procesar el registro. Inténtalo de nuevo en unos momentos.';
+      return { key: 'publico.registro.errorServidor' };
     }
 
     if (status === 0 || error?.name === 'HttpErrorResponse') {
-      if (mensajeApi) return mensajeApi;
-      return 'No se pudo conectar con el servidor de Equinox. Verifica que el servicio API esté activo e inténtalo de nuevo.';
+      if (mensajeApi) return { raw: mensajeApi };
+      return { key: 'publico.registro.errorConexion' };
     }
 
-    return mensajeApi || 'No se pudo completar el registro. Inténtalo de nuevo.';
+    return mensajeApi ? { raw: mensajeApi } : { key: 'publico.registro.errorGenerico' };
+  }
+
+  resolverMensajeError(error: any): string {
+    const estado = this.resolverEstadoError(error);
+    if (estado.raw) return estado.raw;
+    return estado.key ? this.i18n.t(estado.key, estado.params) : '';
   }
 
   async registrar(form: NgForm): Promise<void> {
     this.enviado = true;
     if (form.invalid || this.cargando) return;
     this.cargando = true;
-    this.error = '';
+    this.errorState = null;
     try {
       const payload = {
         correo: this.datos.correo.trim().toLowerCase(),
@@ -130,13 +145,14 @@ export class RegistroComponent {
         apellido: this.datos.apellido ? this.datos.apellido.trim() : undefined,
         nombreEstudio: this.datos.nombreEstudio.trim(),
         slug: this.datos.slug.trim().toLowerCase(),
-        tipoFreelance: this.datos.tipoFreelance
+        tipoFreelance: this.datos.tipoFreelance,
+        idioma: this.i18n.idiomaActual
       };
       await this.auth.registrar(payload);
       this.datos.contrasena = '';
       await this.router.navigateByUrl(this.auth.rutaInicial());
     } catch (error: any) {
-      this.error = this.resolverMensajeError(error);
+      this.errorState = this.resolverEstadoError(error);
     } finally {
       this.cargando = false;
     }

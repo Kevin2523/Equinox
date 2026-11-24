@@ -151,7 +151,7 @@ before(async () => {
     const file = path.resolve(bundle, '.' + pathname);
     if (!file.startsWith(bundle + path.sep)) { res.writeHead(403); res.end(); return; }
     if (fs.existsSync(file) && fs.statSync(file).isFile()) {
-      res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'application/octet-stream');
+      res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : file.endsWith('.json') ? 'application/json; charset=utf-8' : 'application/octet-stream');
       res.end(fs.readFileSync(file));
       return;
     }
@@ -159,7 +159,7 @@ before(async () => {
     let html = fs.readFileSync(path.join(bundle, 'index.html'), 'utf8');
     html = html.replace(
       '<head>',
-      `<head><script>window.__EQUINOX_API_ORIGIN__=location.origin;
+      `<head><script>window.__EQUINOX_API_ORIGIN__=location.origin;localStorage.setItem('equinox_idioma_local','es');
         if(['/vista-previa-portal','/clientes','/proyectos','/portal','/finanzas'].includes(location.pathname)) {
           sessionStorage.setItem('equinox_sesion_token','sesion-ficticia-org');
         } else {
@@ -178,6 +178,7 @@ before(async () => {
     chrome,
     [
       '--headless=new',
+      '--lang=es',
       '--remote-debugging-port=0',
       '--remote-debugging-address=127.0.0.1',
       `--user-data-dir=${profile}`,

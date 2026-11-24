@@ -3,35 +3,35 @@
 
     <!-- Subtítulo / Nombre del estudio de la organización autenticada -->
     <div class="studio-kicker-row" *ngIf="nombreEstudio">
-      <span class="studio-kicker" [title]="'Organización: ' + nombreEstudio">{{ nombreEstudio }}</span>
+      <span class="studio-kicker" [title]="'crm.tareas.orgTitulo' | t:{ nombre: nombreEstudio }">{{ nombreEstudio }}</span>
     </div>
 
     <!-- Cabecera principal: Título y botón Nueva tarea -->
     <header class="page-header">
-      <h1 class="page-title">Tareas</h1>
+      <h1 class="page-title">{{ 'crm.tareas.titulo' | t }}</h1>
       <button
         type="button"
         class="btn-nueva-tarea"
         (click)="abrirModalCrear()"
         [disabled]="cargando || !proyectos.length"
-        title="Crear una nueva tarea">
+        [title]="'crm.tareas.crearTitulo' | t">
         <svg class="plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        <span>Nueva tarea</span>
+        <span>{{ 'crm.tareas.nuevaTarea' | t }}</span>
       </button>
     </header>
 
     <!-- Barra de navegación por pestañas y búsqueda -->
     <div class="tabs-and-search-bar">
-      <nav class="tabs-nav" aria-label="Filtro de estado de tareas">
+      <nav class="tabs-nav" [attr.aria-label]="'crm.tareas.filtroAria' | t">
         <button
           type="button"
           class="tab-btn"
           [class.active]="pestanaActiva === 'PENDIENTES'"
           (click)="pestanaActiva = 'PENDIENTES'">
-          <span>Pendientes</span>
+          <span>{{ 'crm.tareas.tabPendientes' | t }}</span>
           <span class="tab-count">{{ totalPendientes }}</span>
           <span class="tab-indicator" *ngIf="pestanaActiva === 'PENDIENTES'"></span>
         </button>
@@ -41,7 +41,7 @@
           class="tab-btn"
           [class.active]="pestanaActiva === 'COMPLETADAS'"
           (click)="pestanaActiva = 'COMPLETADAS'">
-          <span>Completadas</span>
+          <span>{{ 'crm.tareas.tabCompletadas' | t }}</span>
           <span class="tab-count" *ngIf="totalCompletadas > 0">{{ totalCompletadas }}</span>
           <span class="tab-indicator" *ngIf="pestanaActiva === 'COMPLETADAS'"></span>
         </button>
@@ -54,8 +54,8 @@
             type="button"
             class="search-trigger-btn"
             (click)="toggleBusqueda()"
-            aria-label="Buscar tareas"
-            title="Buscar tareas">
+            [attr.aria-label]="'crm.tareas.buscarAria' | t"
+            [title]="'crm.tareas.buscarAria' | t">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -66,14 +66,14 @@
             type="text"
             class="search-input"
             [(ngModel)]="busqueda"
-            placeholder="Buscar tareas..."
-            aria-label="Buscar tareas" />
+            [placeholder]="'crm.tareas.buscarPlaceholder' | t"
+            [attr.aria-label]="'crm.tareas.buscarAria' | t" />
           <button
             type="button"
             class="search-clear-btn"
             *ngIf="busqueda"
             (click)="limpiarBusqueda()"
-            aria-label="Limpiar búsqueda">
+            [attr.aria-label]="'crm.tareas.limpiarBusquedaAria' | t">
             ×
           </button>
         </div>
@@ -87,7 +87,7 @@
     </div>
 
     <!-- Estado: Cargando -->
-    <div class="loading-state" *ngIf="cargando" role="status" aria-label="Cargando tareas">
+    <div class="loading-state" *ngIf="cargando" role="status" [attr.aria-label]="'crm.tareas.cargandoAria' | t">
       <div class="skeleton-group">
         <div class="skeleton-header"></div>
         <div class="skeleton-row" *ngFor="let s of [1, 2, 3]"></div>
@@ -106,10 +106,10 @@
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
       <div class="error-state-content">
-        <h3>Hubo un problema al cargar las tareas</h3>
+        <h3>{{ 'crm.tareas.errorTitulo' | t }}</h3>
         <p>{{ error }}</p>
       </div>
-      <button type="button" class="btn-retry" (click)="cargar()">Reintentar</button>
+      <button type="button" class="btn-retry" (click)="cargar()">{{ 'crm.tareas.reintentar' | t }}</button>
     </div>
 
     <!-- Estado: Sin proyectos registrados -->
@@ -119,9 +119,9 @@
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
         </svg>
       </div>
-      <h3>No hay proyectos activos en esta organización</h3>
-      <p>Crea tu primer proyecto para empezar a registrar y organizar tus tareas.</p>
-      <button type="button" class="btn-empty-action" (click)="navegarAProyecto('')">Ir a Proyectos</button>
+      <h3>{{ 'crm.tareas.sinProyectosTitulo' | t }}</h3>
+      <p>{{ 'crm.tareas.sinProyectosTexto' | t }}</p>
+      <button type="button" class="btn-empty-action" (click)="navegarAProyecto('')">{{ 'crm.tareas.irAProyectos' | t }}</button>
     </div>
 
     <!-- Estado: Con proyectos pero sin ninguna tarea registrada -->
@@ -132,15 +132,15 @@
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
         </svg>
       </div>
-      <h3>Organiza tu día de trabajo</h3>
-      <p>Todavía no tienes tareas registradas. Añade tu primera tarea vinculada a un proyecto.</p>
-      <button type="button" class="btn-empty-action" (click)="abrirModalCrear()">+ Crear primera tarea</button>
+      <h3>{{ 'crm.tareas.vacioTitulo' | t }}</h3>
+      <p>{{ 'crm.tareas.vacioTexto' | t }}</p>
+      <button type="button" class="btn-empty-action" (click)="abrirModalCrear()">{{ 'crm.tareas.crearPrimeraTarea' | t }}</button>
     </div>
 
     <!-- Estado: Búsqueda sin resultados -->
     <div class="empty-state-card" *ngIf="!cargando && !error && tareas.length && busqueda && !tareasFiltradas.length">
-      <p class="empty-search-text">No se encontraron tareas que coincidan con <strong>"{{ busqueda }}"</strong>.</p>
-      <button type="button" class="btn-empty-action" (click)="limpiarBusqueda()">Limpiar filtro</button>
+      <p class="empty-search-text">{{ 'crm.tareas.busquedaVaciaPrefix' | t }} <strong>"{{ busqueda }}"</strong>.</p>
+      <button type="button" class="btn-empty-action" (click)="limpiarBusqueda()">{{ 'crm.tareas.limpiarFiltro' | t }}</button>
     </div>
 
     <!-- Contenido Principal: Listas de tareas agrupadas -->
@@ -155,13 +155,13 @@
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
             <polyline points="22 4 12 14.01 9 11.01"></polyline>
           </svg>
-          <span>¡Todo al día! No tienes tareas pendientes.</span>
+          <span>{{ 'crm.tareas.todoAlDia' | t }}</span>
         </div>
 
         <!-- Grupo: Vencidas (si existen) -->
         <section class="task-group group-overdue" *ngIf="grupoVencidas.length > 0">
           <div class="group-header">
-            <h2 class="group-title text-overdue">Vencidas</h2>
+            <h2 class="group-title text-overdue">{{ 'crm.tareas.grupoVencidas' | t }}</h2>
             <span class="group-count badge-overdue">{{ grupoVencidas.length }}</span>
           </div>
 
@@ -177,7 +177,7 @@
                     [checked]="tarea.estado === 'COMPLETADA'"
                     [disabled]="guardando"
                     (change)="alternar(tarea, $event)"
-                    [attr.aria-label]="'Marcar como completada: ' + tarea.titulo" />
+                    [attr.aria-label]="'crm.tareas.marcarCompletadaAria' | t:{ titulo: tarea.titulo }" />
                   <span class="task-checkbox-custom">
                     <svg *ngIf="tarea.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
@@ -191,14 +191,14 @@
                     type="button"
                     class="task-project"
                     (click)="navegarAProyecto(tarea.proyectoId, $event)"
-                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    [title]="'crm.tareas.irAProyectoTitulo' | t:{ nombre: tarea.proyectoNombre }">
                     {{ tarea.proyectoNombre }}
                   </button>
                 </div>
               </div>
 
               <div class="task-row-right">
-                <span class="task-date date-overdue" title="Tarea con fecha límite vencida">
+                <span class="task-date date-overdue" [title]="'crm.tareas.fechaVencidaTitulo' | t">
                   {{ formatearFechaDisplay(tarea.fechaVencimiento) }}
                 </span>
 
@@ -207,7 +207,7 @@
                     type="button"
                     class="btn-dots"
                     (click)="toggleMenu(tarea.id, $event)"
-                    aria-label="Acciones de la tarea">
+                    [attr.aria-label]="'crm.tareas.accionesAria' | t">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                       <circle cx="5" cy="12" r="2"/>
                       <circle cx="12" cy="12" r="2"/>
@@ -218,20 +218,20 @@
                   <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
                     <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      <span>Editar</span>
+                      <span>{{ 'crm.tareas.editar' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                      <span>Ver proyecto</span>
+                      <span>{{ 'crm.tareas.verProyecto' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span>Completar</span>
+                      <span>{{ 'crm.tareas.completar' | t }}</span>
                     </button>
                     <div class="menu-divider"></div>
                     <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                      <span>Eliminar</span>
+                      <span>{{ 'crm.tareas.eliminar' | t }}</span>
                     </button>
                   </div>
                 </div>
@@ -244,7 +244,7 @@
         <!-- Grupo: Hoy -->
         <section class="task-group" *ngIf="grupoHoy.length > 0">
           <div class="group-header">
-            <h2 class="group-title">Hoy</h2>
+            <h2 class="group-title">{{ 'crm.tareas.grupoHoy' | t }}</h2>
             <span class="group-count">{{ grupoHoy.length }}</span>
           </div>
 
@@ -260,7 +260,7 @@
                     [checked]="tarea.estado === 'COMPLETADA'"
                     [disabled]="guardando"
                     (change)="alternar(tarea, $event)"
-                    [attr.aria-label]="'Marcar como completada: ' + tarea.titulo" />
+                    [attr.aria-label]="'crm.tareas.marcarCompletadaAria' | t:{ titulo: tarea.titulo }" />
                   <span class="task-checkbox-custom">
                     <svg *ngIf="tarea.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
@@ -274,21 +274,21 @@
                     type="button"
                     class="task-project"
                     (click)="navegarAProyecto(tarea.proyectoId, $event)"
-                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    [title]="'crm.tareas.irAProyectoTitulo' | t:{ nombre: tarea.proyectoNombre }">
                     {{ tarea.proyectoNombre }}
                   </button>
                 </div>
               </div>
 
               <div class="task-row-right">
-                <span class="task-date date-today">Hoy</span>
+                <span class="task-date date-today">{{ 'crm.tareas.hoy' | t }}</span>
 
                 <div class="menu-container">
                   <button
                     type="button"
                     class="btn-dots"
                     (click)="toggleMenu(tarea.id, $event)"
-                    aria-label="Acciones de la tarea">
+                    [attr.aria-label]="'crm.tareas.accionesAria' | t">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                       <circle cx="5" cy="12" r="2"/>
                       <circle cx="12" cy="12" r="2"/>
@@ -299,20 +299,20 @@
                   <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
                     <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      <span>Editar</span>
+                      <span>{{ 'crm.tareas.editar' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                      <span>Ver proyecto</span>
+                      <span>{{ 'crm.tareas.verProyecto' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span>Completar</span>
+                      <span>{{ 'crm.tareas.completar' | t }}</span>
                     </button>
                     <div class="menu-divider"></div>
                     <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                      <span>Eliminar</span>
+                      <span>{{ 'crm.tareas.eliminar' | t }}</span>
                     </button>
                   </div>
                 </div>
@@ -325,7 +325,7 @@
         <!-- Grupo: Próximas -->
         <section class="task-group" *ngIf="grupoProximas.length > 0">
           <div class="group-header">
-            <h2 class="group-title">Próximas</h2>
+            <h2 class="group-title">{{ 'crm.tareas.grupoProximas' | t }}</h2>
             <span class="group-count" *ngIf="grupoProximas.length > 0">{{ grupoProximas.length }}</span>
           </div>
 
@@ -341,7 +341,7 @@
                     [checked]="tarea.estado === 'COMPLETADA'"
                     [disabled]="guardando"
                     (change)="alternar(tarea, $event)"
-                    [attr.aria-label]="'Marcar como completada: ' + tarea.titulo" />
+                    [attr.aria-label]="'crm.tareas.marcarCompletadaAria' | t:{ titulo: tarea.titulo }" />
                   <span class="task-checkbox-custom">
                     <svg *ngIf="tarea.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
@@ -355,7 +355,7 @@
                     type="button"
                     class="task-project"
                     (click)="navegarAProyecto(tarea.proyectoId, $event)"
-                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    [title]="'crm.tareas.irAProyectoTitulo' | t:{ nombre: tarea.proyectoNombre }">
                     {{ tarea.proyectoNombre }}
                   </button>
                 </div>
@@ -369,7 +369,7 @@
                     type="button"
                     class="btn-dots"
                     (click)="toggleMenu(tarea.id, $event)"
-                    aria-label="Acciones de la tarea">
+                    [attr.aria-label]="'crm.tareas.accionesAria' | t">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                       <circle cx="5" cy="12" r="2"/>
                       <circle cx="12" cy="12" r="2"/>
@@ -380,20 +380,20 @@
                   <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
                     <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      <span>Editar</span>
+                      <span>{{ 'crm.tareas.editar' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                      <span>Ver proyecto</span>
+                      <span>{{ 'crm.tareas.verProyecto' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span>Completar</span>
+                      <span>{{ 'crm.tareas.completar' | t }}</span>
                     </button>
                     <div class="menu-divider"></div>
                     <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                      <span>Eliminar</span>
+                      <span>{{ 'crm.tareas.eliminar' | t }}</span>
                     </button>
                   </div>
                 </div>
@@ -406,7 +406,7 @@
         <!-- Grupo: Sin fecha (si existen) -->
         <section class="task-group" *ngIf="grupoSinFecha.length > 0">
           <div class="group-header">
-            <h2 class="group-title">Sin fecha</h2>
+            <h2 class="group-title">{{ 'crm.tareas.grupoSinFecha' | t }}</h2>
             <span class="group-count">{{ grupoSinFecha.length }}</span>
           </div>
 
@@ -422,7 +422,7 @@
                     [checked]="tarea.estado === 'COMPLETADA'"
                     [disabled]="guardando"
                     (change)="alternar(tarea, $event)"
-                    [attr.aria-label]="'Marcar como completada: ' + tarea.titulo" />
+                    [attr.aria-label]="'crm.tareas.marcarCompletadaAria' | t:{ titulo: tarea.titulo }" />
                   <span class="task-checkbox-custom">
                     <svg *ngIf="tarea.estado === 'COMPLETADA'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
@@ -436,21 +436,21 @@
                     type="button"
                     class="task-project"
                     (click)="navegarAProyecto(tarea.proyectoId, $event)"
-                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    [title]="'crm.tareas.irAProyectoTitulo' | t:{ nombre: tarea.proyectoNombre }">
                     {{ tarea.proyectoNombre }}
                   </button>
                 </div>
               </div>
 
               <div class="task-row-right">
-                <span class="task-date text-muted">Sin fecha</span>
+                <span class="task-date text-muted">{{ 'crm.tareas.sinFecha' | t }}</span>
 
                 <div class="menu-container">
                   <button
                     type="button"
                     class="btn-dots"
                     (click)="toggleMenu(tarea.id, $event)"
-                    aria-label="Acciones de la tarea">
+                    [attr.aria-label]="'crm.tareas.accionesAria' | t">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                       <circle cx="5" cy="12" r="2"/>
                       <circle cx="12" cy="12" r="2"/>
@@ -461,20 +461,20 @@
                   <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
                     <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      <span>Editar</span>
+                      <span>{{ 'crm.tareas.editar' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                      <span>Ver proyecto</span>
+                      <span>{{ 'crm.tareas.verProyecto' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span>Completar</span>
+                      <span>{{ 'crm.tareas.completar' | t }}</span>
                     </button>
                     <div class="menu-divider"></div>
                     <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                      <span>Eliminar</span>
+                      <span>{{ 'crm.tareas.eliminar' | t }}</span>
                     </button>
                   </div>
                 </div>
@@ -495,7 +495,7 @@
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <span>Añadir tarea</span>
+            <span>{{ 'crm.tareas.anadirTarea' | t }}</span>
           </button>
 
           <form
@@ -508,17 +508,17 @@
                 class="inline-input-title"
                 [(ngModel)]="formRapido.titulo"
                 name="tituloRapido"
-                placeholder="Escribe el título de la tarea..."
+                [placeholder]="'crm.tareas.placeholderRapido' | t"
                 required
                 minlength="2"
-                aria-label="Título de la nueva tarea" />
+                [attr.aria-label]="'crm.tareas.tituloNuevaAria' | t" />
 
               <select
                 class="inline-select-project"
                 [(ngModel)]="formRapido.proyectoId"
                 name="proyectoRapido"
                 required
-                aria-label="Proyecto">
+                [attr.aria-label]="'crm.tareas.proyectoLabel' | t">
                 <option *ngFor="let p of proyectos" [value]="p.id">{{ p.nombre }}</option>
               </select>
 
@@ -527,16 +527,16 @@
                 class="inline-input-date"
                 [(ngModel)]="formRapido.fechaVencimiento"
                 name="fechaRapida"
-                aria-label="Fecha de vencimiento" />
+                [attr.aria-label]="'crm.tareas.fechaVencimientoAria' | t" />
             </div>
 
             <div class="inline-quick-actions">
               <span class="inline-error-msg" *ngIf="errorRapido">{{ errorRapido }}</span>
               <button type="button" class="btn-cancel-sm" (click)="cerrarCreacionRapida()" [disabled]="guardando">
-                Cancelar
+                {{ 'crm.tareas.cancelar' | t }}
               </button>
               <button type="submit" class="btn-submit-sm" [disabled]="guardando">
-                {{ guardando ? 'Guardando…' : 'Añadir' }}
+                {{ (guardando ? 'crm.tareas.guardando' : 'crm.tareas.anadir') | t }}
               </button>
             </div>
           </form>
@@ -548,13 +548,13 @@
       <ng-container *ngIf="pestanaActiva === 'COMPLETADAS'">
 
         <div class="tab-all-done-banner" *ngIf="!tareasFiltradas.length && !busqueda">
-          <span>No tienes tareas completadas todavía. Completa tareas marcando la casilla de verificación.</span>
+          <span>{{ 'crm.tareas.sinCompletadas' | t }}</span>
         </div>
 
         <!-- Grupo: Completadas Hoy -->
         <section class="task-group" *ngIf="grupoCompletadasHoy.length > 0">
           <div class="group-header">
-            <h2 class="group-title">Hoy</h2>
+            <h2 class="group-title">{{ 'crm.tareas.grupoHoy' | t }}</h2>
             <span class="group-count">{{ grupoCompletadasHoy.length }}</span>
           </div>
 
@@ -570,7 +570,7 @@
                     [checked]="true"
                     [disabled]="guardando"
                     (change)="alternar(tarea, $event)"
-                    [attr.aria-label]="'Reabrir tarea: ' + tarea.titulo" />
+                    [attr.aria-label]="'crm.tareas.reabrirTareaAria' | t:{ titulo: tarea.titulo }" />
                   <span class="task-checkbox-custom is-checked">
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
@@ -584,21 +584,21 @@
                     type="button"
                     class="task-project"
                     (click)="navegarAProyecto(tarea.proyectoId, $event)"
-                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    [title]="'crm.tareas.irAProyectoTitulo' | t:{ nombre: tarea.proyectoNombre }">
                     {{ tarea.proyectoNombre }}
                   </button>
                 </div>
               </div>
 
               <div class="task-row-right">
-                <span class="task-date text-muted">Hoy</span>
+                <span class="task-date text-muted">{{ 'crm.tareas.hoy' | t }}</span>
 
                 <div class="menu-container">
                   <button
                     type="button"
                     class="btn-dots"
                     (click)="toggleMenu(tarea.id, $event)"
-                    aria-label="Acciones de la tarea">
+                    [attr.aria-label]="'crm.tareas.accionesAria' | t">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                       <circle cx="5" cy="12" r="2"/>
                       <circle cx="12" cy="12" r="2"/>
@@ -609,20 +609,20 @@
                   <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
                     <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                      <span>Reabrir tarea</span>
+                      <span>{{ 'crm.tareas.reabrirTarea' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      <span>Editar</span>
+                      <span>{{ 'crm.tareas.editar' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                      <span>Ver proyecto</span>
+                      <span>{{ 'crm.tareas.verProyecto' | t }}</span>
                     </button>
                     <div class="menu-divider"></div>
                     <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                      <span>Eliminar</span>
+                      <span>{{ 'crm.tareas.eliminar' | t }}</span>
                     </button>
                   </div>
                 </div>
@@ -635,7 +635,7 @@
         <!-- Grupo: Completadas Anteriores -->
         <section class="task-group" *ngIf="grupoCompletadasAnteriores.length > 0">
           <div class="group-header">
-            <h2 class="group-title">Anteriores</h2>
+            <h2 class="group-title">{{ 'crm.tareas.grupoAnteriores' | t }}</h2>
             <span class="group-count">{{ grupoCompletadasAnteriores.length }}</span>
           </div>
 
@@ -651,7 +651,7 @@
                     [checked]="true"
                     [disabled]="guardando"
                     (change)="alternar(tarea, $event)"
-                    [attr.aria-label]="'Reabrir tarea: ' + tarea.titulo" />
+                    [attr.aria-label]="'crm.tareas.reabrirTareaAria' | t:{ titulo: tarea.titulo }" />
                   <span class="task-checkbox-custom is-checked">
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
@@ -665,7 +665,7 @@
                     type="button"
                     class="task-project"
                     (click)="navegarAProyecto(tarea.proyectoId, $event)"
-                    [title]="'Ir a proyecto ' + tarea.proyectoNombre">
+                    [title]="'crm.tareas.irAProyectoTitulo' | t:{ nombre: tarea.proyectoNombre }">
                     {{ tarea.proyectoNombre }}
                   </button>
                 </div>
@@ -679,7 +679,7 @@
                     type="button"
                     class="btn-dots"
                     (click)="toggleMenu(tarea.id, $event)"
-                    aria-label="Acciones de la tarea">
+                    [attr.aria-label]="'crm.tareas.accionesAria' | t">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                       <circle cx="5" cy="12" r="2"/>
                       <circle cx="12" cy="12" r="2"/>
@@ -690,20 +690,20 @@
                   <div class="menu-dropdown" *ngIf="menuAbiertoId === tarea.id" (click)="$event.stopPropagation()">
                     <button type="button" class="menu-item" (click)="alternar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                      <span>Reabrir tarea</span>
+                      <span>{{ 'crm.tareas.reabrirTarea' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="abrirModalEditar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      <span>Editar</span>
+                      <span>{{ 'crm.tareas.editar' | t }}</span>
                     </button>
                     <button type="button" class="menu-item" (click)="navegarAProyecto(tarea.proyectoId, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                      <span>Ver proyecto</span>
+                      <span>{{ 'crm.tareas.verProyecto' | t }}</span>
                     </button>
                     <div class="menu-divider"></div>
                     <button type="button" class="menu-item menu-item-danger" (click)="confirmarEliminar(tarea, $event)">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                      <span>Eliminar</span>
+                      <span>{{ 'crm.tareas.eliminar' | t }}</span>
                     </button>
                   </div>
                 </div>
@@ -723,15 +723,15 @@
   <div class="modal-backdrop" *ngIf="modalCrear" (click)="cerrarModalCrear()">
     <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-crear-title" tabindex="-1" appDialogFocus>
       <header class="modal-header">
-        <h2 id="modal-crear-title">Nueva tarea</h2>
-        <button type="button" class="btn-modal-close" (click)="cerrarModalCrear()" aria-label="Cerrar modal">×</button>
+        <h2 id="modal-crear-title">{{ 'crm.tareas.modalCrearTitulo' | t }}</h2>
+        <button type="button" class="btn-modal-close" (click)="cerrarModalCrear()" [attr.aria-label]="'crm.tareas.cerrarModal' | t">×</button>
       </header>
 
       <form class="modal-body" (ngSubmit)="guardarNuevaTarea()">
         <div class="form-field">
-          <label for="crear-proyecto">Proyecto *</label>
+          <label for="crear-proyecto">{{ 'crm.tareas.labelProyecto' | t }}</label>
           <select id="crear-proyecto" [(ngModel)]="formCrear.proyectoId" name="proyectoId" required class="input-select">
-            <option value="" disabled>Selecciona un proyecto</option>
+            <option value="" disabled>{{ 'crm.tareas.seleccionaProyecto' | t }}</option>
             <option *ngFor="let p of proyectos" [value]="p.id">
               {{ p.nombre }} {{ p.cliente ? '(' + p.cliente.nombre + ')' : '' }}
             </option>
@@ -739,13 +739,13 @@
         </div>
 
         <div class="form-field">
-          <label for="crear-titulo">Título de la tarea *</label>
+          <label for="crear-titulo">{{ 'crm.tareas.labelTituloCrear' | t }}</label>
           <input
             id="crear-titulo"
             type="text"
             [(ngModel)]="formCrear.titulo"
             name="titulo"
-            placeholder="Ej. Integrar tienda en línea"
+            [placeholder]="'crm.tareas.placeholderTituloCrear' | t"
             required
             minlength="2"
             class="input-text" />
@@ -753,7 +753,7 @@
 
         <div class="form-field-row">
           <div class="form-field">
-            <label for="crear-fecha">Fecha límite</label>
+            <label for="crear-fecha">{{ 'crm.tareas.labelFechaLimite' | t }}</label>
             <input
               id="crear-fecha"
               type="date"
@@ -763,24 +763,24 @@
           </div>
 
           <div class="form-field">
-            <label for="crear-prioridad">Prioridad</label>
+            <label for="crear-prioridad">{{ 'crm.tareas.labelPrioridad' | t }}</label>
             <select id="crear-prioridad" [(ngModel)]="formCrear.prioridad" name="prioridad" class="input-select">
-              <option value="BAJA">Baja</option>
-              <option value="MEDIA">Media</option>
-              <option value="ALTA">Alta</option>
-              <option value="URGENTE">Urgente</option>
+              <option value="BAJA">{{ 'crm.tareas.prioridadBaja' | t }}</option>
+              <option value="MEDIA">{{ 'crm.tareas.prioridadMedia' | t }}</option>
+              <option value="ALTA">{{ 'crm.tareas.prioridadAlta' | t }}</option>
+              <option value="URGENTE">{{ 'crm.tareas.prioridadUrgente' | t }}</option>
             </select>
           </div>
         </div>
 
         <div class="form-field">
-          <label for="crear-desc">Descripción (opcional)</label>
+          <label for="crear-desc">{{ 'crm.tareas.labelDescOpcional' | t }}</label>
           <textarea
             id="crear-desc"
             [(ngModel)]="formCrear.descripcion"
             name="descripcion"
             rows="3"
-            placeholder="Detalles adicionales, requisitos o notas..."
+            [placeholder]="'crm.tareas.placeholderDesc' | t"
             class="input-textarea"></textarea>
         </div>
 
@@ -790,11 +790,11 @@
 
         <footer class="modal-footer">
           <button type="button" class="btn-cancel" (click)="cerrarModalCrear()" [disabled]="guardando">
-            Cancelar
+            {{ 'crm.tareas.cancelar' | t }}
           </button>
           <button type="submit" class="btn-submit" [disabled]="guardando">
-            <span *ngIf="!guardando">Crear tarea</span>
-            <span *ngIf="guardando">Guardando…</span>
+            <span *ngIf="!guardando">{{ 'crm.tareas.crearTarea' | t }}</span>
+            <span *ngIf="guardando">{{ 'crm.tareas.guardando' | t }}</span>
           </button>
         </footer>
       </form>
@@ -805,13 +805,13 @@
   <div class="modal-backdrop" *ngIf="modalEditar" (click)="cerrarModalEditar()">
     <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-editar-title" tabindex="-1" appDialogFocus>
       <header class="modal-header">
-        <h2 id="modal-editar-title">Editar tarea</h2>
-        <button type="button" class="btn-modal-close" (click)="cerrarModalEditar()" aria-label="Cerrar modal">×</button>
+        <h2 id="modal-editar-title">{{ 'crm.tareas.modalEditarTitulo' | t }}</h2>
+        <button type="button" class="btn-modal-close" (click)="cerrarModalEditar()" [attr.aria-label]="'crm.tareas.cerrarModal' | t">×</button>
       </header>
 
       <form class="modal-body" (ngSubmit)="guardarEdicion()">
         <div class="form-field">
-          <label>Proyecto</label>
+          <label>{{ 'crm.tareas.proyectoLabel' | t }}</label>
           <input
             type="text"
             [value]="tareaEditando?.proyectoNombre || ''"
@@ -820,7 +820,7 @@
         </div>
 
         <div class="form-field">
-          <label for="editar-titulo">Título *</label>
+          <label for="editar-titulo">{{ 'crm.tareas.labelTitulo' | t }}</label>
           <input
             id="editar-titulo"
             type="text"
@@ -833,29 +833,29 @@
 
         <div class="form-field-row">
           <div class="form-field">
-            <label for="editar-estado">Estado</label>
+            <label for="editar-estado">{{ 'crm.tareas.labelEstado' | t }}</label>
             <select id="editar-estado" [(ngModel)]="formEditar.estado" name="estado" class="input-select">
-              <option value="PENDIENTE">Pendiente</option>
-              <option value="EN_PROGRESO">En progreso</option>
-              <option value="BLOQUEADA">Bloqueada</option>
-              <option value="COMPLETADA">Completada</option>
-              <option value="CANCELADA">Cancelada</option>
+              <option value="PENDIENTE">{{ 'crm.tareas.estadoPendiente' | t }}</option>
+              <option value="EN_PROGRESO">{{ 'crm.tareas.estadoEnProgreso' | t }}</option>
+              <option value="BLOQUEADA">{{ 'crm.tareas.estadoBloqueada' | t }}</option>
+              <option value="COMPLETADA">{{ 'crm.tareas.estadoCompletada' | t }}</option>
+              <option value="CANCELADA">{{ 'crm.tareas.estadoCancelada' | t }}</option>
             </select>
           </div>
 
           <div class="form-field">
-            <label for="editar-prioridad">Prioridad</label>
+            <label for="editar-prioridad">{{ 'crm.tareas.labelPrioridad' | t }}</label>
             <select id="editar-prioridad" [(ngModel)]="formEditar.prioridad" name="prioridad" class="input-select">
-              <option value="BAJA">Baja</option>
-              <option value="MEDIA">Media</option>
-              <option value="ALTA">Alta</option>
-              <option value="URGENTE">Urgente</option>
+              <option value="BAJA">{{ 'crm.tareas.prioridadBaja' | t }}</option>
+              <option value="MEDIA">{{ 'crm.tareas.prioridadMedia' | t }}</option>
+              <option value="ALTA">{{ 'crm.tareas.prioridadAlta' | t }}</option>
+              <option value="URGENTE">{{ 'crm.tareas.prioridadUrgente' | t }}</option>
             </select>
           </div>
         </div>
 
         <div class="form-field">
-          <label for="editar-fecha">Fecha límite</label>
+          <label for="editar-fecha">{{ 'crm.tareas.labelFechaLimite' | t }}</label>
           <input
             id="editar-fecha"
             type="date"
@@ -865,7 +865,7 @@
         </div>
 
         <div class="form-field">
-          <label for="editar-desc">Descripción</label>
+          <label for="editar-desc">{{ 'crm.tareas.labelDesc' | t }}</label>
           <textarea
             id="editar-desc"
             [(ngModel)]="formEditar.descripcion"
@@ -880,11 +880,11 @@
 
         <footer class="modal-footer">
           <button type="button" class="btn-cancel" (click)="cerrarModalEditar()" [disabled]="guardando">
-            Cancelar
+            {{ 'crm.tareas.cancelar' | t }}
           </button>
           <button type="submit" class="btn-submit" [disabled]="guardando">
-            <span *ngIf="!guardando">Guardar cambios</span>
-            <span *ngIf="guardando">Guardando…</span>
+            <span *ngIf="!guardando">{{ 'crm.tareas.guardarCambios' | t }}</span>
+            <span *ngIf="guardando">{{ 'crm.tareas.guardando' | t }}</span>
           </button>
         </footer>
       </form>
@@ -895,24 +895,24 @@
   <div class="modal-backdrop" *ngIf="modalEliminar" (click)="cerrarModalEliminar()">
     <div class="modal-card modal-card-sm" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-title" tabindex="-1" appDialogFocus>
       <header class="modal-header">
-        <h2 id="modal-eliminar-title">Eliminar tarea</h2>
-        <button type="button" class="btn-modal-close" (click)="cerrarModalEliminar()" aria-label="Cerrar modal">×</button>
+        <h2 id="modal-eliminar-title">{{ 'crm.tareas.modalEliminarTitulo' | t }}</h2>
+        <button type="button" class="btn-modal-close" (click)="cerrarModalEliminar()" [attr.aria-label]="'crm.tareas.cerrarModal' | t">×</button>
       </header>
 
       <div class="modal-body">
         <p class="modal-confirm-text">
-          ¿Estás seguro de que deseas eliminar permanentemente la tarea
+          {{ 'crm.tareas.confirmarEliminarTexto' | t }}
           <strong>"{{ tareaEliminando?.titulo }}"</strong>?
         </p>
-        <p class="modal-confirm-subtext">Esta acción no se puede deshacer.</p>
+        <p class="modal-confirm-subtext">{{ 'crm.tareas.confirmarEliminarSubtexto' | t }}</p>
 
         <footer class="modal-footer">
           <button type="button" class="btn-cancel" (click)="cerrarModalEliminar()" [disabled]="guardando">
-            Cancelar
+            {{ 'crm.tareas.cancelar' | t }}
           </button>
           <button type="button" class="btn-danger" (click)="eliminarTareaConfirmada()" [disabled]="guardando">
-            <span *ngIf="!guardando">Eliminar tarea</span>
-            <span *ngIf="guardando">Eliminando…</span>
+            <span *ngIf="!guardando">{{ 'crm.tareas.eliminarTarea' | t }}</span>
+            <span *ngIf="guardando">{{ 'crm.tareas.eliminando' | t }}</span>
           </button>
         </footer>
       </div>

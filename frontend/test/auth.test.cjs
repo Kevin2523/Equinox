@@ -16,7 +16,22 @@ const window = { location: { hostname: 'localhost', port: '4200', origin: 'http:
 let services;
 let devMode = false;
 const cache = new Map();
-const angularCore = { Injectable: () => (target) => target, Component: () => (target) => target, inject: (token) => services.get(token), isDevMode: () => devMode };
+const angularCore = {
+  Injectable: () => (target) => target,
+  Component: () => (target) => target,
+  Pipe: () => (target) => target,
+  Optional: () => () => {},
+  signal: (initial) => {
+    let val = initial;
+    const fn = () => val;
+    fn.set = (next) => { val = next; };
+    fn.asReadonly = () => fn;
+    return fn;
+  },
+  computed: (calc) => () => calc(),
+  inject: (token) => services.get(token),
+  isDevMode: () => devMode
+};
 class Router {}
 
 function load(relativePath) {
@@ -43,12 +58,25 @@ function load(relativePath) {
 
 const { AuthService } = load('auth/auth.service.ts');
 const { OrganizacionService } = load('auth/organizacion.service.ts');
+const { I18nService } = load('state/i18n.service.ts');
 const { guardOrganizacion, guardCliente } = load('auth/auth.guards.ts');
 const { authInterceptor } = load('auth/auth.interceptor.ts');
 const { LoginComponent } = load('pages/login.component.ts');
 const { LogoutComponent } = load('pages/logout.component.ts');
 const { ClientShellComponent } = load('shells/client-shell.component.ts');
 const { resolverOrigenApi, esPeticionDelOrigenApi } = load('auth/api.config.ts');
+const catalogoPublicoEs = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/assets/i18n/publico-shell/es.json'), 'utf8'));
+
+function crearI18nStub() {
+  return {
+    locale: () => 'es',
+    idiomasDisponibles: [],
+    establecerIdiomaLocal: () => 'es',
+    sincronizarDesdeUsuario: () => 'es',
+    alCerrarSesion: () => 'es',
+    t: (key) => catalogoPublicoEs[key] || key,
+  };
+}
 
 function fixture(getResponse) {
   memory.clear();
@@ -59,7 +87,7 @@ function fixture(getResponse) {
     post: (url, body) => { calls.push({ method: 'POST', url, body }); return of({ token: 'revocable' }); }
   };
   const orgService = { cargarOrganizacion: async () => {}, limpiar: () => {}, tipoFreelance: null };
-  services = new Map([[OrganizacionService, orgService], [Router, router]]);
+  services = new Map([[OrganizacionService, orgService], [Router, router], [I18nService, crearI18nStub()]]);
   const auth = new AuthService(http, router);
   services.set(AuthService, auth);
   return { auth, router, http, calls };

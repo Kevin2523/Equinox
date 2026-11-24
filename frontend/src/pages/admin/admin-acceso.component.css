@@ -20,14 +20,33 @@
 .admin-auth-brand {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   margin-bottom: 22px;
 }
 
-.admin-auth-brand > div {
+.admin-auth-brand-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-auth-brand-left > div {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.admin-auth-lang-select {
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .admin-auth-brand strong {

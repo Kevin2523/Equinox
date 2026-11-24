@@ -4,48 +4,48 @@
 <header class="topnav">
   <!-- Brand Logo & Divider -->
   <div class="brand-group">
-    <button class="brand" (click)="navegarInicio()" aria-label="Inicio Equinox">
+    <button class="brand" (click)="navegarInicio()" [attr.aria-label]="'publico.topbar.inicioAria' | t">
       <span class="brand-icon">
         <svg viewBox="0 0 32 32" fill="none">
           <circle cx="16" cy="16" r="14" stroke="#111827" stroke-width="2.5"/>
           <path d="M16 6 A 10 10 0 0 1 26 16" fill="#111827" />
         </svg>
       </span>
-      <strong>equinox</strong>
+      <strong>{{ 'publico.comun.marca' | t }}</strong>
     </button>
     <div class="brand-divider"></div>
   </div>
 
   <!-- Desktop Navigation (Text Only with Active Underline Bar) -->
-  <nav class="nav-center" aria-label="Navegación principal">
+  <nav class="nav-center" [attr.aria-label]="'publico.topbar.navPrincipalAria' | t">
     <button *ngIf="!esFotografia" class="nav-link" (click)="state.navigate('hoy')" [class.active]="state.page === 'hoy'">
-      Hoy
+      {{ 'publico.topbar.nav.hoy' | t }}
     </button>
     <button class="nav-link" (click)="state.navigate('clientes')" [class.active]="state.page === 'clientes'">
-      Clientes
+      {{ 'publico.topbar.nav.clientes' | t }}
     </button>
     <button *ngIf="!esFotografia" class="nav-link" (click)="state.navigate('proyectos')" [class.active]="state.page === 'proyectos'">
-      Proyectos
+      {{ 'publico.topbar.nav.proyectos' | t }}
     </button>
     <button *ngIf="!esFotografia" class="nav-link" (click)="state.navigate('tareas')" [class.active]="state.page === 'tareas'">
-      Tareas
+      {{ 'publico.topbar.nav.tareas' | t }}
     </button>
     <button class="nav-link" (click)="state.navigate('finanzas')" [class.active]="state.page === 'finanzas'">
-      Finanzas
+      {{ 'publico.topbar.nav.finanzas' | t }}
     </button>
   </nav>
 
   <!-- Right Actions: Search, Notifications, Avatar -->
   <div class="nav-actions">
     <!-- Search Pill matching reference -->
-    <button class="topbar-search-pill" id="openSearch" (click)="state.openSearch()" aria-label="Buscar en Equinox (Ctrl+K)" title="Buscar (Ctrl+K)">
+    <button class="topbar-search-pill" id="openSearch" (click)="state.openSearch()" [attr.aria-label]="'publico.topbar.buscarAria' | t" [attr.title]="'publico.topbar.buscarTitle' | t">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-      <span>Buscar en Equinox...</span>
+      <span>{{ 'publico.topbar.buscarPlaceholder' | t }}</span>
     </button>
 
     <!-- Notifications Bell -->
     <div class="notif-wrapper" style="position: relative;">
-      <button class="icon-btn notif-bell" (click)="toggleNotificaciones($event)" [attr.aria-expanded]="state.notificationsOpen" aria-label="Notificaciones" title="Notificaciones">
+      <button class="icon-btn notif-bell" (click)="toggleNotificaciones($event)" [attr.aria-expanded]="state.notificationsOpen" [attr.aria-label]="'publico.topbar.notificacionesAria' | t" [attr.title]="'publico.topbar.notificacionesTitulo' | t">
         <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M14 21h-4"/></svg>
         <span class="badge-dot" *ngIf="state.unreadNotifsCount > 0"></span>
       </button>
@@ -53,11 +53,11 @@
       <!-- Notifications Popover -->
       <div class="notif-popover" *ngIf="state.notificationsOpen" (click)="$event.stopPropagation()">
         <div class="notif-header">
-          <strong>Notificaciones</strong>
-          <span class="eyebrow" *ngIf="state.unreadNotifsCount > 0">{{ state.unreadNotifsCount }} nuevas</span>
+          <strong>{{ 'publico.topbar.notificacionesTitulo' | t }}</strong>
+          <span class="eyebrow" *ngIf="state.unreadNotifsCount > 0">{{ 'publico.topbar.notificacionesNuevas' | t:{ cantidad: state.unreadNotifsCount } }}</span>
         </div>
         <div class="notif-list">
-          <p class="notif-empty" *ngIf="state.notificaciones.length === 0">No tienes notificaciones pendientes.</p>
+          <p class="notif-empty" *ngIf="state.notificaciones.length === 0">{{ 'publico.topbar.notificacionesVacias' | t }}</p>
           <div class="notif-item" *ngFor="let n of state.notificaciones" [class.unread]="!n.leida">
             <b>{{ n.titulo }}</b>
             <p>{{ n.descripcion }}</p>
@@ -69,7 +69,7 @@
 
     <!-- User Profile Button & Dropdown -->
     <div class="profile-menu-wrap">
-      <button class="avatar-badge profile" type="button" (click)="toggleMenu($event)" [attr.aria-expanded]="menuAbierto" aria-haspopup="menu" aria-label="Menú de cuenta" title="Cuenta y configuración">
+      <button class="avatar-badge profile" type="button" (click)="toggleMenu($event)" [attr.aria-expanded]="menuAbierto" aria-haspopup="menu" [attr.aria-label]="'publico.topbar.cuentaAria' | t" [attr.title]="'publico.topbar.cuentaTitle' | t">
         <span>{{ obtenerIniciales() }}</span>
       </button>
       <div class="profile-dropdown" role="menu" *ngIf="menuAbierto" (click)="$event.stopPropagation()">
@@ -82,11 +82,28 @@
         </div>
         <button class="profile-item" role="menuitem" type="button" (click)="irAConfiguracion()">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-          Mi perfil y configuración
+          {{ 'publico.topbar.miPerfil' | t }}
         </button>
+        <div class="profile-lang-section">
+          <span class="profile-lang-label">{{ 'publico.topbar.idiomaCuenta' | t }}</span>
+          <div class="profile-lang-pills" role="group" [attr.aria-label]="'publico.topbar.idiomaCuenta' | t">
+            <button
+              *ngFor="let idioma of i18n.idiomasDisponibles"
+              type="button"
+              class="profile-lang-btn"
+              [class.active]="i18n.locale() === idioma.codigo"
+              [attr.aria-pressed]="i18n.locale() === idioma.codigo"
+              [disabled]="cambiandoIdioma"
+              (click)="cambiarIdiomaCuenta(idioma.codigo)"
+            >
+              {{ idioma.etiquetaCorta }}
+            </button>
+          </div>
+          <small class="profile-lang-error" role="alert" *ngIf="errorIdiomaKey">{{ errorIdiomaKey | t }}</small>
+        </div>
         <a class="profile-item profile-item-danger auth-logout" role="menuitem" routerLink="/cerrar-sesion" (click)="menuAbierto = false">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
-          Cerrar sesión
+          {{ 'publico.topbar.cerrarSesion' | t }}
         </a>
       </div>
     </div>
@@ -98,7 +115,7 @@
       (click)="toggleMenuMovil($event)"
       [attr.aria-expanded]="state.mobileMenuOpen"
       aria-controls="mobile-nav-drawer"
-      aria-label="Menú móvil">
+      [attr.aria-label]="'publico.topbar.menuMovilAria' | t">
       <svg viewBox="0 0 24 24">
         <path *ngIf="!state.mobileMenuOpen" d="M4 6h16M4 12h16M4 18h16"/>
         <path *ngIf="state.mobileMenuOpen" d="M6 6l12 12M18 6L6 18"/>
@@ -112,28 +129,44 @@
   id="mobile-nav-drawer"
   class="mobile-nav-drawer"
   *ngIf="state.mobileMenuOpen"
-  aria-label="Navegación móvil"
+  [attr.aria-label]="'publico.topbar.navMovilAria' | t"
   (click)="$event.stopPropagation()">
   <button *ngIf="!esFotografia" type="button" class="mobile-nav-link" (click)="navegarMobile('hoy')" [class.active]="state.page === 'hoy'">
-    Hoy
+    {{ 'publico.topbar.nav.hoy' | t }}
   </button>
   <button type="button" class="mobile-nav-link" (click)="navegarMobile('clientes')" [class.active]="state.page === 'clientes'">
-    Clientes
+    {{ 'publico.topbar.nav.clientes' | t }}
   </button>
   <button *ngIf="!esFotografia" type="button" class="mobile-nav-link" (click)="navegarMobile('proyectos')" [class.active]="state.page === 'proyectos'">
-    Proyectos
+    {{ 'publico.topbar.nav.proyectos' | t }}
   </button>
   <button *ngIf="!esFotografia" type="button" class="mobile-nav-link" (click)="navegarMobile('tareas')" [class.active]="state.page === 'tareas'">
-    Tareas
+    {{ 'publico.topbar.nav.tareas' | t }}
   </button>
   <button type="button" class="mobile-nav-link" (click)="navegarMobile('finanzas')" [class.active]="state.page === 'finanzas'">
-    Finanzas
+    {{ 'publico.topbar.nav.finanzas' | t }}
   </button>
   <div class="mobile-nav-divider"></div>
   <button type="button" class="mobile-nav-link" (click)="navegarMobile('configuracion')" [class.active]="state.page === 'configuracion'">
-    Mi perfil y configuración
+    {{ 'publico.topbar.miPerfil' | t }}
   </button>
+  <div class="mobile-lang-row">
+    <span class="profile-lang-label">{{ 'publico.topbar.idiomaCuenta' | t }}</span>
+    <div class="profile-lang-pills" role="group" [attr.aria-label]="'publico.topbar.idiomaCuenta' | t">
+      <button
+        *ngFor="let idioma of i18n.idiomasDisponibles"
+        type="button"
+        class="profile-lang-btn"
+        [class.active]="i18n.locale() === idioma.codigo"
+        [attr.aria-pressed]="i18n.locale() === idioma.codigo"
+        [disabled]="cambiandoIdioma"
+        (click)="cambiarIdiomaCuenta(idioma.codigo)"
+      >
+        {{ idioma.etiquetaCorta }}
+      </button>
+    </div>
+  </div>
   <a class="mobile-nav-link mobile-nav-danger" routerLink="/cerrar-sesion" (click)="state.mobileMenuOpen = false">
-    Cerrar sesión
+    {{ 'publico.topbar.cerrarSesion' | t }}
   </a>
 </nav>
